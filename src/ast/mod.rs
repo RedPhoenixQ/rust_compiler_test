@@ -187,7 +187,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 let operation = match symbol {
                     Symbol::Asterisk => BinaryOp::Mul,
                     Symbol::Dash => BinaryOp::Sub,
-                    Symbol::Equals => BinaryOp::Eq,
+                    Symbol::DoubleEquals => BinaryOp::Eq,
                     Symbol::Plus => BinaryOp::Add,
                     Symbol::Slash => BinaryOp::Div,
                     _ => {
@@ -222,7 +222,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         Ok(match self.tokens.next() {
             is_expr_end!() => Ast::VariableDecl { ident, value: None },
             Some(Token {
-                token: TokenType::Symbol(tokenizer::Symbol::Assign),
+                token: TokenType::Symbol(tokenizer::Symbol::Equals),
                 ..
             }) => Ast::VariableDecl {
                 ident,
@@ -247,11 +247,11 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             bail!("Invalid assignment token, recived {:?}", token)
         };
         let assignment_type: Option<BinaryOp> = match symbol {
-            Symbol::Assign => None,
-            Symbol::SubAssign => Some(BinaryOp::Sub),
-            Symbol::AddAssign => Some(BinaryOp::Add),
-            Symbol::MulAssign => Some(BinaryOp::Mul),
-            Symbol::DivAssign => Some(BinaryOp::Div),
+            Symbol::Equals => None,
+            Symbol::DashEquals => Some(BinaryOp::Sub),
+            Symbol::PlusEquals => Some(BinaryOp::Add),
+            Symbol::AsteriskEquals => Some(BinaryOp::Mul),
+            Symbol::SlashEquals => Some(BinaryOp::Div),
             _ => bail!("Invalid assignment operation: {:?}", symbol),
         };
         // Consume assignment operator

@@ -40,13 +40,13 @@ pub enum Keyword {
 
 #[derive(Debug, PartialEq)]
 pub enum Symbol {
-    SubAssign,
-    AddAssign,
-    MulAssign,
-    DivAssign,
-    Equals,
+    DashEquals,
+    PlusEquals,
+    AsteriskEquals,
+    SlashEquals,
+    DoubleEquals,
 
-    Assign,
+    Equals,
     Dash,
     Plus,
     Slash,
@@ -128,12 +128,12 @@ macro_rules! symbols {
 
 fn symbol(i: Span) -> IResult<Span, Token> {
     symbols! {
-        "==" => Symbol::Equals,
-        "-=" => Symbol::SubAssign,
-        "+=" => Symbol::AddAssign,
-        "*=" => Symbol::MulAssign,
-        "/=" => Symbol::DivAssign,
-        "=" => Symbol::Assign,
+        "==" => Symbol::DoubleEquals,
+        "-=" => Symbol::DashEquals,
+        "+=" => Symbol::PlusEquals,
+        "*=" => Symbol::AsteriskEquals,
+        "/=" => Symbol::SlashEquals,
+        "=" => Symbol::Equals,
         ";" => Symbol::SemiColon,
         "-" => Symbol::Dash,
         "+" => Symbol::Plus,
