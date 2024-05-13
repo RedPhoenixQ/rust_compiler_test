@@ -194,6 +194,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     Symbol::DoubleAnd => BinaryOp::LogicalAnd,
                     Symbol::Pipe => BinaryOp::BitwiseOr,
                     Symbol::And => BinaryOp::BitwiseAnd,
+                    Symbol::LessThan => BinaryOp::Lt,
+                    Symbol::GreaterThan => BinaryOp::Gt,
+                    Symbol::LessThanEquals => BinaryOp::LtEq,
+                    Symbol::GreaterThanEquals => BinaryOp::GtEq,
                     Symbol::DashEquals
                     | Symbol::PlusEquals
                     | Symbol::AsteriskEquals
