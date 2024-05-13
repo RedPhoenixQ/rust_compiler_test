@@ -37,28 +37,37 @@ impl Value {
                 BinaryOp::Sub => Value::Int(lhs - rhs),
                 BinaryOp::Div => Value::Int(lhs / rhs),
                 BinaryOp::Mul => Value::Int(lhs * rhs),
+                BinaryOp::Mod => Value::Int(lhs % rhs),
                 BinaryOp::Eq => Value::Boolean(lhs == rhs),
                 BinaryOp::Neq => Value::Boolean(lhs != rhs),
                 BinaryOp::Lt => Value::Boolean(lhs < rhs),
                 BinaryOp::Gt => Value::Boolean(lhs > rhs),
                 BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
                 BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
-                BinaryOp::And => bail!("Invalid AND boolean operation on ints"),
-                BinaryOp::Or => bail!("Invalid OR boolean operation on ints"),
+                BinaryOp::BitwiseAnd => Value::Int(lhs & rhs),
+                BinaryOp::BitwiseOr => Value::Int(lhs | rhs),
+                BinaryOp::LogicalOr | BinaryOp::LogicalAnd => {
+                    bail!("Type error: '{:?}' cannot be used on floats", op)
+                }
             },
             (Value::Float(lhs), Value::Float(rhs)) => match op {
                 BinaryOp::Add => Value::Float(lhs + rhs),
                 BinaryOp::Sub => Value::Float(lhs - rhs),
                 BinaryOp::Div => Value::Float(lhs / rhs),
                 BinaryOp::Mul => Value::Float(lhs * rhs),
+                BinaryOp::Mod => Value::Float(lhs % rhs),
                 BinaryOp::Eq => Value::Boolean(lhs == rhs),
                 BinaryOp::Neq => Value::Boolean(lhs != rhs),
                 BinaryOp::Lt => Value::Boolean(lhs < rhs),
                 BinaryOp::Gt => Value::Boolean(lhs > rhs),
                 BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
                 BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
-                BinaryOp::And => bail!("Invalid AND boolean operation on floats"),
-                BinaryOp::Or => bail!("Invalid OR boolean operation on floats"),
+                BinaryOp::LogicalOr
+                | BinaryOp::LogicalAnd
+                | BinaryOp::BitwiseOr
+                | BinaryOp::BitwiseAnd => {
+                    bail!("Type error: '{:?}' cannot be used on floats", op)
+                }
             },
             (Value::String(lhs), Value::String(rhs)) => match op {
                 BinaryOp::Add => {
@@ -66,31 +75,41 @@ impl Value {
                     string.push_str(&rhs);
                     Value::String(string.into_boxed_str())
                 }
-                BinaryOp::Sub => bail!("Type error: '-' cannot be used on strings"),
-                BinaryOp::Div => bail!("Type error: '/' cannot be used on strings"),
-                BinaryOp::Mul => bail!("Type error: '*' cannot be used on strings"),
                 BinaryOp::Eq => Value::Boolean(lhs == rhs),
                 BinaryOp::Neq => Value::Boolean(lhs != rhs),
                 BinaryOp::Lt => Value::Boolean(lhs < rhs),
                 BinaryOp::Gt => Value::Boolean(lhs > rhs),
                 BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
                 BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
-                BinaryOp::And => bail!("Invalid AND boolean operation on strings"),
-                BinaryOp::Or => bail!("Invalid OR boolean operation on strings"),
+                BinaryOp::Sub
+                | BinaryOp::Div
+                | BinaryOp::Mul
+                | BinaryOp::Mod
+                | BinaryOp::LogicalOr
+                | BinaryOp::LogicalAnd
+                | BinaryOp::BitwiseOr
+                | BinaryOp::BitwiseAnd => {
+                    bail!("Type error: '{:?}' cannot be used on booleans", op)
+                }
             },
             (Value::Boolean(lhs), Value::Boolean(rhs)) => match op {
-                BinaryOp::Add => bail!("Type error: '-' cannot be used on booleans"),
-                BinaryOp::Sub => bail!("Type error: '-' cannot be used on booleans"),
-                BinaryOp::Div => bail!("Type error: '/' cannot be used on booleans"),
-                BinaryOp::Mul => bail!("Type error: '*' cannot be used on booleans"),
                 BinaryOp::Eq => Value::Boolean(lhs == rhs),
                 BinaryOp::Neq => Value::Boolean(lhs != rhs),
                 BinaryOp::Lt => Value::Boolean(lhs < rhs),
                 BinaryOp::Gt => Value::Boolean(lhs > rhs),
                 BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
                 BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
-                BinaryOp::And => Value::Boolean(lhs && rhs),
-                BinaryOp::Or => Value::Boolean(lhs || rhs),
+                BinaryOp::LogicalAnd => Value::Boolean(lhs && rhs),
+                BinaryOp::LogicalOr => Value::Boolean(lhs || rhs),
+                BinaryOp::Add
+                | BinaryOp::Sub
+                | BinaryOp::Div
+                | BinaryOp::Mul
+                | BinaryOp::Mod
+                | BinaryOp::BitwiseOr
+                | BinaryOp::BitwiseAnd => {
+                    bail!("Type error: '{:?}' cannot be used on booleans", op)
+                }
             },
             (lhs @ Value::Boolean(_), rhs) => lhs.eval_binary_op(rhs.coerce_boolean(), op)?,
             (lhs, rhs @ Value::Boolean(_)) => lhs.coerce_boolean().eval_binary_op(rhs, op)?,
