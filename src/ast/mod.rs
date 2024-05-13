@@ -35,7 +35,7 @@ pub enum Ast {
     Block(Vec<Ast>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ident(Box<str>);
 
 #[derive(Debug)]
@@ -43,6 +43,7 @@ pub enum Literal {
     String(Box<str>),
     Int(i64),
     Float(f64),
+    Boolean(bool),
 }
 
 #[derive(Debug)]
@@ -118,6 +119,8 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 }
             }
             TokenType::Keyword(word) => match word {
+                tokenizer::Keyword::True => Ast::Literal(Literal::Boolean(true)),
+                tokenizer::Keyword::False => Ast::Literal(Literal::Boolean(false)),
                 tokenizer::Keyword::Let => self.parse_let_variable_declaration()?,
                 _ => todo!("handle keyword '{word:?}' at ast start"),
             },

@@ -34,6 +34,8 @@ pub enum Keyword {
     Else,
     Continue,
     Break,
+    True,
+    False,
 }
 
 #[derive(Debug, PartialEq)]
@@ -103,6 +105,8 @@ fn keyword(i: Span) -> IResult<Span, Token> {
         "else" => Keyword::Else,
         "continue" => Keyword::Continue,
         "break" => Keyword::Break,
+        "true" => Keyword::True,
+        "false" => Keyword::False,
     }
     .parse(i)
 }
