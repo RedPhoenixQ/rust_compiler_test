@@ -45,6 +45,8 @@ pub enum Symbol {
     AsteriskEquals,
     SlashEquals,
     DoubleEquals,
+    DoublePipe,
+    DoubleAnd,
 
     Equals,
     Dash,
@@ -52,6 +54,9 @@ pub enum Symbol {
     Slash,
     Asterisk,
     Exclamation,
+    Pipe,
+    And,
+    Percent,
 
     SemiColon,
 
@@ -127,26 +132,35 @@ macro_rules! symbols {
 }
 
 fn symbol(i: Span) -> IResult<Span, Token> {
-    symbols! {
-        "==" => Symbol::DoubleEquals,
-        "-=" => Symbol::DashEquals,
-        "+=" => Symbol::PlusEquals,
-        "*=" => Symbol::AsteriskEquals,
-        "/=" => Symbol::SlashEquals,
-        "=" => Symbol::Equals,
-        ";" => Symbol::SemiColon,
-        "-" => Symbol::Dash,
-        "+" => Symbol::Plus,
-        "/" => Symbol::Slash,
-        "*" => Symbol::Asterisk,
-        "(" => Symbol::OpenParen,
-        ")" => Symbol::CloseParen,
-        "{" => Symbol::OpenCurlyBrace,
-        "}" => Symbol::CloseCurlyBrace,
-        "[" => Symbol::OpenSqaureBracket,
-        "]" => Symbol::CloseSqaureBracket,
-        "!" => Symbol::Exclamation,
-    }
+    alt((
+        symbols! {
+            "||" => Symbol::DoublePipe,
+            "&&" => Symbol::DoubleAnd,
+            "==" => Symbol::DoubleEquals,
+            "-=" => Symbol::DashEquals,
+            "+=" => Symbol::PlusEquals,
+            "*=" => Symbol::AsteriskEquals,
+            "/=" => Symbol::SlashEquals,
+        },
+        symbols! {
+            "=" => Symbol::Equals,
+            ";" => Symbol::SemiColon,
+            "-" => Symbol::Dash,
+            "+" => Symbol::Plus,
+            "/" => Symbol::Slash,
+            "*" => Symbol::Asterisk,
+            "|" => Symbol::Pipe,
+            "&" => Symbol::And,
+            "%" => Symbol::Percent,
+            "(" => Symbol::OpenParen,
+            ")" => Symbol::CloseParen,
+            "{" => Symbol::OpenCurlyBrace,
+            "}" => Symbol::CloseCurlyBrace,
+            "[" => Symbol::OpenSqaureBracket,
+            "]" => Symbol::CloseSqaureBracket,
+            "!" => Symbol::Exclamation,
+        },
+    ))
     .parse(i)
 }
 
