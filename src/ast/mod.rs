@@ -190,7 +190,24 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     Symbol::DoubleEquals => BinaryOp::Eq,
                     Symbol::Plus => BinaryOp::Add,
                     Symbol::Slash => BinaryOp::Div,
-                    _ => {
+                    Symbol::DoublePipe => BinaryOp::LogicalOr,
+                    Symbol::DoubleAnd => BinaryOp::LogicalAnd,
+                    Symbol::Pipe => BinaryOp::BitwiseOr,
+                    Symbol::And => BinaryOp::BitwiseAnd,
+                    Symbol::DashEquals
+                    | Symbol::PlusEquals
+                    | Symbol::AsteriskEquals
+                    | Symbol::SlashEquals
+                    | Symbol::Equals
+                    | Symbol::Exclamation
+                    | Symbol::Percent
+                    | Symbol::SemiColon
+                    | Symbol::OpenParen
+                    | Symbol::CloseParen
+                    | Symbol::OpenCurlyBrace
+                    | Symbol::CloseCurlyBrace
+                    | Symbol::OpenSqaureBracket
+                    | Symbol::CloseSqaureBracket => {
                         bail!("'{symbol:?}' is not a valid binary operation")
                     }
                 };
