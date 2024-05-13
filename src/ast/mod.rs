@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, iter::Peekable};
 
 use anyhow::{bail, Result};
 
-use crate::tokenizer::{self, Symbol, Token, TokenType};
+use crate::tokenizer::{self, Keyword, Symbol, Token, TokenType};
 
 macro_rules! is_expr_end {
     () => {
@@ -122,6 +122,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 tokenizer::Keyword::True => Ast::Literal(Literal::Boolean(true)),
                 tokenizer::Keyword::False => Ast::Literal(Literal::Boolean(false)),
                 tokenizer::Keyword::Let => self.parse_let_variable_declaration()?,
+                tokenizer::Keyword::If => self.parse_if()?,
                 _ => todo!("handle keyword '{word:?}' at ast start"),
             },
             TokenType::Literal(literal) => {
@@ -268,6 +269,59 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     Box::new(self.parse_next()?),
                 )),
             },
+        })
+    }
+
+    fn parse_if(&mut self) -> Result<Ast> {
+        let token = self.tokens.next();
+        let Some(Token {
+            token: TokenType::Symbol(Symbol::OpenParen),
+            ..
+        }) = token
+        else {
+            bail!(
+                "Missing opening paren '(' at start of predicate, recived {:?}",
+                token
+            )
+        };
+
+        let predicate = Box::new(self.parse_next()?);
+
+        let token = self.tokens.next();
+        let Some(Token {
+            token: TokenType::Symbol(Symbol::CloseParen),
+            ..
+        }) = token
+        else {
+            bail!(
+                "Missing closinh paren ')' at end of predicate, recived {:?}",
+                token
+            )
+        };
+        let then_branch @ Ast::Block(_) = self.parse_next()? else {
+            bail!("Missing body of if statement")
+        };
+        let then_branch = Box::new(then_branch);
+        let else_branch = if matches!(
+            self.tokens.peek(),
+            Some(Token {
+                token: TokenType::Keyword(Keyword::Else),
+                ..
+            })
+        ) {
+            // Consume 'else' token
+            self.tokens.next();
+            let else_branch @ Ast::Block(_) = self.parse_next()? else {
+                bail!("Missing body of if statement")
+            };
+            Some(Box::new(else_branch))
+        } else {
+            None
+        };
+        Ok(Ast::If {
+            predicate,
+            then_branch,
+            else_branch,
         })
     }
 
