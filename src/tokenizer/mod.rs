@@ -14,8 +14,8 @@ type Span<'a> = LocatedSpan<&'a str>;
 
 #[derive(Debug)]
 pub struct Token<'a> {
-    span: Span<'a>,
-    token: TokenType<'a>,
+    pub span: Span<'a>,
+    pub token: TokenType<'a>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -38,12 +38,20 @@ pub enum Keyword {
 
 #[derive(Debug, PartialEq)]
 pub enum Symbol {
+    SubAssign,
+    AddAssign,
+    MulAssign,
+    DivAssign,
     Equals,
-    SemiColon,
+
+    Assign,
     Dash,
     Plus,
     Slash,
     Asterisk,
+
+    SemiColon,
+
     OpenParen,
     CloseParen,
     OpenCurlyBrace,
@@ -115,7 +123,12 @@ macro_rules! symbols {
 
 fn symbol(i: Span) -> IResult<Span, Token> {
     symbols! {
-        "=" => Symbol::Equals,
+        "==" => Symbol::Equals,
+        "-=" => Symbol::SubAssign,
+        "+=" => Symbol::AddAssign,
+        "*=" => Symbol::MulAssign,
+        "/=" => Symbol::DivAssign,
+        "=" => Symbol::Assign,
         ";" => Symbol::SemiColon,
         "-" => Symbol::Dash,
         "+" => Symbol::Plus,

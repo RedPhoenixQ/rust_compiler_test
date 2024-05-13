@@ -2,6 +2,7 @@ use std::{io::stdin, path::PathBuf};
 
 use clap::Parser;
 
+mod ast;
 mod tokenizer;
 
 #[derive(Parser, Debug)]
@@ -20,8 +21,7 @@ fn main() {
     } else {
         let mut buf = String::new();
         while let Ok(_result) = stdin().read_line(&mut buf) {
-            let input = buf.clone();
-            let mut iter = tokenizer::tokenize(&input.trim());
+            let mut iter = tokenizer::tokenize(&buf.trim());
             let tokens = iter.collect::<Vec<_>>();
             match iter.finish() {
                 Err(nom::Err::Incomplete(_needed)) => {
@@ -39,8 +39,9 @@ fn main() {
                     // vm.exec(expr.clone());
                 }
             }
-
             dbg!(&tokens);
+            let ast = ast::Parser::new(tokens.into_iter()).parse();
+            dbg!(&ast);
 
             buf.clear();
         }
