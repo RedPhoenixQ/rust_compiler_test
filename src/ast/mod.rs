@@ -158,6 +158,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     self.tokens.next();
                     Ast::Block(content)
                 }
+                Symbol::Exclamation => Ast::UniaryOp(UniaryOp::Not, Box::new(self.parse_next()?)),
                 _ => bail!("Syntax error: Symbol is invalid as the start of an expression"),
             },
         })

@@ -51,6 +51,7 @@ pub enum Symbol {
     Plus,
     Slash,
     Asterisk,
+    Exclamation,
 
     SemiColon,
 
@@ -144,6 +145,7 @@ fn symbol(i: Span) -> IResult<Span, Token> {
         "}" => Symbol::CloseCurlyBrace,
         "[" => Symbol::OpenSqaureBracket,
         "]" => Symbol::CloseSqaureBracket,
+        "!" => Symbol::Exclamation,
     }
     .parse(i)
 }
