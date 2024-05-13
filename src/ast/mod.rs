@@ -63,8 +63,10 @@ pub enum BinaryOp {
     Gt,
     LtEq,
     GtEq,
-    And,
-    Or,
+    LogicalAnd,
+    LogicalOr,
+    BitwiseOr,
+    BitwiseAnd,
 }
 
 // pub fn parse_ast<'a>(tokens: impl Iterator<Item = Token<'a>>) {
