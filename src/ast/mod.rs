@@ -63,6 +63,7 @@ pub enum BinaryOp {
     Gt,
     LtEq,
     GtEq,
+    Mod,
     LogicalAnd,
     LogicalOr,
     BitwiseOr,
@@ -200,13 +201,14 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     Symbol::GreaterThan => BinaryOp::Gt,
                     Symbol::LessThanEquals => BinaryOp::LtEq,
                     Symbol::GreaterThanEquals => BinaryOp::GtEq,
+                    Symbol::Percent => BinaryOp::Mod,
                     Symbol::DashEquals
                     | Symbol::PlusEquals
                     | Symbol::AsteriskEquals
                     | Symbol::SlashEquals
+                    | Symbol::PercentEquals
                     | Symbol::Equals
                     | Symbol::Exclamation
-                    | Symbol::Percent
                     | Symbol::SemiColon
                     | Symbol::OpenParen
                     | Symbol::CloseParen
@@ -275,6 +277,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             Symbol::PlusEquals => Some(BinaryOp::Add),
             Symbol::AsteriskEquals => Some(BinaryOp::Mul),
             Symbol::SlashEquals => Some(BinaryOp::Div),
+            Symbol::PercentEquals => Some(BinaryOp::Mod),
             _ => bail!("Invalid assignment operation: {:?}", symbol),
         };
         // Consume assignment operator

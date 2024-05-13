@@ -49,6 +49,7 @@ pub enum Symbol {
     DoubleAnd,
     LessThanEquals,
     GreaterThanEquals,
+    PercentEquals,
 
     Equals,
     Dash,
@@ -147,6 +148,7 @@ fn symbol(i: Span) -> IResult<Span, Token> {
             "/=" => Symbol::SlashEquals,
             "<=" => Symbol::LessThanEquals,
             ">=" => Symbol::GreaterThanEquals,
+            "%=" => Symbol::PercentEquals,
         },
         symbols! {
             "=" => Symbol::Equals,
