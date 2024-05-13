@@ -4,6 +4,7 @@ use clap::Parser;
 
 mod ast;
 mod tokenizer;
+mod vm;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -19,6 +20,7 @@ fn main() {
 
     if let Some(_file) = args.file {
     } else {
+        let mut vm = vm::VM::default();
         let mut buf = String::new();
         while let Ok(_result) = stdin().read_line(&mut buf) {
             let mut iter = tokenizer::tokenize(&buf.trim());
@@ -42,6 +44,10 @@ fn main() {
             dbg!(&tokens);
             let ast = ast::Parser::new(tokens.into_iter()).parse();
             dbg!(&ast);
+
+            for node in &ast {
+                dbg!(vm.eval(node));
+            }
 
             buf.clear();
         }
