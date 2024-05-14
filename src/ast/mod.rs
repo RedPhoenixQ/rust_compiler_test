@@ -230,6 +230,8 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     | Symbol::ExclamationEquals
                     | Symbol::Equals
                     | Symbol::Exclamation
+                    | Symbol::Comma
+                    | Symbol::Period
                     | Symbol::SemiColon
                     | Symbol::OpenParen
                     | Symbol::CloseParen

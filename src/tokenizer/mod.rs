@@ -65,6 +65,8 @@ pub enum Symbol {
     Percent,
 
     SemiColon,
+    Comma,
+    Period,
 
     OpenParen,
     CloseParen,
@@ -171,6 +173,8 @@ fn symbol(i: Span) -> IResult<Span, Token> {
             "[" => Symbol::OpenSqaureBracket,
             "]" => Symbol::CloseSqaureBracket,
             "!" => Symbol::Exclamation,
+            "," => Symbol::Comma,
+            "." => Symbol::Period,
         },
     ))
     .parse(i)
