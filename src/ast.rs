@@ -45,6 +45,7 @@ pub enum Ast {
         body: Vec<Ast>,
         implicit_return: bool,
     },
+    Return(Option<Box<Ast>>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -182,7 +183,24 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 tokenizer::Keyword::Let => self.parse_let_variable_declaration()?,
                 tokenizer::Keyword::If => self.parse_if()?,
                 tokenizer::Keyword::Function => self.parse_function_declaration()?,
-                _ => todo!("handle keyword '{word:?}' at ast start"),
+                Keyword::Else => {
+                    return Err(ParseError::SyntaxError).context(format!(
+                        "{}:{}: Keyword {:?} should not appear at the start of expression",
+                        span.location_line(),
+                        span.get_column(),
+                        word,
+                    ))
+                }
+                Keyword::Return => {
+                    if self.is_end_of_expr() {
+                        Ast::Return(None)
+                    } else {
+                        Ast::Return(Some(Box::new(self.parse_next()?)))
+                    }
+                }
+                Keyword::Continue | Keyword::Break => {
+                    todo!("handle keyword '{word:?}' at ast start")
+                }
             },
             TokenType::Literal(literal) => {
                 let literal = Ast::Literal(match literal {

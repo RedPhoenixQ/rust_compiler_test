@@ -300,6 +300,7 @@ impl VM {
                 self.stack.pop();
                 value
             }
+            Ast::Return(value) => todo!("handle return of {:?}", value),
             Ast::Group(ast) => self.eval(ast)?,
             Ast::Block {
                 body,
