@@ -12,7 +12,7 @@ pub struct VM {
 
 #[derive(Debug, Clone)]
 pub enum Value {
-    String(Box<str>),
+    String(Rc<str>),
     Int(i64),
     Float(f64),
     Boolean(bool),
@@ -75,7 +75,7 @@ impl Value {
                 BinaryOp::Add => {
                     let mut string = lhs.to_string();
                     string.push_str(&rhs);
-                    Value::String(string.into_boxed_str())
+                    Value::String(string.into())
                 }
                 BinaryOp::Eq => Value::Boolean(lhs == rhs),
                 BinaryOp::Neq => Value::Boolean(lhs != rhs),

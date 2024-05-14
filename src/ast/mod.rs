@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, iter::Peekable};
+use std::{collections::BTreeMap, iter::Peekable, rc::Rc};
 
 use anyhow::{bail, Result};
 
@@ -42,7 +42,7 @@ pub enum Ast {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Ident(pub Box<str>);
+pub struct Ident(pub Rc<str>);
 
 #[derive(Debug, Clone)]
 pub struct Function {
@@ -53,7 +53,7 @@ pub struct Function {
 
 #[derive(Debug, Clone)]
 pub enum Literal {
-    String(Box<str>),
+    String(Rc<str>),
     Int(i64),
     Float(f64),
     Boolean(bool),
@@ -90,6 +90,7 @@ pub enum BinaryOp {
 pub struct Parser<'a, I: Iterator<Item = Token<'a>>> {
     tokens: Peekable<I>,
     idents: BTreeMap<&'a str, Ident>,
+    string_literals: BTreeMap<&'a str, Rc<str>>,
 }
 
 impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
@@ -97,6 +98,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         Self {
             tokens: tokens.peekable(),
             idents: BTreeMap::new(),
+            string_literals: BTreeMap::from([("None", "None".to_string().into())]),
         }
     }
 
@@ -161,7 +163,12 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             TokenType::Literal(literal) => {
                 let literal = Ast::Literal(match literal {
                     tokenizer::Literal::String(str) => {
-                        Literal::String(str.to_string().into_boxed_str())
+                        let string = self.string_literals.get(str).cloned().unwrap_or_else(|| {
+                            let string: Rc<str> = str.to_string().into();
+                            self.string_literals.insert(&str, string.clone());
+                            string
+                        });
+                        Literal::String(string)
                     }
                     tokenizer::Literal::Int(value) => Literal::Int(value),
                     tokenizer::Literal::Float(value) => Literal::Float(value),
@@ -476,7 +483,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         match self.idents.get(str) {
             Some(ident) => ident.clone(),
             None => {
-                let ident = Ident(str.to_string().into_boxed_str());
+                let ident = Ident(str.to_string().into());
                 self.idents.insert(str, ident.clone());
                 ident
             }
