@@ -50,6 +50,7 @@ pub enum Symbol {
     LessThanEquals,
     GreaterThanEquals,
     PercentEquals,
+    ExclamationEquals,
 
     Equals,
     Dash,
@@ -149,6 +150,7 @@ fn symbol(i: Span) -> IResult<Span, Token> {
             "<=" => Symbol::LessThanEquals,
             ">=" => Symbol::GreaterThanEquals,
             "%=" => Symbol::PercentEquals,
+            "!=" => Symbol::ExclamationEquals,
         },
         symbols! {
             "=" => Symbol::Equals,

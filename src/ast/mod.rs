@@ -227,6 +227,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     | Symbol::AsteriskEquals
                     | Symbol::SlashEquals
                     | Symbol::PercentEquals
+                    | Symbol::ExclamationEquals
                     | Symbol::Equals
                     | Symbol::Exclamation
                     | Symbol::SemiColon
@@ -298,6 +299,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             Symbol::AsteriskEquals => Some(BinaryOp::Mul),
             Symbol::SlashEquals => Some(BinaryOp::Div),
             Symbol::PercentEquals => Some(BinaryOp::Mod),
+            Symbol::ExclamationEquals => Some(BinaryOp::Neq),
             _ => bail!("Invalid assignment operation: {:?}", symbol),
         };
         // Consume assignment operator
