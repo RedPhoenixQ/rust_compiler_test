@@ -406,6 +406,21 @@ mod test {
     }
 
     #[test]
+    fn long_input() {
+        let mut code = String::new();
+        for i in 0..20 {
+            writeln!(code, "fn fn{i}(b) {{ b + {i} }}").unwrap();
+        }
+        dbg!(&code);
+        let mut vm = VM::default();
+        let (_rest, tokens) = tokenize(&code).unwrap();
+        let ast = dbg!(Parser::new(tokens.into_iter(), &mut vm.strings)
+            .parse()
+            .expect("Code to compile"));
+        dbg!(ast);
+    }
+
+    #[test]
     fn function_declaration() {
         const CODE: &str = r#"fn add_one(b) {
             b + 1
