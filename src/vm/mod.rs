@@ -209,7 +209,7 @@ impl From<&Literal> for Value {
 }
 
 impl VM {
-    pub fn run<'a>(&mut self, script: impl Iterator<Item = &'a Ast>) -> Result<Value> {
+    pub fn eval_iter<'a>(&mut self, script: impl Iterator<Item = &'a Ast>) -> Result<Value> {
         let mut out = Value::None;
         for ast in script {
             out = self.eval(ast)?;
@@ -294,7 +294,7 @@ impl VM {
                 body,
                 implicit_return,
             } => {
-                let value = self.run(body.iter())?;
+                let value = self.eval_iter(body.iter())?;
                 if *implicit_return {
                     value
                 } else {
