@@ -343,7 +343,19 @@ mod test {
     use std::fmt::Write;
 
     use super::*;
-    use crate::{ast::Parser, tokenizer::tokenize};
+    use crate::{
+        ast::Parser,
+        tokenizer::{tokenize, Span},
+    };
+
+    fn setup(code: &str) -> (VM, Vec<Ast>, Span) {
+        let mut vm = VM::default();
+        let (rest, tokens) = tokenize(code).unwrap();
+        let mut ast = Parser::new(tokens.into_iter(), &mut vm.strings)
+            .parse()
+            .expect("Code to compile");
+        (vm, ast, rest)
+    }
 
     #[test]
     #[ignore = "unimplemented"]
@@ -369,32 +381,28 @@ mod test {
         b;
         a + b;
         "#;
-        let mut vm = VM::default();
-        let (_rest, tokens) = tokenize(CODE).unwrap();
-        let mut code = Parser::new(tokens.into_iter(), &mut vm.strings)
-            .parse()
-            .expect("Code to compile")
-            .into_iter();
+        let (mut vm, ast, _rest) = setup(CODE);
+        let mut ast = ast.into_iter();
 
-        let decl_a = vm.eval(&code.next().unwrap());
+        let decl_a = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(decl_a, Ok(Value::None)),
             "Declaration failed: {decl_a:?}"
         );
 
-        let var_a = vm.eval(&code.next().unwrap());
+        let var_a = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(var_a, Ok(Value::Int(123))),
             "a not defined: {var_a:?}"
         );
 
-        let decl_b = vm.eval(&code.next().unwrap());
+        let decl_b = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(decl_b, Ok(Value::None)),
             "Declaration failed: {decl_b:?}"
         );
 
-        let var_b = vm.eval(&code.next().unwrap());
+        let var_b = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(
                 var_b,
@@ -403,7 +411,7 @@ mod test {
             "b not defined: {var_b:?}"
         );
 
-        let a_plus_b = vm.eval(&code.next().unwrap());
+        let a_plus_b = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(
                 a_plus_b,
@@ -420,11 +428,7 @@ mod test {
             writeln!(code, "fn fn{i}(b) {{ b + {i} }}").unwrap();
         }
         dbg!(&code);
-        let mut vm = VM::default();
-        let (_rest, tokens) = tokenize(&code).unwrap();
-        let ast = dbg!(Parser::new(tokens.into_iter(), &mut vm.strings)
-            .parse()
-            .expect("Code to compile"));
+        let (_vm, ast, _rest) = setup(&code);
         dbg!(ast);
     }
 
@@ -440,15 +444,10 @@ mod test {
         sub(2, 1);
         add_one(sub(2, 1));
         "#;
-        let mut vm = VM::default();
-        let (_rest, tokens) = tokenize(CODE).unwrap();
-        assert_eq!(_rest.fragment().trim(), "");
-        let mut code = Parser::new(tokens.into_iter(), &mut vm.strings)
-            .parse()
-            .expect("Code to compile")
-            .into_iter();
+        let (mut vm, ast, _rest) = setup(CODE);
+        let mut ast = ast.into_iter();
 
-        let decl_add_one = vm.eval(&code.next().unwrap());
+        let decl_add_one = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(decl_add_one, Ok(Value::None)),
             "Declaration of add_one failed: {decl_add_one:?}"
@@ -460,13 +459,13 @@ mod test {
             "add_one not a function: {fn_add_one:?}"
         );
 
-        let call_add_one = vm.eval(&code.next().unwrap());
+        let call_add_one = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(call_add_one, Ok(Value::Int(4))),
             "Call add_one failed: {call_add_one:?}"
         );
 
-        let decl_sub = vm.eval(&code.next().unwrap());
+        let decl_sub = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(decl_sub, Ok(Value::None)),
             "Declaration of sub failed: {decl_sub:?}"
@@ -478,13 +477,13 @@ mod test {
             "sub not a function: {fn_sub:?}"
         );
 
-        let call_sub = vm.eval(&code.next().unwrap());
+        let call_sub = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(call_sub, Ok(Value::Int(1))),
-            "Call add_one failed: {call_sub:?}"
+            "Call sub failed: {call_sub:?}"
         );
 
-        let call_sub_with_add_one = vm.eval(&code.next().unwrap());
+        let call_sub_with_add_one = vm.eval(&ast.next().unwrap());
         assert!(
             matches!(call_sub_with_add_one, Ok(Value::Int(2))),
             "{call_sub_with_add_one:?}"
