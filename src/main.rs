@@ -58,7 +58,6 @@ fn stdin_eval(mut vm: vm::VM) -> Result<()> {
                 tokens
             }
         };
-        dbg!(&tokens);
         let ast = match ast::Parser::new(tokens.into_iter(), &mut vm.strings).parse() {
             Ok(ast) => ast,
             Err(err) => {
@@ -66,10 +65,9 @@ fn stdin_eval(mut vm: vm::VM) -> Result<()> {
                 Vec::new()
             }
         };
-        dbg!(&ast);
-
         for node in &ast {
-            let _ = dbg!(vm.eval(node));
+            let value = vm.eval(node)?;
+            println!("> {value:#?}")
         }
 
         buf.clear();
