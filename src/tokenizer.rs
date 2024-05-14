@@ -10,15 +10,15 @@ use nom::{
 };
 use nom_locate::LocatedSpan;
 
-type Span<'a> = LocatedSpan<&'a str>;
+pub type Span<'a> = LocatedSpan<&'a str>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token<'a> {
     pub span: Span<'a>,
     pub token: TokenType<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType<'a> {
     Ident(&'a str),
     Keyword(Keyword),
@@ -26,7 +26,7 @@ pub enum TokenType<'a> {
     Literal(Literal<'a>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Keyword {
     Let,
     Function,
@@ -39,7 +39,7 @@ pub enum Keyword {
     False,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Symbol {
     DashEquals,
     PlusEquals,
@@ -77,7 +77,7 @@ pub enum Symbol {
     CloseSqaureBracket,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Literal<'a> {
     String(&'a str),
     Int(i64),
