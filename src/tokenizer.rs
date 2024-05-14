@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::*,
     character::complete::*,
-    combinator::{iterator, peek, recognize, ParserIterator},
+    combinator::{iterator, map, not, peek, recognize, ParserIterator},
     multi::many0,
     number::complete::double,
     sequence::{delimited, preceded, tuple},
@@ -113,17 +113,23 @@ macro_rules! keywords {
 }
 
 fn keyword(i: Span) -> IResult<Span, Token> {
-    keywords! {
-        "let" => Keyword::Let,
-        "fn" => Keyword::Function,
-        "if" => Keyword::If,
-        "else" => Keyword::Else,
-        "continue" => Keyword::Continue,
-        "break" => Keyword::Break,
-        "return" => Keyword::Return,
-        "true" => Keyword::True,
-        "false" => Keyword::False,
-    }
+    map(
+        tuple((
+            keywords! {
+                "let" => Keyword::Let,
+                "fn" => Keyword::Function,
+                "if" => Keyword::If,
+                "else" => Keyword::Else,
+                "continue" => Keyword::Continue,
+                "break" => Keyword::Break,
+                "return" => Keyword::Return,
+                "true" => Keyword::True,
+                "false" => Keyword::False,
+            },
+            peek(not(alphanumeric1)),
+        )),
+        |(word, _)| word,
+    )
     .parse(i)
 }
 
