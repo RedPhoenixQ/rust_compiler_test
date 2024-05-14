@@ -294,9 +294,10 @@ impl VM {
     }
 
     fn get_ident_value(&self, ident: &Ident) -> Result<&Value> {
-        self.globals
-            .get(ident)
-            .or_else(|| self.stack.last().and_then(|scope| scope.get(ident)))
+        self.stack
+            .iter()
+            .find_map(|scope| scope.get(ident))
+            .or_else(|| self.globals.get(ident))
             .ok_or(anyhow!("Undefined variable: {:?}", ident))
     }
 }
