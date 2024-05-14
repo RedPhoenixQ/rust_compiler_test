@@ -312,19 +312,55 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         matches!(
             self.tokens.peek(),
             None | Some(Token {
-                token: TokenType::Symbol(Symbol::SemiColon),
-                ..
-            }) | Some(Token {
-                token: TokenType::Symbol(Symbol::CloseParen),
-                ..
-            }) | Some(Token {
-                token: TokenType::Symbol(Symbol::CloseCurlyBrace),
-                ..
-            }) | Some(Token {
-                token: TokenType::Symbol(Symbol::Comma),
+                token: TokenType::Symbol(
+                    Symbol::SemiColon
+                        | Symbol::CloseParen
+                        | Symbol::CloseCurlyBrace
+                        | Symbol::OpenCurlyBrace
+                        | Symbol::Comma
+                ),
                 ..
             })
         )
+    }
+
+    fn parse_ident(&mut self) -> Result<Ident> {
+        match self.tokens.next() {
+            Some(Token {
+                token: TokenType::Ident(ident),
+                ..
+            }) => Ok(self.make_ident(ident)),
+            Some(Token { span, token }) => Err(SyntaxError::InvalidToken)
+                .context(self.location(&span))
+                .with_context(|| format!("Expected identifier, recived {:?}", token)),
+            None => {
+                Err(ParseError::UnexpectedEnd).context("No more tokens when parsing identifier")
+            }
+        }
+    }
+
+    fn parse_block(&mut self) -> Result<Block> {
+        match self.tokens.next() {
+            Some(Token {
+                token: TokenType::Symbol(Symbol::OpenCurlyBrace),
+                ..
+            }) => {}
+            Some(Token { span, token }) => {
+                return Err(SyntaxError::InvalidToken)
+                    .context(self.location(&span))
+                    .with_context(|| {
+                        format!(
+                            "Expected {:?} at start of block, recived {:?}",
+                            Symbol::OpenCurlyBrace,
+                            token
+                        )
+                    });
+            }
+            None => {
+                return Err(ParseError::UnexpectedEnd).context("No more tokens when parsing block");
+            }
+        }
+        self.parse_block_content()
     }
 
     fn parse_block_content(&mut self) -> Result<Block> {
@@ -351,6 +387,27 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         // Consume the ending curlybrace
         self.tokens.next();
         Ok(block)
+    }
+
+    fn parse_group_begin(&mut self) -> Result<()> {
+        match self.tokens.next() {
+            Some(Token {
+                token: TokenType::Symbol(Symbol::OpenParen),
+                ..
+            }) => Ok(()),
+            Some(Token { span, token }) => Err(SyntaxError::InvalidToken)
+                .context(self.location(&span))
+                .with_context(|| {
+                    format!(
+                        "Expected {:?} at begining of group, recived {:?}",
+                        Symbol::OpenParen,
+                        token
+                    )
+                }),
+            None => {
+                Err(ParseError::UnexpectedEnd).context("No more tokens when parsing group begin")
+            }
+        }
     }
 
     fn parse_binary_op(&mut self, lhs: Box<Ast>) -> Result<Ast> {
@@ -414,21 +471,9 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_let_variable_declaration(&mut self) -> Result<Ast> {
-        let ident = match self.tokens.next() {
-            Some(Token {
-                token: TokenType::Ident(ident),
-                ..
-            }) => self.make_ident(ident),
-            Some(Token { span, token }) => {
-                return Err(SyntaxError::InvalidToken)
-                    .context(self.location(&span))
-                    .with_context(|| format!("Expected identifier, recived {:?}", token));
-            }
-            None => {
-                return Err(ParseError::UnexpectedEnd)
-                    .context("No more tokens when parsing variable declaration");
-            }
-        };
+        let ident = self
+            .parse_ident()
+            .context("Could not parse identifier in variable declaration")?;
 
         Ok(match self.tokens.next() {
             is_expr_end!() => Ast::VariableDecl { ident, value: None },
@@ -488,7 +533,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             Symbol::SlashEquals => Some(BinaryOp::Div),
             Symbol::PercentEquals => Some(BinaryOp::Mod),
             Symbol::ExclamationEquals => Some(BinaryOp::Neq),
-            _ => bail!("Invalid assignment operation: {:?}", symbol),
+            _ => unreachable!(
+                "{:?} should be guaranteed to be a valid assignment operand by guard",
+                symbol
+            ),
         };
 
         Ok(match assignment_type {
@@ -508,23 +556,8 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_function_call(&mut self, ident: Ident) -> Result<Ast> {
-        match self.tokens.next() {
-            Some(Token {
-                token: TokenType::Symbol(Symbol::OpenParen),
-                ..
-            }) => {}
-            Some(Token { span, token }) => {
-                return Err(SyntaxError::InvalidToken)
-                    .context(self.location(&span))
-                    .with_context(|| {
-                        format!("Expected {:?}, recived {:?}", Symbol::OpenParen, token)
-                    });
-            }
-            None => {
-                return Err(ParseError::UnexpectedEnd)
-                    .context("No more tokens when parsing variable declaration");
-            }
-        }
+        self.parse_group_begin()
+            .context("Missing argument group in function call")?;
 
         let mut args = Vec::new();
         loop {
@@ -562,11 +595,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_if(&mut self) -> Result<Ast> {
-        let predicate = self.parse_next().context("Could not parse if predicate")?;
-        let predicate = Box::new(predicate);
+        let predicate = Box::new(self.parse_next().context("Could not parse if predicate")?);
         let then_branch = Box::new(
-            self.parse_block_content()
-                .context("Could not then_brach block")?,
+            self.parse_block()
+                .context("Could not parse then_brach block")?,
         );
         let else_branch = if matches!(
             self.tokens.peek(),
@@ -578,8 +610,8 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             // Consume 'else' token
             self.tokens.next();
             Some(Box::new(
-                self.parse_block_content()
-                    .context("Could not else_brach block")?,
+                self.parse_block()
+                    .context("Could not parse else_brach block")?,
             ))
         } else {
             None
@@ -592,53 +624,31 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_function_declaration(&mut self) -> Result<Ast> {
-        let token = self.tokens.next();
-        let Some(Token {
-            token: TokenType::Ident(ident),
-            ..
-        }) = token
-        else {
-            bail!("Syntax error: Expexten function name, recived {:?}", token)
-        };
-        let ident = self.make_ident(ident);
+        let ident = self
+            .parse_ident()
+            .context("Could not parse identifier in function declaration")?;
 
-        let token = self.tokens.next();
-        let Some(Token {
-            token: TokenType::Symbol(Symbol::OpenParen),
-            ..
-        }) = token
-        else {
-            bail!(
-                "Syntax error: Expexten opening paren '(', recived {:?}",
-                token
-            )
-        };
+        self.parse_group_begin()
+            .context("Missing argument group in function declaration")?;
 
         let mut args = Vec::new();
-        while let Some(Token { token, .. }) = self.tokens.next() {
+        while let Some(Token { token, span }) = self.tokens.next() {
             match token {
                 TokenType::Ident(ident) => args.push(self.make_ident(ident)),
                 TokenType::Symbol(Symbol::Comma) => continue,
                 TokenType::Symbol(Symbol::CloseParen) => break,
-                _ => bail!(
-                    "Syntax error: Expected function arguments names, recived {:?}",
-                    token
-                ),
+                _ => {
+                    return Err(SyntaxError::InvalidToken)
+                        .context(self.location(&span))
+                        .with_context(|| format!("Expected argument name, recived {:?}", token))
+                }
             }
         }
 
-        match self.tokens.next() {
-            Some(Token {
-                token: TokenType::Symbol(Symbol::OpenCurlyBrace),
-                ..
-            }) => {}
-            token => bail!(
-                "Syntax error: Expexten opening curly brace '{{', recived {:?}",
-                token
-            ),
-        }
-
-        let body = Box::new(self.parse_block_content()?);
+        let body = Box::new(
+            self.parse_block()
+                .context("Could not parse function block")?,
+        );
 
         Ok(Ast::Assignment {
             ident,
