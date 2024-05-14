@@ -437,17 +437,22 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
 
         let mut args = Vec::new();
         loop {
-            args.push(self.parse_next()?);
-            match self.tokens.next() {
+            match self.tokens.peek() {
                 Some(Token {
                     token: TokenType::Symbol(Symbol::Comma),
                     ..
-                }) => continue,
+                }) => {
+                    self.tokens.next();
+                    continue;
+                }
                 Some(Token {
                     token: TokenType::Symbol(Symbol::CloseParen),
                     ..
-                }) => break,
-                token => bail!("Unexpected input in function call args: {:?}", token),
+                }) => {
+                    self.tokens.next();
+                    break;
+                }
+                _ => args.push(self.parse_next()?), // token => bail!("Unexpected input in function call args: {:?}", token),
             }
         }
         if self.is_end_of_expr() {
