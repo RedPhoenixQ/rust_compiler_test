@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     rc::Rc,
+    usize,
 };
 
 use anyhow::{anyhow, bail, Result};
@@ -210,7 +211,7 @@ impl Value {
 impl From<&Literal> for Value {
     fn from(value: &Literal) -> Self {
         match value {
-            Literal::String(inner) => Value::String(inner.to_string().into()),
+            Literal::String(inner) => Value::String(inner.clone()),
             Literal::Int(inner) => Value::Int(*inner),
             Literal::Float(inner) => Value::Float(*inner),
             Literal::Boolean(inner) => Value::Boolean(*inner),
@@ -282,7 +283,7 @@ impl VM {
             }
             Ast::FunctionCall { ident, args } => {
                 let Ok(Value::Function(function)) = self.get_ident_value(ident).cloned() else {
-                    match self.call_builtin(ident) {
+                    match self.call_builtin(ident, args) {
                         Ok(value) => return Ok(value),
                         Err(_err) => bail!("{} is not a function", ident.0),
                     }
@@ -327,12 +328,26 @@ impl VM {
             .ok_or(anyhow!("Undefined variable: {:?}", ident))
     }
 
-    fn call_builtin(&self, ident: &Ident) -> Result<Value> {
-        Ok(match ident.0.as_ref() {
-            "dump" => {
-                dbg!(self);
-                Value::None
-            }
+    fn call_builtin(&self, ident: &Ident, args: &[Ast]) -> Result<Value> {
+        let name = ident.0.as_ref();
+
+        let exact_args =
+            |n: usize| format!("{name} expected {n} arguments, recived {}", args.len());
+        let atleast_args = |n: usize| {
+            format!(
+                "{name} expected at least {n} arguments, recived {}",
+                args.len()
+            )
+        };
+
+        Ok(match name {
+            "dump" => match args {
+                [] => {
+                    dbg!(self);
+                    Value::None
+                }
+                _ => bail!(exact_args(0)),
+            },
             name => bail!("No builtin named {} exists", name),
         })
     }
