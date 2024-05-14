@@ -232,11 +232,7 @@ impl VM {
         Ok(match ast {
             Ast::Assignment { ident, value } => {
                 let value = self.eval(value)?;
-                if let Some(scope) = self.stack.last_mut() {
-                    scope.insert(ident.clone(), value);
-                } else {
-                    self.globals.insert(ident.clone(), value);
-                }
+                self.set_ident_value(ident, value)?;
                 Value::None
             }
             Ast::Literal(literal) => literal.into(),
@@ -244,16 +240,17 @@ impl VM {
             Ast::UniaryOp(op, value) => self.eval(value)?.eval_uniary_op(op)?,
             Ast::BinaryOp(op, lhs, rhs) => self.eval(lhs)?.eval_binary_op(self.eval(rhs)?, op)?,
             Ast::VariableDecl { ident, value } => {
-                if self.globals.contains_key(&ident) {
+                if self.ident_declared(&ident) {
                     bail!("Variable {:?} already exists", ident)
                 }
-
                 match value {
                     Some(ast) => {
                         let value = self.eval(ast)?;
-                        self.globals.insert(ident.clone(), value)
+                        self.set_ident_value(ident, value)?;
                     }
-                    None => self.globals.insert(ident.clone(), Value::None),
+                    None => {
+                        self.set_ident_value(ident, Value::None)?;
+                    }
                 };
                 Value::None
             }
@@ -318,6 +315,16 @@ impl VM {
                 Err(err) => return Err(err),
             },
         })
+    }
+
+    fn set_ident_value(&mut self, ident: &Ident, value: Value) -> Result<Option<Value>> {
+        let scope = self.stack.last_mut().unwrap_or(&mut self.globals);
+        Ok(scope.insert(ident.clone(), value))
+    }
+
+    fn ident_declared(&self, ident: &Ident) -> bool {
+        let scope = self.stack.last().unwrap_or(&self.globals);
+        scope.contains_key(ident)
     }
 
     fn get_ident_value(&self, ident: &Ident) -> Result<&Value> {
