@@ -320,31 +320,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_if(&mut self) -> Result<Ast> {
-        let token = self.tokens.next();
-        let Some(Token {
-            token: TokenType::Symbol(Symbol::OpenParen),
-            ..
-        }) = token
-        else {
-            bail!(
-                "Missing opening paren '(' at start of predicate, recived {:?}",
-                token
-            )
+        let predicate @ Ast::Group(_) = self.parse_next()? else {
+            bail!("Missing predicate of if statement")
         };
-
-        let predicate = Box::new(self.parse_next()?);
-
-        let token = self.tokens.next();
-        let Some(Token {
-            token: TokenType::Symbol(Symbol::CloseParen),
-            ..
-        }) = token
-        else {
-            bail!(
-                "Missing closinh paren ')' at end of predicate, recived {:?}",
-                token
-            )
-        };
+        let predicate = Box::new(predicate);
         let then_branch @ Ast::Block(_) = self.parse_next()? else {
             bail!("Missing body of if statement")
         };
