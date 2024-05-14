@@ -34,6 +34,7 @@ pub enum Keyword {
     Else,
     Continue,
     Break,
+    Return,
     True,
     False,
 }
@@ -119,6 +120,7 @@ fn keyword(i: Span) -> IResult<Span, Token> {
         "else" => Keyword::Else,
         "continue" => Keyword::Continue,
         "break" => Keyword::Break,
+        "return" => Keyword::Return,
         "true" => Keyword::True,
         "false" => Keyword::False,
     }
