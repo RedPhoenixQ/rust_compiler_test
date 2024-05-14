@@ -335,7 +335,7 @@ impl VM {
             .ok_or(anyhow!("Undefined variable: {:?}", ident))
     }
 
-    fn call_builtin(&self, ident: &Ident, args: &[Ast]) -> Result<Value> {
+    fn call_builtin(&mut self, ident: &Ident, args: &[Ast]) -> Result<Value> {
         let name = ident.0.as_ref();
 
         let exact_args =
@@ -355,7 +355,26 @@ impl VM {
                 }
                 _ => bail!(exact_args(0)),
             },
-            name => bail!("No builtin named {} exists", name),
+            "print" => match args {
+                [first, rest @ ..] => {
+                    let value = self.eval(first)?;
+                    let Value::String(str) = value.coerce_string() else {
+                        unreachable!("Coerse string will always succeed")
+                    };
+                    print!("{str}");
+                    for arg in rest {
+                        let value = self.eval(arg)?;
+                        let Value::String(str) = value.coerce_string() else {
+                            unreachable!("Coerse string will always succeed")
+                        };
+                        print!(", {str}");
+                    }
+                    println!("");
+                    Value::None
+                }
+                _ => bail!(atleast_args(1)),
+            },
+            name => bail!("No builtin named {name} exists"),
         })
     }
 }
