@@ -32,6 +32,7 @@ pub enum Ast {
         then_branch: Box<Ast>,
         else_branch: Option<Box<Ast>>,
     },
+    Group(Box<Ast>),
     Block(Vec<Ast>),
 }
 
@@ -161,6 +162,20 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     self.tokens.next();
                     Ast::Block(content)
                 }
+                Symbol::OpenParen => {
+                    let group = Ast::Group(Box::new(self.parse_next()?));
+
+                    if self.parse_end() {
+                        group
+                    } else if let Ok(op) = self.parse_binary_op(Box::new(group)) {
+                        op
+                    } else {
+                        bail!(
+                            "Invalid syntax: Group followed by '{:?}' is invalid",
+                            self.tokens.next()
+                        )
+                    }
+                }
                 Symbol::Exclamation => Ast::UniaryOp(UniaryOp::Not, Box::new(self.parse_next()?)),
                 _ => bail!("Syntax error: Symbol is invalid as the start of an expression"),
             },
@@ -172,6 +187,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             None
             | Some(Token {
                 token: TokenType::Symbol(Symbol::SemiColon),
+                ..
+            })
+            | Some(Token {
+                token: TokenType::Symbol(Symbol::CloseParen),
                 ..
             }) => {
                 self.tokens.next();
@@ -187,6 +206,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 token: TokenType::Symbol(symbol),
                 ..
             }) => {
+                // TODO: Fix math default order of operations
                 let operation = match symbol {
                     Symbol::Asterisk => BinaryOp::Mul,
                     Symbol::Dash => BinaryOp::Sub,
