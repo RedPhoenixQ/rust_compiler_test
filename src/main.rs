@@ -3,8 +3,6 @@ use std::{fs::read_to_string, io::stdin, path::PathBuf};
 use anyhow::Result;
 use clap::Parser;
 
-use crate::tokenizer::tokenize;
-
 mod ast;
 mod tokenizer;
 mod vm;
@@ -21,8 +19,8 @@ fn main() -> Result<()> {
 
     if let Some(file) = args.file {
         let code = read_to_string(file)?.into_boxed_str();
-        let (rest, tokens) =
-            tokenize(code.as_ref()).map_err(|err| anyhow::Error::msg(err.to_string()))?;
+        let (rest, tokens) = tokenizer::tokenize(code.as_ref())
+            .map_err(|err| anyhow::Error::msg(err.to_string()))?;
         if !rest.is_empty() {
             dbg!(rest);
         }
@@ -33,7 +31,7 @@ fn main() -> Result<()> {
         let mut vm = vm::VM::default();
         let mut buf = String::new();
         while let Ok(_result) = stdin().read_line(&mut buf) {
-            let tokens = match tokenize(&buf.trim()) {
+            let tokens = match tokenizer::tokenize(&buf.trim()) {
                 Err(nom::Err::Incomplete(_needed)) => {
                     println!("Incomplete, {_needed:?}");
                     continue;
