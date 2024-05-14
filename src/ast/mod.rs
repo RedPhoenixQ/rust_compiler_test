@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, iter::Peekable, rc::Rc};
+use std::{collections::BTreeSet, iter::Peekable, rc::Rc};
 
 use anyhow::{bail, Context, Result};
 
@@ -112,16 +112,28 @@ impl std::fmt::Display for ParseError {
 
 pub struct Parser<'a, I: Iterator<Item = Token<'a>>> {
     tokens: Peekable<I>,
-    idents: BTreeMap<&'a str, Ident>,
-    string_literals: BTreeMap<&'a str, Rc<str>>,
+    strings: &'a mut BTreeSet<Rc<str>>,
+}
+
+impl<'a, I: Iterator<Item = Token<'a>>> Iterator for Parser<'a, I> {
+    type Item = Result<Ast>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(match self.parse_next() {
+            Ok(ast) => Ok(ast),
+            Err(err) if matches!(err.downcast_ref::<ParseError>(), Some(ParseError::Done)) => {
+                return None
+            }
+            Err(err) => Err(err),
+        })
+    }
 }
 
 impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
-    pub fn new(tokens: I) -> Self {
+    pub fn new(tokens: I, strings: &'a mut BTreeSet<Rc<str>>) -> Self {
         Self {
             tokens: tokens.peekable(),
-            idents: BTreeMap::new(),
-            string_literals: BTreeMap::from([("None", "None".to_string().into())]),
+            strings,
         }
     }
 
@@ -185,9 +197,9 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             TokenType::Literal(literal) => {
                 let literal = Ast::Literal(match literal {
                     tokenizer::Literal::String(str) => {
-                        let string = self.string_literals.get(str).cloned().unwrap_or_else(|| {
-                            let string: Rc<str> = str.to_string().into();
-                            self.string_literals.insert(&str, string.clone());
+                        let string = self.strings.get(str).cloned().unwrap_or_else(|| {
+                            let string: Rc<str> = str.into();
+                            self.strings.insert(string.clone());
                             string
                         });
                         Literal::String(string)
@@ -522,12 +534,12 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn make_ident(&mut self, str: &'a str) -> Ident {
-        match self.idents.get(str) {
-            Some(ident) => ident.clone(),
+        match self.strings.get(str) {
+            Some(ident) => Ident(ident.clone()),
             None => {
-                let ident = Ident(str.to_string().into());
-                self.idents.insert(str, ident.clone());
-                ident
+                let string: Rc<str> = str.into();
+                self.strings.insert(string.clone());
+                Ident(string)
             }
         }
     }

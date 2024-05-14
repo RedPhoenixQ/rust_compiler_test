@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, rc::Rc};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    rc::Rc,
+};
 
 use anyhow::{anyhow, bail, Result};
 
@@ -8,6 +11,7 @@ use crate::ast::{Ast, BinaryOp, Function, Ident, Literal, UniaryOp};
 pub struct VM {
     globals: BTreeMap<Ident, Value>,
     stack: Vec<BTreeMap<Ident, Value>>,
+    pub strings: BTreeSet<Rc<str>>,
 }
 
 #[derive(Debug, Clone)]
@@ -352,11 +356,11 @@ mod test {
         b;
         a + b;
         "#;
-        let mut code = Parser::new(&mut tokenize(CODE))
+        let mut vm = VM::default();
+        let mut code = Parser::new(&mut tokenize(CODE), &mut vm.strings)
             .parse()
             .expect("Code to compile")
             .into_iter();
-        let mut vm = VM::default();
 
         let decl_a = vm.eval(&code.next().unwrap());
         assert!(
@@ -407,11 +411,11 @@ mod test {
         sub(2, 1);
         add_one(sub(2, 1));
         "#;
-        let mut code = Parser::new(&mut tokenize(CODE))
+        let mut vm = VM::default();
+        let mut code = Parser::new(&mut tokenize(CODE), &mut vm.strings)
             .parse()
             .expect("Code to compile")
             .into_iter();
-        let mut vm = VM::default();
 
         let decl_add_one = &code.next().unwrap();
         assert!(

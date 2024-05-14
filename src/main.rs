@@ -1,4 +1,4 @@
-use std::{io::stdin, path::PathBuf};
+use std::{collections::BTreeSet, io::stdin, path::PathBuf};
 
 use clap::Parser;
 
@@ -42,7 +42,7 @@ fn main() {
                 }
             }
             dbg!(&tokens);
-            let ast = match ast::Parser::new(tokens.into_iter()).parse() {
+            let ast = match ast::Parser::new(tokens.into_iter(), &mut vm.strings).parse() {
                 Ok(ast) => ast,
                 Err(err) => {
                     eprintln!("Syntax error: {:?}", err);
