@@ -231,7 +231,11 @@ impl VM {
         Ok(match ast {
             Ast::Assignment { ident, value } => {
                 let value = self.eval(value)?;
-                self.globals.insert(ident.clone(), value);
+                if let Some(scope) = self.stack.last_mut() {
+                    scope.insert(ident.clone(), value);
+                } else {
+                    self.globals.insert(ident.clone(), value);
+                }
                 Value::None
             }
             Ast::Literal(literal) => literal.into(),
