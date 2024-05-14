@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::ast::{Ast, BinaryOp, Function, Ident, Literal, UniaryOp};
+use crate::ast::{Ast, BinaryOp, Ident, Literal, UniaryOp};
 
 #[derive(Debug, Default)]
 pub struct VM {
@@ -22,6 +22,12 @@ pub enum Value {
     Boolean(bool),
     Function(Rc<Function>),
     None,
+}
+
+#[derive(Debug)]
+pub struct Function {
+    pub args: Vec<Ident>,
+    pub body: Box<Ast>,
 }
 
 impl Value {
@@ -171,7 +177,7 @@ impl Value {
             Self::Int(value) => format!("{value}").into(),
             Self::Float(value) => format!("{value}").into(),
             Self::Boolean(value) => format!("{value}").into(),
-            Self::Function(value) => format!("{}({:?})", value.ident.0, value.args).into(),
+            Self::Function(value) => format!("fn({:?})", value.args).into(),
             Self::None => "None".to_string().into(),
         })
     }
@@ -225,8 +231,8 @@ impl VM {
         Ok(match ast {
             Ast::Assignment { ident, value } => {
                 let value = self.eval(value)?;
-                self.globals.insert(ident.clone(), value.clone());
-                value
+                self.globals.insert(ident.clone(), value);
+                Value::None
             }
             Ast::Literal(literal) => literal.into(),
             Ast::Ident(ident) => self.get_ident_value(ident).cloned().unwrap_or(Value::None),
@@ -246,13 +252,10 @@ impl VM {
                 };
                 Value::None
             }
-            Ast::FunctionDecl(function) => {
-                self.globals.insert(
-                    function.ident.clone(),
-                    Value::Function(Rc::new(function.clone())),
-                );
-                Value::None
-            }
+            Ast::FunctionDecl { args, body } => Value::Function(Rc::new(Function {
+                args: args.clone(),
+                body: body.clone(),
+            })),
             Ast::If {
                 predicate,
                 then_branch,
@@ -417,10 +420,10 @@ mod test {
             .expect("Code to compile")
             .into_iter();
 
-        let decl_add_one = &code.next().unwrap();
+        let decl_add_one = vm.eval(&code.next().unwrap());
         assert!(
-            matches!(vm.eval(decl_add_one), Ok(Value::None)),
-            "{decl_add_one:?}"
+            matches!(decl_add_one, Ok(Value::None)),
+            "Declaration of add_one failed: {decl_add_one:?}"
         );
 
         let fn_add_one = vm.globals.get(&Ident("add_one".to_owned().into()));
@@ -432,17 +435,26 @@ mod test {
         let call_add_one = vm.eval(&code.next().unwrap());
         assert!(
             matches!(call_add_one, Ok(Value::Int(4))),
-            "{call_add_one:?}"
+            "Call add_one failed: {call_add_one:?}"
         );
 
-        let decl_sub = &code.next().unwrap();
-        assert!(matches!(vm.eval(decl_sub), Ok(Value::None)), "{decl_sub:?}");
+        let decl_sub = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(decl_sub, Ok(Value::None)),
+            "Declaration of sub failed: {decl_sub:?}"
+        );
 
         let fn_sub = vm.globals.get(&Ident("sub".to_owned().into()));
-        assert!(matches!(fn_sub, Some(Value::Function(_))), "{fn_sub:?}");
+        assert!(
+            matches!(fn_sub, Some(Value::Function(_))),
+            "sub not a function: {fn_sub:?}"
+        );
 
         let call_sub = vm.eval(&code.next().unwrap());
-        assert!(matches!(call_sub, Ok(Value::Int(1))), "{call_sub:?}");
+        assert!(
+            matches!(call_sub, Ok(Value::Int(1))),
+            "Call add_one failed: {call_sub:?}"
+        );
 
         let call_sub_with_add_one = vm.eval(&code.next().unwrap());
         assert!(

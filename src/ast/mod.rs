@@ -32,7 +32,10 @@ pub enum Ast {
         then_branch: Box<Ast>,
         else_branch: Option<Box<Ast>>,
     },
-    FunctionDecl(Function),
+    FunctionDecl {
+        args: Vec<Ident>,
+        body: Box<Ast>,
+    },
     FunctionCall {
         ident: Ident,
         args: Vec<Ast>,
@@ -46,19 +49,6 @@ pub enum Ast {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ident(pub Rc<str>);
-
-#[derive(Debug, Clone)]
-pub struct Function {
-    pub ident: Ident,
-    pub args: Vec<Ident>,
-    pub body: Box<Ast>,
-}
-
-impl PartialEq for Function {
-    fn eq(&self, other: &Self) -> bool {
-        self.ident == other.ident
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum Literal {
@@ -191,7 +181,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 }
                 tokenizer::Keyword::Let => self.parse_let_variable_declaration()?,
                 tokenizer::Keyword::If => self.parse_if()?,
-                tokenizer::Keyword::Function => self.parse_function()?,
+                tokenizer::Keyword::Function => self.parse_function_declaration()?,
                 _ => todo!("handle keyword '{word:?}' at ast start"),
             },
             TokenType::Literal(literal) => {
@@ -494,7 +484,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         })
     }
 
-    fn parse_function(&mut self) -> Result<Ast> {
+    fn parse_function_declaration(&mut self) -> Result<Ast> {
         let token = self.tokens.next();
         let Some(Token {
             token: TokenType::Ident(ident),
@@ -535,7 +525,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         };
         let body = Box::new(body);
 
-        Ok(Ast::FunctionDecl(Function { ident, args, body }))
+        Ok(Ast::Assignment {
+            ident,
+            value: Box::new(Ast::FunctionDecl { args, body }),
+        })
     }
 
     fn make_ident(&mut self, str: &'a str) -> Ident {
