@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, iter::Peekable, rc::Rc};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 
 use crate::tokenizer::{self, Keyword, Symbol, Token, TokenType};
 
@@ -38,7 +38,10 @@ pub enum Ast {
         args: Vec<Ast>,
     },
     Group(Box<Ast>),
-    Block(Vec<Ast>),
+    Block {
+        body: Vec<Ast>,
+        implicit_return: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -49,6 +52,12 @@ pub struct Function {
     pub ident: Ident,
     pub args: Vec<Ident>,
     pub body: Box<Ast>,
+}
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        self.ident == other.ident
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -83,6 +92,20 @@ pub enum BinaryOp {
     BitwiseAnd,
 }
 
+#[derive(Debug, Clone)]
+pub enum ParseError {
+    Done,
+    SyntaxError,
+}
+
+impl std::error::Error for ParseError {}
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 // pub fn parse_ast<'a>(tokens: impl Iterator<Item = Token<'a>>) {
 //     let tokens = tokens.peekable();
 // }
@@ -102,28 +125,27 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         }
     }
 
-    pub fn parse(&mut self) -> Vec<Ast> {
+    pub fn parse(&mut self) -> Result<Vec<Ast>> {
         let mut out = Vec::new();
         loop {
             match self.parse_next() {
                 Ok(ast) => out.push(ast),
-                Err(err) => {
-                    eprintln!("{:?}", err);
-                    break;
+                Err(err) if matches!(err.downcast_ref::<ParseError>(), Some(ParseError::Done)) => {
+                    return Ok(out)
                 }
+                Err(err) => return Err(err).context(format!("Last parsed: {:?}", out.last())),
             }
         }
-        out
     }
 
     fn parse_next(&mut self) -> Result<Ast> {
-        let Some(Token { token, .. }) = self.tokens.next() else {
-            bail!("No more tokens");
+        let Some(Token { token, span }) = self.tokens.next() else {
+            return Err(ParseError::Done)?;
         };
         Ok(match token {
             TokenType::Ident(ident) => {
                 let ident = self.make_ident(ident);
-                if self.parse_end() {
+                if self.is_end_of_expr() {
                     Ast::Ident(ident)
                 } else if let Ok(op) = self.parse_assignment(ident.clone()) {
                     op
@@ -144,7 +166,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                         boolean,
                         tokenizer::Keyword::True
                     )));
-                    if self.parse_end() {
+                    if self.is_end_of_expr() {
                         boolean
                     } else if let Ok(op) = self.parse_binary_op(Box::new(boolean)) {
                         op
@@ -174,7 +196,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     tokenizer::Literal::Float(value) => Literal::Float(value),
                 });
                 // Naked literal
-                if self.parse_end() {
+                if self.is_end_of_expr() {
                     literal
                 } else if let Ok(op) = self.parse_binary_op(Box::new(literal)) {
                     op
@@ -184,19 +206,33 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             }
             TokenType::Symbol(symbol) => match symbol {
                 Symbol::OpenCurlyBrace => {
-                    let mut content = Vec::new();
-                    while !matches!(
-                        self.tokens.peek(),
-                        Some(Token {
-                            token: TokenType::Symbol(Symbol::CloseCurlyBrace),
-                            ..
-                        })
-                    ) {
-                        content.push(self.parse_next()?);
+                    let mut body = Vec::new();
+                    let mut saw_semicolon = false;
+                    while let Some(token) = self.tokens.peek() {
+                        match token {
+                            Token {
+                                token: TokenType::Symbol(Symbol::CloseCurlyBrace),
+                                ..
+                            } => break,
+                            Token {
+                                token: TokenType::Symbol(Symbol::SemiColon),
+                                ..
+                            } => {
+                                saw_semicolon = true;
+                                // Comsume the semicolon to prevent infinite loop
+                                self.tokens.next();
+                                continue;
+                            }
+                            _ => saw_semicolon = false,
+                        }
+                        body.push(self.parse_next()?);
                     }
                     // Consume the ending curlybrace
                     self.tokens.next();
-                    Ast::Block(content)
+                    Ast::Block {
+                        body,
+                        implicit_return: !saw_semicolon,
+                    }
                 }
                 Symbol::OpenParen => {
                     let group = Ast::Group(Box::new(self.parse_next()?));
@@ -209,7 +245,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                         token => bail!("Missing close paren in group, recived {:?}", token),
                     };
 
-                    if self.parse_end() {
+                    if self.is_end_of_expr() {
                         group
                     } else if let Ok(op) = self.parse_binary_op(Box::new(group)) {
                         op
@@ -221,31 +257,37 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     }
                 }
                 Symbol::Exclamation => Ast::UniaryOp(UniaryOp::Not, Box::new(self.parse_next()?)),
+                Symbol::SemiColon => self.parse_next()?,
+                Symbol::CloseParen | Symbol::CloseCurlyBrace => {
+                    return Err(ParseError::SyntaxError).context(format!(
+                        "{}:{}: {:?} should be consumed by other structure",
+                        span.location_line(),
+                        span.get_column(),
+                        symbol,
+                    ))
+                }
                 _ => bail!("Syntax error: Symbol is invalid as the start of an expression"),
             },
         })
     }
 
-    fn parse_end(&mut self) -> bool {
-        match self.tokens.peek() {
-            None
-            | Some(Token {
+    fn is_end_of_expr(&mut self) -> bool {
+        matches!(
+            self.tokens.peek(),
+            None | Some(Token {
                 token: TokenType::Symbol(Symbol::SemiColon),
                 ..
-            }) => {
-                self.tokens.next();
-                true
-            }
-            Some(Token {
+            }) | Some(Token {
                 token: TokenType::Symbol(Symbol::CloseParen),
                 ..
-            })
-            | Some(Token {
+            }) | Some(Token {
+                token: TokenType::Symbol(Symbol::CloseCurlyBrace),
+                ..
+            }) | Some(Token {
                 token: TokenType::Symbol(Symbol::Comma),
                 ..
-            }) => true,
-            _ => false,
-        }
+            })
+        )
     }
 
     fn parse_binary_op(&mut self, lhs: Box<Ast>) -> Result<Ast> {
@@ -396,7 +438,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 token => bail!("Unexpected input in function call args: {:?}", token),
             }
         }
-        if self.parse_end() {
+        if self.is_end_of_expr() {
             Ok(Ast::FunctionCall { ident, args })
         } else {
             bail!("Unexpected token after function call")
@@ -408,7 +450,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             bail!("Missing predicate of if statement")
         };
         let predicate = Box::new(predicate);
-        let then_branch @ Ast::Block(_) = self.parse_next()? else {
+        let then_branch @ Ast::Block { .. } = self.parse_next()? else {
             bail!("Missing body of if statement")
         };
         let then_branch = Box::new(then_branch);
@@ -421,7 +463,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         ) {
             // Consume 'else' token
             self.tokens.next();
-            let else_branch @ Ast::Block(_) = self.parse_next()? else {
+            let else_branch @ Ast::Block { .. } = self.parse_next()? else {
                 bail!("Missing body of if statement")
             };
             Some(Box::new(else_branch))
@@ -471,7 +513,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             }
         }
 
-        let body @ Ast::Block(_) = self.parse_next()? else {
+        let body @ Ast::Block { .. } = self.parse_next()? else {
             bail!("Missing function body")
         };
         let body = Box::new(body);

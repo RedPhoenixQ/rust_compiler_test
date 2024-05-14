@@ -42,7 +42,13 @@ fn main() {
                 }
             }
             dbg!(&tokens);
-            let ast = ast::Parser::new(tokens.into_iter()).parse();
+            let ast = match ast::Parser::new(tokens.into_iter()).parse() {
+                Ok(ast) => ast,
+                Err(err) => {
+                    eprintln!("Syntax error: {:?}", err);
+                    continue;
+                }
+            };
             dbg!(&ast);
 
             for node in &ast {

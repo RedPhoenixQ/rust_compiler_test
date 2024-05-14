@@ -164,13 +164,11 @@ impl Value {
     fn coerce_string(self) -> Self {
         Self::String(match self {
             Self::String(value) => value,
-            Self::Int(value) => format!("{value}").into_boxed_str(),
-            Self::Float(value) => format!("{value}").into_boxed_str(),
-            Self::Boolean(value) => format!("{value}").into_boxed_str(),
-            Self::Function(value) => {
-                format!("{}({:?})", value.ident.0, value.args).into_boxed_str()
-            }
-            Self::None => "None".to_string().into_boxed_str(),
+            Self::Int(value) => format!("{value}").into(),
+            Self::Float(value) => format!("{value}").into(),
+            Self::Boolean(value) => format!("{value}").into(),
+            Self::Function(value) => format!("{}({:?})", value.ident.0, value.args).into(),
+            Self::None => "None".to_string().into(),
         })
     }
 
@@ -202,7 +200,7 @@ impl Value {
 impl From<&Literal> for Value {
     fn from(value: &Literal) -> Self {
         match value {
-            Literal::String(inner) => Value::String(inner.clone()),
+            Literal::String(inner) => Value::String(inner.to_string().into()),
             Literal::Int(inner) => Value::Int(*inner),
             Literal::Float(inner) => Value::Float(*inner),
             Literal::Boolean(inner) => Value::Boolean(*inner),
@@ -267,7 +265,10 @@ impl VM {
             }
             Ast::FunctionCall { ident, args } => {
                 let Ok(Value::Function(function)) = self.get_ident_value(ident).cloned() else {
-                    bail!("{} is not a function", ident.0)
+                    match self.call_builtin(ident) {
+                        Ok(value) => return Ok(value),
+                        Err(_err) => bail!("{} is not a function", ident.0),
+                    }
                 };
 
                 if args.len() != function.args.len() {
@@ -289,7 +290,17 @@ impl VM {
                 value
             }
             Ast::Group(ast) => self.eval(ast)?,
-            Ast::Block(lines) => self.run(lines.iter())?,
+            Ast::Block {
+                body,
+                implicit_return,
+            } => {
+                let value = self.run(body.iter())?;
+                if *implicit_return {
+                    value
+                } else {
+                    Value::None
+                }
+            }
         })
     }
 
@@ -299,5 +310,140 @@ impl VM {
             .find_map(|scope| scope.get(ident))
             .or_else(|| self.globals.get(ident))
             .ok_or(anyhow!("Undefined variable: {:?}", ident))
+    }
+
+    fn call_builtin(&self, ident: &Ident) -> Result<Value> {
+        Ok(match ident.0.as_ref() {
+            "dump" => {
+                dbg!(self);
+                Value::None
+            }
+            name => bail!("No builtin named {} exists", name),
+        })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{ast::Parser, tokenizer::tokenize};
+
+    #[test]
+    #[ignore = "unimplemented"]
+    fn int_ops() {}
+
+    #[test]
+    #[ignore = "unimplemented"]
+    fn float_ops() {}
+
+    #[test]
+    #[ignore = "unimplemented"]
+    fn string_ops() {}
+
+    #[test]
+    #[ignore = "unimplemented"]
+    fn mixed_ops() {}
+
+    #[test]
+    fn variable_declaration() {
+        const CODE: &str = r#"let a = 123;
+        a;
+        let b = "test" + 321;
+        b;
+        a + b;
+        "#;
+        let mut code = Parser::new(&mut tokenize(CODE))
+            .parse()
+            .expect("Code to compile")
+            .into_iter();
+        let mut vm = VM::default();
+
+        let decl_a = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(decl_a, Ok(Value::None)),
+            "Declaration failed: {decl_a:?}"
+        );
+
+        let var_a = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(var_a, Ok(Value::Int(123))),
+            "a not defined: {var_a:?}"
+        );
+
+        let decl_b = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(decl_b, Ok(Value::None)),
+            "Declaration failed: {decl_b:?}"
+        );
+
+        let var_b = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(
+                var_b,
+                Ok(Value::String(ref str)) if str.as_ref() == "test321"
+            ),
+            "b not defined: {var_b:?}"
+        );
+
+        let a_plus_b = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(
+                a_plus_b,
+                Ok(Value::String(ref str)) if str.as_ref() == "123test321"
+            ),
+            "{a_plus_b:?}"
+        );
+    }
+
+    #[test]
+    fn function_declaration() {
+        const CODE: &str = r#"fn add_one(b) {
+            b + 1
+        }
+        add_one(3);
+        fn sub(b, c) {
+            b - c
+        }
+        sub(2, 1);
+        add_one(sub(2, 1));
+        "#;
+        let mut code = Parser::new(&mut tokenize(CODE))
+            .parse()
+            .expect("Code to compile")
+            .into_iter();
+        let mut vm = VM::default();
+
+        let decl_add_one = &code.next().unwrap();
+        assert!(
+            matches!(vm.eval(decl_add_one), Ok(Value::None)),
+            "{decl_add_one:?}"
+        );
+
+        let fn_add_one = vm.globals.get(&Ident("add_one".to_owned().into()));
+        assert!(
+            matches!(fn_add_one, Some(Value::Function(_))),
+            "add_one not a function: {fn_add_one:?}"
+        );
+
+        let call_add_one = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(call_add_one, Ok(Value::Int(4))),
+            "{call_add_one:?}"
+        );
+
+        let decl_sub = &code.next().unwrap();
+        assert!(matches!(vm.eval(decl_sub), Ok(Value::None)), "{decl_sub:?}");
+
+        let fn_sub = vm.globals.get(&Ident("sub".to_owned().into()));
+        assert!(matches!(fn_sub, Some(Value::Function(_))), "{fn_sub:?}");
+
+        let call_sub = vm.eval(&code.next().unwrap());
+        assert!(matches!(call_sub, Ok(Value::Int(1))), "{call_sub:?}");
+
+        let call_sub_with_add_one = vm.eval(&code.next().unwrap());
+        assert!(
+            matches!(call_sub_with_add_one, Ok(Value::Int(2))),
+            "{call_sub_with_add_one:?}"
+        );
     }
 }
