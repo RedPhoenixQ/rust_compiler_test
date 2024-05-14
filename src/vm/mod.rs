@@ -254,6 +254,7 @@ impl VM {
                     Value::None
                 }
             }
+            Ast::Group(ast) => self.eval(ast)?,
             Ast::Block(lines) => self.run(lines.iter())?,
         })
     }
