@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, io::stdin, path::PathBuf};
+use std::{io::stdin, path::PathBuf};
 
 use clap::Parser;
 
@@ -52,7 +52,7 @@ fn main() {
             dbg!(&ast);
 
             for node in &ast {
-                dbg!(vm.eval(node));
+                let _ = dbg!(vm.eval(node));
             }
 
             buf.clear();
