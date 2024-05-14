@@ -1,12 +1,13 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, rc::Rc};
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::ast::{Ast, BinaryOp, Ident, Literal, UniaryOp};
+use crate::ast::{Ast, BinaryOp, Function, Ident, Literal, UniaryOp};
 
 #[derive(Debug, Default)]
 pub struct VM {
     globals: BTreeMap<Ident, Value>,
+    stack: Vec<BTreeMap<Ident, Value>>,
 }
 
 #[derive(Debug, Clone)]
@@ -15,6 +16,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Boolean(bool),
+    Function(Rc<Function>),
     None,
 }
 
@@ -150,6 +152,7 @@ impl Value {
             Value::Int(value) => *value < 0,
             Value::Float(value) => value.is_normal(),
             Value::Boolean(value) => *value,
+            Value::Function(_) => true,
             Value::None => false,
         }
     }
@@ -164,6 +167,9 @@ impl Value {
             Self::Int(value) => format!("{value}").into_boxed_str(),
             Self::Float(value) => format!("{value}").into_boxed_str(),
             Self::Boolean(value) => format!("{value}").into_boxed_str(),
+            Self::Function(value) => {
+                format!("{}({:?})", value.ident.0, value.args).into_boxed_str()
+            }
             Self::None => "None".to_string().into_boxed_str(),
         })
     }
@@ -175,6 +181,7 @@ impl Value {
             Self::Float(value) => value,
             Self::Boolean(true) => 1.,
             Self::Boolean(false) => 0.,
+            Self::Function(_) => bail!("Cannot coerce function to float"),
             Self::None => 0.,
         }))
     }
@@ -186,6 +193,7 @@ impl Value {
             Self::Float(value) => bail!("Cannot convert {:?} to int", value),
             Self::Boolean(true) => 1,
             Self::Boolean(false) => 0,
+            Self::Function(_) => bail!("Cannot coerce function to int"),
             Self::None => 0,
         }))
     }
@@ -219,11 +227,7 @@ impl VM {
                 value
             }
             Ast::Literal(literal) => literal.into(),
-            Ast::Ident(ident) => self
-                .globals
-                .get(&ident)
-                .ok_or(anyhow!("Undefined variable: {:?}", ident))?
-                .clone(),
+            Ast::Ident(ident) => self.get_ident_value(ident).cloned().unwrap_or(Value::None),
             Ast::UniaryOp(op, value) => self.eval(value)?.eval_uniary_op(op)?,
             Ast::BinaryOp(op, lhs, rhs) => self.eval(lhs)?.eval_binary_op(self.eval(rhs)?, op)?,
             Ast::VariableDecl { ident, value } => {
@@ -240,6 +244,13 @@ impl VM {
                 };
                 Value::None
             }
+            Ast::FunctionDecl(function) => {
+                self.globals.insert(
+                    function.ident.clone(),
+                    Value::Function(Rc::new(function.clone())),
+                );
+                Value::None
+            }
             Ast::If {
                 predicate,
                 then_branch,
@@ -254,8 +265,38 @@ impl VM {
                     Value::None
                 }
             }
+            Ast::FunctionCall { ident, args } => {
+                let Ok(Value::Function(function)) = self.get_ident_value(ident).cloned() else {
+                    bail!("{} is not a function", ident.0)
+                };
+
+                if args.len() != function.args.len() {
+                    bail!(
+                        "Invalid number of arguments. Expected {}, got {}",
+                        function.args.len(),
+                        args.len()
+                    )
+                }
+
+                let mut scope = BTreeMap::new();
+                for (arg, value) in function.args.iter().cloned().zip(args.iter()) {
+                    let value = self.eval(value)?;
+                    scope.insert(arg, value);
+                }
+                self.stack.push(scope);
+                let value = self.eval(&function.body)?;
+                self.stack.pop();
+                value
+            }
             Ast::Group(ast) => self.eval(ast)?,
             Ast::Block(lines) => self.run(lines.iter())?,
         })
+    }
+
+    fn get_ident_value(&self, ident: &Ident) -> Result<&Value> {
+        self.globals
+            .get(ident)
+            .or_else(|| self.stack.last().and_then(|scope| scope.get(ident)))
+            .ok_or(anyhow!("Undefined variable: {:?}", ident))
     }
 }

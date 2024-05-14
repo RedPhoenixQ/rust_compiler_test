@@ -13,7 +13,7 @@ macro_rules! is_expr_end {
     };
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Ast {
     Literal(Literal),
     Ident(Ident),
@@ -32,14 +32,26 @@ pub enum Ast {
         then_branch: Box<Ast>,
         else_branch: Option<Box<Ast>>,
     },
+    FunctionDecl(Function),
+    FunctionCall {
+        ident: Ident,
+        args: Vec<Ast>,
+    },
     Group(Box<Ast>),
     Block(Vec<Ast>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Ident(Box<str>);
+pub struct Ident(pub Box<str>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub ident: Ident,
+    pub args: Vec<Ident>,
+    pub body: Box<Ast>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Literal {
     String(Box<str>),
     Int(i64),
@@ -47,12 +59,12 @@ pub enum Literal {
     Boolean(bool),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum UniaryOp {
     Not,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -113,7 +125,9 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     Ast::Ident(ident)
                 } else if let Ok(op) = self.parse_assignment(ident.clone()) {
                     op
-                } else if let Ok(op) = self.parse_binary_op(Box::new(Ast::Ident(ident))) {
+                } else if let Ok(op) = self.parse_binary_op(Box::new(Ast::Ident(ident.clone()))) {
+                    op
+                } else if let Ok(op) = self.parse_function_call(ident.clone()) {
                     op
                 } else {
                     bail!(
@@ -123,10 +137,25 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 }
             }
             TokenType::Keyword(word) => match word {
-                tokenizer::Keyword::True => Ast::Literal(Literal::Boolean(true)),
-                tokenizer::Keyword::False => Ast::Literal(Literal::Boolean(false)),
+                boolean @ tokenizer::Keyword::True | boolean @ tokenizer::Keyword::False => {
+                    let boolean = Ast::Literal(Literal::Boolean(matches!(
+                        boolean,
+                        tokenizer::Keyword::True
+                    )));
+                    if self.parse_end() {
+                        boolean
+                    } else if let Ok(op) = self.parse_binary_op(Box::new(boolean)) {
+                        op
+                    } else {
+                        bail!(
+                            "Invalid syntax: Boolean followed by '{:?}' is invalid",
+                            self.tokens.next()
+                        )
+                    }
+                }
                 tokenizer::Keyword::Let => self.parse_let_variable_declaration()?,
                 tokenizer::Keyword::If => self.parse_if()?,
+                tokenizer::Keyword::Function => self.parse_function()?,
                 _ => todo!("handle keyword '{word:?}' at ast start"),
             },
             TokenType::Literal(literal) => {
@@ -164,6 +193,14 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 }
                 Symbol::OpenParen => {
                     let group = Ast::Group(Box::new(self.parse_next()?));
+                    // Consume the ending curlybrace
+                    match self.tokens.next() {
+                        Some(Token {
+                            token: TokenType::Symbol(Symbol::CloseParen),
+                            ..
+                        }) => {}
+                        token => bail!("Missing close paren in group, recived {:?}", token),
+                    };
 
                     if self.parse_end() {
                         group
@@ -188,14 +225,18 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             | Some(Token {
                 token: TokenType::Symbol(Symbol::SemiColon),
                 ..
-            })
-            | Some(Token {
-                token: TokenType::Symbol(Symbol::CloseParen),
-                ..
             }) => {
                 self.tokens.next();
                 true
             }
+            Some(Token {
+                token: TokenType::Symbol(Symbol::CloseParen),
+                ..
+            })
+            | Some(Token {
+                token: TokenType::Symbol(Symbol::Comma),
+                ..
+            }) => true,
             _ => false,
         }
     }
@@ -323,6 +364,38 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         })
     }
 
+    fn parse_function_call(&mut self, ident: Ident) -> Result<Ast> {
+        let token = self.tokens.next();
+        let Some(Token {
+            token: TokenType::Symbol(Symbol::OpenParen),
+            ..
+        }) = token
+        else {
+            bail!("Expected open paren '(', recived {:?}", token)
+        };
+
+        let mut args = Vec::new();
+        loop {
+            args.push(self.parse_next()?);
+            match self.tokens.next() {
+                Some(Token {
+                    token: TokenType::Symbol(Symbol::Comma),
+                    ..
+                }) => continue,
+                Some(Token {
+                    token: TokenType::Symbol(Symbol::CloseParen),
+                    ..
+                }) => break,
+                token => bail!("Unexpected input in function call args: {:?}", token),
+            }
+        }
+        if self.parse_end() {
+            Ok(Ast::FunctionCall { ident, args })
+        } else {
+            bail!("Unexpected token after function call")
+        }
+    }
+
     fn parse_if(&mut self) -> Result<Ast> {
         let predicate @ Ast::Group(_) = self.parse_next()? else {
             bail!("Missing predicate of if statement")
@@ -353,6 +426,50 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             then_branch,
             else_branch,
         })
+    }
+
+    fn parse_function(&mut self) -> Result<Ast> {
+        let token = self.tokens.next();
+        let Some(Token {
+            token: TokenType::Ident(ident),
+            ..
+        }) = token
+        else {
+            bail!("Syntax error: Expexten function name, recived {:?}", token)
+        };
+        let ident = self.make_ident(ident);
+
+        let token = self.tokens.next();
+        let Some(Token {
+            token: TokenType::Symbol(Symbol::OpenParen),
+            ..
+        }) = token
+        else {
+            bail!(
+                "Syntax error: Expexten opening paren '(', recived {:?}",
+                token
+            )
+        };
+
+        let mut args = Vec::new();
+        while let Some(Token { token, .. }) = self.tokens.next() {
+            match token {
+                TokenType::Ident(ident) => args.push(self.make_ident(ident)),
+                TokenType::Symbol(Symbol::Comma) => continue,
+                TokenType::Symbol(Symbol::CloseParen) => break,
+                _ => bail!(
+                    "Syntax error: Expected function arguments names, recived {:?}",
+                    token
+                ),
+            }
+        }
+
+        let body @ Ast::Block(_) = self.parse_next()? else {
+            bail!("Missing function body")
+        };
+        let body = Box::new(body);
+
+        Ok(Ast::FunctionDecl(Function { ident, args, body }))
     }
 
     fn make_ident(&mut self, str: &'a str) -> Ident {
