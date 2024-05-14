@@ -159,7 +159,7 @@ impl Value {
     fn is_truthy(&self) -> bool {
         match self {
             Value::String(value) => !value.is_empty(),
-            Value::Int(value) => *value < 0,
+            Value::Int(value) => value.is_positive(),
             Value::Float(value) => value.is_normal(),
             Value::Boolean(value) => *value,
             Value::Function(_) => true,
