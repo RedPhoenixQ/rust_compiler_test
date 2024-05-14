@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, iter::Peekable, rc::Rc};
 
 use anyhow::{bail, Context, Result};
 
-use crate::tokenizer::{self, Keyword, Symbol, Token, TokenType};
+use crate::tokenizer::{self, Keyword, Span, Symbol, Token, TokenType};
 
 macro_rules! is_expr_end {
     () => {
@@ -105,6 +105,7 @@ impl std::fmt::Display for ParseError {
 // }
 
 pub struct Parser<'a, I: Iterator<Item = Token<'a>>> {
+    file: &'a str,
     tokens: Peekable<I>,
     strings: &'a mut BTreeSet<Rc<str>>,
 }
@@ -128,7 +129,12 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         Self {
             tokens: tokens.peekable(),
             strings,
+            file: "",
         }
+    }
+
+    pub fn set_file(&mut self, file: &str) {
+        self.file = file;
     }
 
     pub fn parse(&mut self) -> Result<Vec<Ast>> {
@@ -564,5 +570,16 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 Ident(string)
             }
         }
+    }
+
+    fn location(&self, span: &Span) -> String {
+        format!(
+            "{}{}{}:{} -> {}",
+            self.file,
+            if self.file.is_empty() { "" } else { ":" },
+            span.location_line(),
+            span.get_column(),
+            span.fragment()
+        )
     }
 }
