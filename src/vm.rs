@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::ast::{Ast, BinaryOp, Ident, Literal, UniaryOp};
+use crate::ast::{Ast, BinaryOp, Block, Ident, Literal, UniaryOp};
 
 #[derive(Debug, Default)]
 pub struct VM {
@@ -302,17 +302,14 @@ impl VM {
             }
             Ast::Return(value) => todo!("handle return of {:?}", value),
             Ast::Group(ast) => self.eval(ast)?,
-            Ast::Block {
-                body,
+            Ast::Block(Block {
+                content,
                 implicit_return,
-            } => {
-                let value = self.eval_iter(body.iter())?;
-                if *implicit_return {
-                    value
-                } else {
-                    Value::None
-                }
-            }
+            }) => match self.eval_iter(content.iter()) {
+                Ok(value) if *implicit_return => value,
+                Ok(_) => Value::None,
+                Err(err) => return Err(err),
+            },
         })
     }
 

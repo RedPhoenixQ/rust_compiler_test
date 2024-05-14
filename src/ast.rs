@@ -41,10 +41,7 @@ pub enum Ast {
         args: Vec<Ast>,
     },
     Group(Box<Ast>),
-    Block {
-        body: Vec<Ast>,
-        implicit_return: bool,
-    },
+    Block(Block),
     Return(Option<Box<Ast>>),
 }
 
@@ -81,6 +78,12 @@ pub enum BinaryOp {
     LogicalOr,
     BitwiseOr,
     BitwiseAnd,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Block {
+    pub content: Vec<Ast>,
+    pub implicit_return: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -225,35 +228,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 }
             }
             TokenType::Symbol(symbol) => match symbol {
-                Symbol::OpenCurlyBrace => {
-                    let mut body = Vec::new();
-                    let mut saw_semicolon = false;
-                    while let Some(token) = self.tokens.peek() {
-                        match token {
-                            Token {
-                                token: TokenType::Symbol(Symbol::CloseCurlyBrace),
-                                ..
-                            } => break,
-                            Token {
-                                token: TokenType::Symbol(Symbol::SemiColon),
-                                ..
-                            } => {
-                                saw_semicolon = true;
-                                // Comsume the semicolon to prevent infinite loop
-                                self.tokens.next();
-                                continue;
-                            }
-                            _ => saw_semicolon = false,
-                        }
-                        body.push(self.parse_next()?);
-                    }
-                    // Consume the ending curlybrace
-                    self.tokens.next();
-                    Ast::Block {
-                        body,
-                        implicit_return: !saw_semicolon,
-                    }
-                }
+                Symbol::OpenCurlyBrace => Ast::Block(self.parse_block_content()?),
                 Symbol::OpenParen => {
                     let group = Ast::Group(Box::new(self.parse_next()?));
                     // Consume the ending curlybrace
@@ -308,6 +283,32 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 ..
             })
         )
+    }
+
+    fn parse_block_content(&mut self) -> Result<Block> {
+        let mut block = Block::default();
+        while let Some(token) = self.tokens.peek() {
+            match token {
+                Token {
+                    token: TokenType::Symbol(Symbol::CloseCurlyBrace),
+                    ..
+                } => break,
+                Token {
+                    token: TokenType::Symbol(Symbol::SemiColon),
+                    ..
+                } => {
+                    block.implicit_return = false;
+                    // Comsume the semicolon to prevent infinite loop
+                    self.tokens.next();
+                    continue;
+                }
+                _ => block.implicit_return = true,
+            }
+            block.content.push(self.parse_next()?);
+        }
+        // Consume the ending curlybrace
+        self.tokens.next();
+        Ok(block)
     }
 
     fn parse_binary_op(&mut self, lhs: Box<Ast>) -> Result<Ast> {
