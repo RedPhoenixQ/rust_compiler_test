@@ -362,7 +362,8 @@ mod test {
         a + b;
         "#;
         let mut vm = VM::default();
-        let mut code = Parser::new(&mut tokenize(CODE), &mut vm.strings)
+        let (_rest, tokens) = tokenize(CODE).unwrap();
+        let mut code = Parser::new(tokens.into_iter(), &mut vm.strings)
             .parse()
             .expect("Code to compile")
             .into_iter();
@@ -417,7 +418,9 @@ mod test {
         add_one(sub(2, 1));
         "#;
         let mut vm = VM::default();
-        let mut code = Parser::new(&mut tokenize(CODE), &mut vm.strings)
+        let (_rest, tokens) = tokenize(CODE).unwrap();
+        assert_eq!(_rest.fragment().trim(), "");
+        let mut code = Parser::new(tokens.into_iter(), &mut vm.strings)
             .parse()
             .expect("Code to compile")
             .into_iter();

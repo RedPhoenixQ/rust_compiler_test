@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::*,
     character::complete::*,
-    combinator::{iterator, map, not, peek, recognize, ParserIterator},
+    combinator::{map, not, peek, recognize},
     multi::many0,
     number::complete::double,
     sequence::{delimited, preceded, tuple},
@@ -84,14 +84,8 @@ pub enum Literal<'a> {
     Float(f64),
 }
 
-pub fn tokenize(
-    input: &str,
-) -> ParserIterator<
-    Span,
-    nom::error::Error<Span>,
-    impl FnMut(Span) -> IResult<Span, Token, nom::error::Error<Span>>,
-> {
-    iterator(Span::new(input), token)
+pub fn tokenize(input: &str) -> IResult<Span, Vec<Token>> {
+    many0(token).parse(Span::new(input))
 }
 
 fn token(i: Span) -> IResult<Span, Token> {

@@ -2,6 +2,8 @@ use std::{io::stdin, path::PathBuf};
 
 use clap::Parser;
 
+use crate::tokenizer::tokenize;
+
 mod ast;
 mod tokenizer;
 mod vm;
@@ -23,24 +25,26 @@ fn main() {
         let mut vm = vm::VM::default();
         let mut buf = String::new();
         while let Ok(_result) = stdin().read_line(&mut buf) {
-            let mut iter = tokenizer::tokenize(&buf.trim());
-            let tokens = iter.collect::<Vec<_>>();
-            match iter.finish() {
+            let tokens = match tokenize(&buf.trim()) {
                 Err(nom::Err::Incomplete(_needed)) => {
                     println!("Incomplete, {_needed:?}");
                     continue;
                 }
                 Err(nom::Err::Failure(err)) => {
-                    println!("Invalid syntax, {err:?}")
+                    println!("Invalid syntax, {err:?}");
+                    continue;
                 }
                 Err(nom::Err::Error(err)) => {
-                    println!("Invalid syntax, {err:?}")
+                    println!("Invalid syntax, {err:?}");
+                    continue;
                 }
-                Ok((rest, _)) => {
-                    dbg!(&rest);
-                    // vm.exec(expr.clone());
+                Ok((rest, tokens)) => {
+                    if !rest.is_empty() {
+                        dbg!(rest);
+                    }
+                    tokens
                 }
-            }
+            };
             dbg!(&tokens);
             let ast = match ast::Parser::new(tokens.into_iter(), &mut vm.strings).parse() {
                 Ok(ast) => ast,
