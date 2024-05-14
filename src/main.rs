@@ -1,5 +1,6 @@
-use std::{io::stdin, path::PathBuf};
+use std::{fs::read_to_string, io::stdin, path::PathBuf};
 
+use anyhow::Result;
 use clap::Parser;
 
 use crate::tokenizer::tokenize;
@@ -14,13 +15,20 @@ struct Args {
     file: Option<PathBuf>,
 }
 
-fn main() {
-    println!("Hello, world!");
-
+fn main() -> Result<()> {
     let args = Args::parse();
     dbg!(&args);
 
-    if let Some(_file) = args.file {
+    if let Some(file) = args.file {
+        let code = read_to_string(file)?.into_boxed_str();
+        let (rest, tokens) =
+            tokenize(code.as_ref()).map_err(|err| anyhow::Error::msg(err.to_string()))?;
+        if !rest.is_empty() {
+            dbg!(rest);
+        }
+        let mut vm = vm::VM::default();
+        let ast = ast::Parser::new(tokens.into_iter(), &mut vm.strings).parse()?;
+        vm.eval_iter(ast.iter())?;
     } else {
         let mut vm = vm::VM::default();
         let mut buf = String::new();
@@ -62,4 +70,5 @@ fn main() {
             buf.clear();
         }
     }
+    Ok(())
 }
