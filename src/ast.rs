@@ -29,12 +29,12 @@ pub enum Ast {
     },
     If {
         predicate: Box<Ast>,
-        then_branch: Box<Ast>,
-        else_branch: Option<Box<Ast>>,
+        then_branch: Box<Block>,
+        else_branch: Option<Box<Block>>,
     },
     FunctionDecl {
         args: Vec<Ident>,
-        body: Box<Ast>,
+        body: Box<Block>,
     },
     FunctionCall {
         ident: Ident,
@@ -476,10 +476,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             bail!("Missing predicate of if statement")
         };
         let predicate = Box::new(predicate);
-        let then_branch @ Ast::Block { .. } = self.parse_next()? else {
-            bail!("Missing body of if statement")
-        };
-        let then_branch = Box::new(then_branch);
+        let then_branch = Box::new(
+            self.parse_block_content()
+                .context("parsing then_brach block")?,
+        );
         let else_branch = if matches!(
             self.tokens.peek(),
             Some(Token {
@@ -489,10 +489,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         ) {
             // Consume 'else' token
             self.tokens.next();
-            let else_branch @ Ast::Block { .. } = self.parse_next()? else {
-                bail!("Missing body of if statement")
-            };
-            Some(Box::new(else_branch))
+            Some(Box::new(self.parse_block_content()?))
         } else {
             None
         };
@@ -539,10 +536,18 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             }
         }
 
-        let body @ Ast::Block { .. } = self.parse_next()? else {
-            bail!("Missing function body")
-        };
-        let body = Box::new(body);
+        match self.tokens.next() {
+            Some(Token {
+                token: TokenType::Symbol(Symbol::OpenCurlyBrace),
+                ..
+            }) => {}
+            token => bail!(
+                "Syntax error: Expexten opening curly brace '{{', recived {:?}",
+                token
+            ),
+        }
+
+        let body = Box::new(self.parse_block_content()?);
 
         Ok(Ast::Assignment {
             ident,

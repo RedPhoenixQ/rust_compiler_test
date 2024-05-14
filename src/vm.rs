@@ -27,7 +27,7 @@ pub enum Value {
 #[derive(Debug)]
 pub struct Function {
     pub args: Vec<Ident>,
-    pub body: Box<Ast>,
+    pub body: Box<Block>,
 }
 
 impl Value {
@@ -266,13 +266,19 @@ impl VM {
                 else_branch,
             } => {
                 let predicate = self.eval(predicate)?.coerce_boolean();
+                let mut out = Value::None;
                 if matches!(predicate, Value::Boolean(true)) {
-                    self.eval(then_branch)?
+                    let value = self.eval_iter(then_branch.content.iter())?;
+                    if then_branch.implicit_return {
+                        out = value
+                    }
                 } else if let Some(else_branch) = else_branch {
-                    self.eval(else_branch)?
-                } else {
-                    Value::None
-                }
+                    let value = self.eval_iter(else_branch.content.iter())?;
+                    if else_branch.implicit_return {
+                        out = value
+                    }
+                };
+                out
             }
             Ast::FunctionCall { ident, args } => {
                 let Ok(Value::Function(function)) = self.get_ident_value(ident).cloned() else {
@@ -296,7 +302,7 @@ impl VM {
                     scope.insert(arg, value);
                 }
                 self.stack.push(scope);
-                let value = self.eval(&function.body)?;
+                let value = self.eval_iter(function.body.content.iter())?;
                 self.stack.pop();
                 value
             }
@@ -334,6 +340,8 @@ impl VM {
 
 #[cfg(test)]
 mod test {
+    use std::fmt::Write;
+
     use super::*;
     use crate::{ast::Parser, tokenizer::tokenize};
 
