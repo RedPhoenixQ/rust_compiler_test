@@ -183,7 +183,7 @@ fn symbol(i: Span) -> IResult<Span, Token> {
 fn ident(i: Span) -> IResult<Span, Token> {
     recognize(tuple((
         alpha1,
-        many0(preceded(many0(one_of("_-")), alphanumeric1)),
+        many0(preceded(many0(char('_')), alphanumeric1)),
     )))
     .map(|word| Token {
         span: word,
