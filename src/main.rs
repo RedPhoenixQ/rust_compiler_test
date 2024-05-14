@@ -50,7 +50,7 @@ fn main() {
                 Ok(ast) => ast,
                 Err(err) => {
                     eprintln!("Syntax error: {:?}", err);
-                    continue;
+                    Vec::new()
                 }
             };
             dbg!(&ast);
