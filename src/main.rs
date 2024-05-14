@@ -27,6 +27,7 @@ fn main() -> Result<()> {
         let mut vm = vm::VM::default();
         let ast = ast::Parser::new(tokens.into_iter(), &mut vm.strings).parse()?;
         vm.eval_iter(ast.iter())?;
+        stdin_eval(vm)?;
     } else {
         let vm = vm::VM::default();
         stdin_eval(vm)?;
