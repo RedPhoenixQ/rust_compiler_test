@@ -89,7 +89,7 @@ pub struct Block {
 #[derive(Debug, Clone)]
 pub enum ParseError {
     Done,
-    SyntaxError,
+    UnexpectedEnd,
 }
 
 impl std::error::Error for ParseError {}
@@ -100,12 +100,28 @@ impl std::fmt::Display for ParseError {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum SyntaxError {
+    InvalidToken,
+    InvalidOperand,
+    MissingClosingDelimiter,
+    ShouldHaveBeenConsumed,
+}
+
+impl std::error::Error for SyntaxError {}
+
+impl std::fmt::Display for SyntaxError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 // pub fn parse_ast<'a>(tokens: impl Iterator<Item = Token<'a>>) {
 //     let tokens = tokens.peekable();
 // }
 
 pub struct Parser<'a, I: Iterator<Item = Token<'a>>> {
-    file: &'a str,
+    file: Box<str>,
     tokens: Peekable<I>,
     strings: &'a mut BTreeSet<Rc<str>>,
 }
@@ -129,12 +145,12 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         Self {
             tokens: tokens.peekable(),
             strings,
-            file: "",
+            file: "".into(),
         }
     }
 
-    pub fn set_file(&mut self, file: &str) {
-        self.file = file;
+    pub fn set_file(&mut self, file: impl AsRef<str>) {
+        self.file = file.as_ref().into();
     }
 
     pub fn parse(&mut self) -> Result<Vec<Ast>> {
@@ -166,10 +182,9 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 } else if let Ok(op) = self.parse_function_call(ident.clone()) {
                     op
                 } else {
-                    bail!(
-                        "Invalid syntax: Ident followed by '{:?}' is invalid",
-                        self.tokens.next()
-                    )
+                    return Err(SyntaxError::InvalidToken)
+                        .context(self.location(&span))
+                        .with_context(|| format!("Ident followed by {:?}", self.tokens.next()));
                 }
             }
             TokenType::Keyword(word) => match word {
@@ -183,22 +198,25 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     } else if let Ok(op) = self.parse_binary_op(Box::new(boolean)) {
                         op
                     } else {
-                        bail!(
-                            "Invalid syntax: Boolean followed by '{:?}' is invalid",
-                            self.tokens.next()
-                        )
+                        return Err(SyntaxError::InvalidToken)
+                            .context(self.location(&span))
+                            .with_context(|| {
+                                format!("Boolean followed by {:?}", self.tokens.next())
+                            });
                     }
                 }
                 tokenizer::Keyword::Let => self.parse_let_variable_declaration()?,
                 tokenizer::Keyword::If => self.parse_if()?,
                 tokenizer::Keyword::Function => self.parse_function_declaration()?,
                 Keyword::Else => {
-                    return Err(ParseError::SyntaxError).context(format!(
-                        "{}:{}: Keyword {:?} should not appear at the start of expression",
-                        span.location_line(),
-                        span.get_column(),
-                        word,
-                    ))
+                    return Err(SyntaxError::InvalidToken)
+                        .context(self.location(&span))
+                        .with_context(|| {
+                            format!(
+                                "Keyword {:?} should not appear at the start of expression",
+                                word,
+                            )
+                        })
                 }
                 Keyword::Return => {
                     if self.is_end_of_expr() {
@@ -230,7 +248,11 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 } else if let Ok(op) = self.parse_binary_op(Box::new(literal)) {
                     op
                 } else {
-                    bail!("Invalid literal followed by {:?}", self.tokens.next())
+                    return Err(SyntaxError::InvalidToken)
+                        .context(self.location(&span))
+                        .with_context(|| {
+                            format!("Invalid literal followed by {:?}", self.tokens.next())
+                        });
                 }
             }
             TokenType::Symbol(symbol) => match symbol {
@@ -243,7 +265,17 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                             token: TokenType::Symbol(Symbol::CloseParen),
                             ..
                         }) => {}
-                        token => bail!("Missing close paren in group, recived {:?}", token),
+                        token => {
+                            return Err(SyntaxError::InvalidToken)
+                                .context(self.location(&span))
+                                .with_context(|| {
+                                    format!(
+                                        "Exprexted {:?}, recived {:?}",
+                                        Symbol::CloseParen,
+                                        token
+                                    )
+                                })
+                        }
                     };
 
                     if self.is_end_of_expr() {
@@ -251,23 +283,27 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     } else if let Ok(op) = self.parse_binary_op(Box::new(group)) {
                         op
                     } else {
-                        bail!(
-                            "Invalid syntax: Group followed by '{:?}' is invalid",
-                            self.tokens.next()
-                        )
+                        return Err(SyntaxError::InvalidToken)
+                            .context(self.location(&span))
+                            .with_context(|| {
+                                format!("Group followed by {:?}", self.tokens.next())
+                            });
                     }
                 }
                 Symbol::Exclamation => Ast::UniaryOp(UniaryOp::Not, Box::new(self.parse_next()?)),
                 Symbol::SemiColon => self.parse_next()?,
                 Symbol::CloseParen | Symbol::CloseCurlyBrace => {
-                    return Err(ParseError::SyntaxError).context(format!(
-                        "{}:{}: {:?} should be consumed by other structure",
-                        span.location_line(),
-                        span.get_column(),
-                        symbol,
-                    ))
+                    return Err(SyntaxError::MissingClosingDelimiter)
+                        .context(self.location(&span))
+                        .with_context(|| {
+                            format!("{:?} should be consumed by other structure", symbol,)
+                        })
                 }
-                _ => bail!("Syntax error: Symbol is invalid as the start of an expression"),
+                _ => {
+                    return Err(SyntaxError::InvalidToken)
+                        .context(self.location(&span))
+                        .with_context(|| format!("Symbol: {:?}", symbol))
+                }
             },
         })
     }
@@ -318,10 +354,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_binary_op(&mut self, lhs: Box<Ast>) -> Result<Ast> {
-        match self.tokens.peek() {
+        match self.tokens.peek().cloned() {
             Some(Token {
                 token: TokenType::Symbol(symbol),
-                ..
+                span,
             }) => {
                 // TODO: Fix math default order of operations
                 let operation = match symbol {
@@ -356,33 +392,43 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     | Symbol::CloseCurlyBrace
                     | Symbol::OpenSqaureBracket
                     | Symbol::CloseSqaureBracket => {
-                        bail!("'{symbol:?}' is not a valid binary operation")
+                        return Err(SyntaxError::InvalidOperand)
+                            .context(self.location(&span))
+                            .with_context(|| format!("{:?} is not a valid infix operand", symbol))
                     }
                 };
                 // Consume operand token
                 self.tokens.next();
                 Ok(Ast::BinaryOp(operation, lhs, Box::new(self.parse_next()?)))
             }
-            Some(token) => {
-                bail!("'{token:?}' is not a valid binary operation")
+            Some(Token { token, span }) => {
+                return Err(SyntaxError::InvalidToken)
+                    .context(self.location(&span))
+                    .with_context(|| format!("{:?} is not a valid operand", token))
             }
-            None => bail!("Unexpected end of input when parsing binary op"),
+            None => {
+                return Err(ParseError::UnexpectedEnd)
+                    .context("No more tokens when parsing binary op")
+            }
         }
     }
 
     fn parse_let_variable_declaration(&mut self) -> Result<Ast> {
-        let next_token = self.tokens.next();
-        let Some(Token {
-            token: TokenType::Ident(ident),
-            ..
-        }) = next_token
-        else {
-            bail!(
-                "Invalid let statement. Expexted identifier, recived '{:?}'",
-                next_token
-            )
+        let ident = match self.tokens.next() {
+            Some(Token {
+                token: TokenType::Ident(ident),
+                ..
+            }) => self.make_ident(ident),
+            Some(Token { span, token }) => {
+                return Err(SyntaxError::InvalidToken)
+                    .context(self.location(&span))
+                    .with_context(|| format!("Expected identifier, recived {:?}", token));
+            }
+            None => {
+                return Err(ParseError::UnexpectedEnd)
+                    .context("No more tokens when parsing variable declaration");
+            }
         };
-        let ident = self.make_ident(ident);
 
         Ok(match self.tokens.next() {
             is_expr_end!() => Ast::VariableDecl { ident, value: None },
@@ -393,24 +439,47 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 ident,
                 value: Some(Box::new(self.parse_next()?)),
             },
-            Some(token) => {
-                bail!(
-                    "Invalid let statement. Expected '=', recived {:?}",
-                    token.token
-                )
+            Some(Token { span, token }) => {
+                return Err(SyntaxError::InvalidToken)
+                    .context(self.location(&span))
+                    .with_context(|| {
+                        format!("Expected {:?}, recived {:?}", Symbol::Equals, token)
+                    });
             }
         })
     }
 
     fn parse_assignment(&mut self, ident: Ident) -> Result<Ast> {
-        let token = self.tokens.peek();
-        let Some(Token {
-            token: TokenType::Symbol(symbol),
-            ..
-        }) = token
-        else {
-            bail!("Invalid assignment token, recived {:?}", token)
+        let symbol = match self.tokens.peek().cloned() {
+            Some(Token {
+                token: TokenType::Symbol(symbol),
+                ..
+            }) if matches!(
+                symbol,
+                Symbol::Equals
+                    | Symbol::DashEquals
+                    | Symbol::PlusEquals
+                    | Symbol::AsteriskEquals
+                    | Symbol::SlashEquals
+                    | Symbol::PercentEquals
+                    | Symbol::ExclamationEquals
+            ) =>
+            {
+                symbol
+            }
+            Some(Token { span, token }) => {
+                return Err(SyntaxError::InvalidToken)
+                    .context(self.location(&span))
+                    .with_context(|| format!("Expected assignment operand, recived {:?}", token));
+            }
+            None => {
+                return Err(ParseError::UnexpectedEnd)
+                    .context("No more tokens when parsing variable declaration");
+            }
         };
+        // Consume assignment operator
+        self.tokens.next();
+
         let assignment_type: Option<BinaryOp> = match symbol {
             Symbol::Equals => None,
             Symbol::DashEquals => Some(BinaryOp::Sub),
@@ -421,8 +490,6 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             Symbol::ExclamationEquals => Some(BinaryOp::Neq),
             _ => bail!("Invalid assignment operation: {:?}", symbol),
         };
-        // Consume assignment operator
-        self.tokens.next();
 
         Ok(match assignment_type {
             None => Ast::Assignment {
@@ -441,14 +508,23 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_function_call(&mut self, ident: Ident) -> Result<Ast> {
-        let token = self.tokens.next();
-        let Some(Token {
-            token: TokenType::Symbol(Symbol::OpenParen),
-            ..
-        }) = token
-        else {
-            bail!("Expected open paren '(', recived {:?}", token)
-        };
+        match self.tokens.next() {
+            Some(Token {
+                token: TokenType::Symbol(Symbol::OpenParen),
+                ..
+            }) => {}
+            Some(Token { span, token }) => {
+                return Err(SyntaxError::InvalidToken)
+                    .context(self.location(&span))
+                    .with_context(|| {
+                        format!("Expected {:?}, recived {:?}", Symbol::OpenParen, token)
+                    });
+            }
+            None => {
+                return Err(ParseError::UnexpectedEnd)
+                    .context("No more tokens when parsing variable declaration");
+            }
+        }
 
         let mut args = Vec::new();
         loop {
@@ -467,24 +543,30 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                     self.tokens.next();
                     break;
                 }
-                _ => args.push(self.parse_next()?), // token => bail!("Unexpected input in function call args: {:?}", token),
+                _ => args.push(self.parse_next()?),
             }
         }
         if self.is_end_of_expr() {
             Ok(Ast::FunctionCall { ident, args })
         } else {
-            bail!("Unexpected token after function call")
+            let Token { span, token } = self
+                .tokens
+                .next()
+                .expect("is_end_of_expr should handle None case");
+            return Err(SyntaxError::InvalidToken)
+                .context(self.location(&span))
+                .with_context(|| {
+                    format!("Unexpected token after function call, recived {:?}", token)
+                });
         }
     }
 
     fn parse_if(&mut self) -> Result<Ast> {
-        let predicate @ Ast::Group(_) = self.parse_next()? else {
-            bail!("Missing predicate of if statement")
-        };
+        let predicate = self.parse_next().context("Could not parse if predicate")?;
         let predicate = Box::new(predicate);
         let then_branch = Box::new(
             self.parse_block_content()
-                .context("parsing then_brach block")?,
+                .context("Could not then_brach block")?,
         );
         let else_branch = if matches!(
             self.tokens.peek(),
@@ -495,7 +577,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         ) {
             // Consume 'else' token
             self.tokens.next();
-            Some(Box::new(self.parse_block_content()?))
+            Some(Box::new(
+                self.parse_block_content()
+                    .context("Could not else_brach block")?,
+            ))
         } else {
             None
         };
