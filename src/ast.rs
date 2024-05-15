@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, iter::Peekable, rc::Rc};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 
 use crate::tokenizer::{self, Keyword, Span, Symbol, Token, TokenType};
 
