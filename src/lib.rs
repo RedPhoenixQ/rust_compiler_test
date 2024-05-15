@@ -28,6 +28,20 @@ pub enum Value {
     None,
 }
 
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Function(lhs), Self::Function(rhs)) => Rc::ptr_eq(lhs, rhs),
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs == rhs,
+            (Self::Float(lhs), Self::Float(rhs)) => lhs == rhs,
+            (Self::Int(lhs), Self::Int(rhs)) => lhs == rhs,
+            (Self::String(lhs), Self::String(rhs)) => lhs == rhs,
+            (Self::None, Self::None) => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Function {
     pub args: Vec<Ident>,
