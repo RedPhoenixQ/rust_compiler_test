@@ -149,8 +149,8 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         }
     }
 
-    pub fn set_file(&mut self, file: impl AsRef<str>) {
-        self.file = file.as_ref().into();
+    pub fn set_file(&mut self, file: impl Into<Box<str>>) {
+        self.file = file.into();
     }
 
     pub fn parse(&mut self) -> Result<Vec<Ast>> {

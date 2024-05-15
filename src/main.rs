@@ -15,9 +15,8 @@ fn main() -> Result<()> {
     dbg!(&args);
 
     if let Some(file) = args.file {
-        let code = read_to_string(file.clone())?;
         let mut vm = VM::default();
-        vm.eval_str(&code)?;
+        vm.eval_file(&file)?;
         stdin_eval(vm)?;
     } else {
         let vm = VM::default();

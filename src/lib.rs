@@ -237,6 +237,18 @@ impl From<&Literal> for Value {
 }
 
 impl VM {
+    pub fn eval_file(&mut self, path: &std::path::Path) -> Result<Value> {
+        let code = std::fs::read_to_string(path)?;
+        let tokens = tokenizer::tokenize(code.as_ref())
+            .map_err(|err| anyhow::Error::msg(err.to_string()))?;
+        let mut parser = ast::Parser::new(tokens.into_iter(), &mut self.strings);
+        if let Ok(path) = path.canonicalize() {
+            parser.set_file(path.to_string_lossy().as_ref());
+        }
+        let ast = parser.parse()?;
+        self.eval_iter(ast.iter())
+    }
+
     pub fn eval_str(&mut self, code: &str) -> Result<Value> {
         let tokens = tokenizer::tokenize(code.as_ref())
             .map_err(|err| anyhow::Error::msg(err.to_string()))?;
