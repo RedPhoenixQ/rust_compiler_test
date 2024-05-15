@@ -18,14 +18,18 @@ fn main() -> Result<()> {
     dbg!(&args);
 
     if let Some(file) = args.file {
-        let code = read_to_string(file)?.into_boxed_str();
+        let code = read_to_string(file.clone())?.into_boxed_str();
         let (rest, tokens) = tokenizer::tokenize(code.as_ref())
             .map_err(|err| anyhow::Error::msg(err.to_string()))?;
         if !rest.is_empty() {
             dbg!(rest);
         }
         let mut vm = vm::VM::default();
-        let ast = ast::Parser::new(tokens.into_iter(), &mut vm.strings).parse()?;
+        let mut parser = ast::Parser::new(tokens.into_iter(), &mut vm.strings);
+        if let Some(name) = file.to_str() {
+            parser.set_file(name);
+        }
+        let ast = parser.parse()?;
         vm.eval_iter(ast.iter())?;
         stdin_eval(vm)?;
     } else {
