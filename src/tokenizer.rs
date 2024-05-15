@@ -2,10 +2,10 @@ use nom::{
     branch::alt,
     bytes::complete::*,
     character::complete::*,
-    combinator::{map, not, peek, recognize},
+    combinator::{all_consuming, map, not, peek, recognize},
     multi::many0,
     number::complete::double,
-    sequence::{delimited, preceded, tuple},
+    sequence::{delimited, preceded, terminated, tuple},
     IResult, Parser,
 };
 use nom_locate::LocatedSpan;
@@ -84,8 +84,10 @@ pub enum Literal<'a> {
     Float(f64),
 }
 
-pub fn tokenize(input: &str) -> IResult<Span, Vec<Token>> {
-    many0(token).parse(Span::new(input))
+pub fn tokenize(input: &str) -> Result<Vec<Token>, nom::Err<nom::error::Error<Span>>> {
+    let (_, tokens) =
+        all_consuming(terminated(many0(token), multispace0)).parse(Span::new(input))?;
+    Ok(tokens)
 }
 
 fn token(i: Span) -> IResult<Span, Token> {

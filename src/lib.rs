@@ -238,11 +238,8 @@ impl From<&Literal> for Value {
 
 impl VM {
     pub fn eval_str(&mut self, code: &str) -> Result<Value> {
-        let (rest, tokens) = tokenizer::tokenize(code.as_ref())
+        let tokens = tokenizer::tokenize(code.as_ref())
             .map_err(|err| anyhow::Error::msg(err.to_string()))?;
-        if !rest.is_empty() {
-            dbg!(rest);
-        }
         let mut parser = ast::Parser::new(tokens.into_iter(), &mut self.strings);
         let ast = parser.parse()?;
         self.eval_iter(ast.iter())
@@ -412,18 +409,14 @@ mod test {
     use std::fmt::Write;
 
     use super::*;
-    use crate::{
-        ast::Parser,
-        tokenizer::{tokenize, Span},
-    };
 
-    fn setup(code: &str) -> (VM, Vec<Ast>, Span) {
+    fn setup(code: &str) -> (VM, Vec<Ast>) {
         let mut vm = VM::default();
-        let (rest, tokens) = tokenize(code).unwrap();
-        let mut ast = Parser::new(tokens.into_iter(), &mut vm.strings)
+        let tokens = crate::tokenizer::tokenize(code).unwrap();
+        let mut ast = crate::ast::Parser::new(tokens.into_iter(), &mut vm.strings)
             .parse()
             .expect("Code to compile");
-        (vm, ast, rest)
+        (vm, ast)
     }
 
     #[test]
@@ -450,7 +443,7 @@ mod test {
         b;
         a + b;
         "#;
-        let (mut vm, ast, _rest) = setup(CODE);
+        let (mut vm, ast) = setup(CODE);
         let mut ast = ast.into_iter();
 
         let decl_a = vm.eval(&ast.next().unwrap());
@@ -497,7 +490,7 @@ mod test {
             writeln!(code, "fn fn{i}(b) {{ b + {i} }}").unwrap();
         }
         dbg!(&code);
-        let (_vm, ast, _rest) = setup(&code);
+        let (_vm, ast) = setup(&code);
         dbg!(ast);
     }
 
@@ -513,7 +506,7 @@ mod test {
         sub(2, 1);
         add_one(sub(2, 1));
         "#;
-        let (mut vm, ast, _rest) = setup(CODE);
+        let (mut vm, ast) = setup(CODE);
         let mut ast = ast.into_iter();
 
         let decl_add_one = vm.eval(&ast.next().unwrap());
