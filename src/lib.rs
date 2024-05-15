@@ -6,7 +6,10 @@ use std::{
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::ast::{Ast, BinaryOp, Block, Ident, Literal, UniaryOp};
+mod ast;
+mod tokenizer;
+
+use ast::{Ast, BinaryOp, Block, Ident, Literal, UniaryOp};
 
 #[derive(Debug, Default)]
 pub struct VM {
@@ -220,6 +223,17 @@ impl From<&Literal> for Value {
 }
 
 impl VM {
+    pub fn eval_str(&mut self, code: &str) -> Result<Value> {
+        let (rest, tokens) = tokenizer::tokenize(code.as_ref())
+            .map_err(|err| anyhow::Error::msg(err.to_string()))?;
+        if !rest.is_empty() {
+            dbg!(rest);
+        }
+        let mut parser = ast::Parser::new(tokens.into_iter(), &mut self.strings);
+        let ast = parser.parse()?;
+        self.eval_iter(ast.iter())
+    }
+
     pub fn eval_iter<'a>(&mut self, script: impl Iterator<Item = &'a Ast>) -> Result<Value> {
         let mut out = Value::None;
         for ast in script {

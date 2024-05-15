@@ -2,10 +2,7 @@ use std::{fs::read_to_string, io::stdin, path::PathBuf};
 
 use anyhow::Result;
 use clap::Parser;
-
-mod ast;
-mod tokenizer;
-mod vm;
+use vm::VM;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -18,62 +15,24 @@ fn main() -> Result<()> {
     dbg!(&args);
 
     if let Some(file) = args.file {
-        let code = read_to_string(file.clone())?.into_boxed_str();
-        let (rest, tokens) = tokenizer::tokenize(code.as_ref())
-            .map_err(|err| anyhow::Error::msg(err.to_string()))?;
-        if !rest.is_empty() {
-            dbg!(rest);
-        }
-        let mut vm = vm::VM::default();
-        let mut parser = ast::Parser::new(tokens.into_iter(), &mut vm.strings);
-        if let Some(name) = file.to_str() {
-            parser.set_file(name);
-        }
-        let ast = parser.parse()?;
-        vm.eval_iter(ast.iter())?;
+        let code = read_to_string(file.clone())?;
+        let mut vm = VM::default();
+        vm.eval_str(&code)?;
         stdin_eval(vm)?;
     } else {
-        let vm = vm::VM::default();
+        let vm = VM::default();
         stdin_eval(vm)?;
     }
     Ok(())
 }
 
-fn stdin_eval(mut vm: vm::VM) -> Result<()> {
+fn stdin_eval(mut vm: VM) -> Result<()> {
     let mut buf = String::new();
     while let Ok(_result) = stdin().read_line(&mut buf) {
-        let tokens = match tokenizer::tokenize(&buf.trim()) {
-            Err(nom::Err::Incomplete(_needed)) => {
-                println!("Incomplete, {_needed:?}");
-                continue;
-            }
-            Err(nom::Err::Failure(err)) => {
-                println!("Invalid syntax, {err:?}");
-                continue;
-            }
-            Err(nom::Err::Error(err)) => {
-                println!("Invalid syntax, {err:?}");
-                continue;
-            }
-            Ok((rest, tokens)) => {
-                if !rest.is_empty() {
-                    dbg!(rest);
-                }
-                tokens
-            }
+        match vm.eval_str(&buf.trim()) {
+            Err(err) => eprintln!("{:?}", err),
+            Ok(value) => println!("> {value:#?}"),
         };
-        let ast = match ast::Parser::new(tokens.into_iter(), &mut vm.strings).parse() {
-            Ok(ast) => ast,
-            Err(err) => {
-                eprintln!("Syntax error: {:?}", err);
-                Vec::new()
-            }
-        };
-        for node in &ast {
-            let value = vm.eval(node)?;
-            println!("> {value:#?}")
-        }
-
         buf.clear();
     }
     Ok(())
