@@ -293,7 +293,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 Symbol::Exclamation => Ast::UniaryOp(UniaryOp::Not, Box::new(self.parse_next()?)),
                 Symbol::SemiColon => self.parse_next()?,
                 Symbol::CloseParen | Symbol::CloseCurlyBrace => {
-                    return Err(SyntaxError::MissingClosingDelimiter)
+                    return Err(SyntaxError::ShouldHaveBeenConsumed)
                         .context(self.location(&span))
                         .with_context(|| {
                             format!("{:?} should be consumed by other structure", symbol,)
@@ -346,7 +346,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 ..
             }) => {}
             Some(Token { span, token }) => {
-                return Err(SyntaxError::InvalidToken)
+                return Err(SyntaxError::MissingClosingDelimiter)
                     .context(self.location(&span))
                     .with_context(|| {
                         format!(
