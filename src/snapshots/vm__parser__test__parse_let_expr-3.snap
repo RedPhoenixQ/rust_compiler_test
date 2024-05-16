@@ -39,6 +39,17 @@ Err(
                         "Terminator",
                     ),
                 ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "let yeet = ;",
+                        extra: (),
+                    },
+                    Context(
+                        "Variable declaration",
+                    ),
+                ),
             ],
         },
     ),

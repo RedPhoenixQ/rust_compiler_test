@@ -96,13 +96,16 @@ fn expr(input: Span) -> SResult<Ast> {
 }
 
 fn let_expr(input: Span) -> SResult<Ast> {
-    terminated(
-        tuple((
-            ws(tag("let")),
-            ws(ident),
-            opt(preceded(ws(tag("=")), ws(expr)).map(Box::new)),
-        )),
-        ws(end_of_expr),
+    context(
+        "Variable declaration",
+        terminated(
+            tuple((
+                ws(tag("let")),
+                ws(ident),
+                opt(preceded(ws(tag("=")), ws(expr)).map(Box::new)),
+            )),
+            ws(end_of_expr),
+        ),
     )
     .map(|(span, ident, value)| Ast {
         node: Node::VariableDeclaration(ident.fragment(), value),
