@@ -311,24 +311,14 @@ impl VM {
                 args: args.clone(),
                 body: body.clone(),
             })),
-            Ast::If {
-                predicate,
-                then_branch,
-                else_branch,
-            } => {
-                let predicate = self.eval(predicate)?.coerce_boolean();
+            Ast::If(branches) => {
                 let mut out = Value::None;
-                if matches!(predicate, Value::Boolean(true)) {
-                    let value = self.eval_iter(then_branch.content.iter())?;
-                    if then_branch.implicit_return {
-                        out = value
+                for (predicate, block) in branches {
+                    let predicate = self.eval(predicate)?.coerce_boolean();
+                    if matches!(predicate, Value::Boolean(true)) {
+                        out = self.eval_block(&block)?;
                     }
-                } else if let Some(else_branch) = else_branch {
-                    let value = self.eval_iter(else_branch.content.iter())?;
-                    if else_branch.implicit_return {
-                        out = value
-                    }
-                };
+                }
                 out
             }
             Ast::FunctionCall { ident, args } => {
@@ -353,7 +343,7 @@ impl VM {
                     scope.insert(arg, value);
                 }
                 self.stack.push(scope);
-                let value = match self.eval_iter(function.body.content.iter()) {
+                let value = match self.eval_block(&function.body) {
                     Ok(value) => value,
                     Err(err) => match err.downcast_ref::<ControlFlow>() {
                         Some(ControlFlow::Return) => self.return_register.to_owned(),
@@ -372,14 +362,15 @@ impl VM {
                 return Err(ControlFlow::Return.into());
             }
             Ast::Group(ast) => self.eval(ast)?,
-            Ast::Block(Block {
-                content,
-                implicit_return,
-            }) => match self.eval_iter(content.iter()) {
-                Ok(value) if *implicit_return => value,
-                Ok(_) => Value::None,
-                Err(err) => return Err(err),
-            },
+            Ast::Block(block) => self.eval_block(block)?,
+        })
+    }
+
+    fn eval_block(&mut self, block: &Block) -> Result<Value> {
+        Ok(match self.eval_iter(block.content.iter()) {
+            Ok(value) if block.implicit_return => value,
+            Ok(_) => Value::None,
+            Err(err) => return Err(err),
         })
     }
 
@@ -596,12 +587,10 @@ mod test {
     #[test]
     fn function_return() {
         const CODE: &str = r#"fn check(in) {
-            if in >= 3 {
-                if in == 3 {
-                    return true;
-                } else {
-                    return false;
-                }
+            if in == 3 {
+                return true;
+            } else if in > 3 {
+                return false;
             }
             in
         }
