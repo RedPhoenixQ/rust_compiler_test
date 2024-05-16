@@ -7,6 +7,7 @@ use std::{
 use anyhow::{anyhow, bail, Result};
 
 mod ast;
+mod parser;
 mod tokenizer;
 
 use ast::{Ast, BinaryOp, Block, Ident, Literal, UniaryOp};
