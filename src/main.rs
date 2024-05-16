@@ -1,4 +1,4 @@
-use std::{fs::read_to_string, io::stdin, path::PathBuf};
+use std::{io::stdin, path::PathBuf};
 
 use anyhow::Result;
 use clap::Parser;
