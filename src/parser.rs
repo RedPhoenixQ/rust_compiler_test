@@ -24,6 +24,11 @@ pub enum Node<'a> {
     Ident(&'a str),
     Literal(Literal<'a>),
     VariableDeclaration(&'a str, Option<Box<Ast<'a>>>),
+    FunctionDeclaration {
+        ident: &'a str,
+        arguments: Vec<Ast<'a>>,
+        body: Vec<Ast<'a>>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -75,24 +80,8 @@ impl BinaryOp {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum SyntaxError {
-    InvalidToken,
-    InvalidOperand,
-    MissingClosingDelimiter,
-    ShouldHaveBeenConsumed,
-}
-
-impl std::error::Error for SyntaxError {}
-
-impl std::fmt::Display for SyntaxError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 fn expr(input: Span) -> SResult<Ast> {
-    alt((let_expr, ident_expr, string_expr, number_expr)).parse(input)
+    alt((let_expr, fn_expr, ident_expr, string_expr, number_expr)).parse(input)
 }
 
 fn let_expr(input: Span) -> SResult<Ast> {
@@ -109,6 +98,37 @@ fn let_expr(input: Span) -> SResult<Ast> {
     )
     .map(|(span, ident, value)| Ast {
         node: Node::VariableDeclaration(ident.fragment(), value),
+        span,
+    })
+    .parse(input)
+}
+
+fn fn_expr(input: Span) -> SResult<Ast> {
+    context(
+        "Function declaration",
+        tuple((
+            ws(tag("fn")),
+            ws(ident),
+            context(
+                "Function arguments",
+                ws(delimited(
+                    char('('),
+                    separated_list0(ws(char(',')), ws(ident_expr)),
+                    char(')'),
+                )),
+            ),
+            context(
+                "Function body",
+                delimited(ws(char('{')), many1(ws(expr)), ws(char('}'))),
+            ),
+        )),
+    )
+    .map(|(span, ident, arguments, body)| Ast {
+        node: Node::FunctionDeclaration {
+            ident: ident.fragment(),
+            arguments,
+            body,
+        },
         span,
     })
     .parse(input)
@@ -211,5 +231,10 @@ mod test {
         assert_debug_snapshot!(let_expr("let yeet;".into()));
         assert_debug_snapshot!(let_expr("let yeet = 123;".into()));
         assert_debug_snapshot!(let_expr("let yeet = ;".into()));
+    }
+
+    #[test]
+    fn parse_fn_expr() {
+        assert_debug_snapshot!(fn_expr("fn test(a, b) { let c = 123; }".into()));
     }
 }
