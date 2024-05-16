@@ -445,7 +445,7 @@ mod test {
     fn setup(code: &str) -> (VM, Vec<Ast>) {
         let mut vm = VM::default();
         let tokens = crate::tokenizer::tokenize(code).unwrap();
-        let mut ast = crate::ast::Parser::new(tokens.into_iter(), &mut vm.strings)
+        let ast = crate::ast::Parser::new(tokens.into_iter(), &mut vm.strings)
             .parse()
             .expect("Code to compile");
         (vm, ast)
