@@ -1,0 +1,45 @@
+---
+source: src/parser.rs
+expression: "let_expr(\"let yeet = ;\".into())"
+---
+Err(
+    Error(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 9,
+                        line: 1,
+                        fragment: "= ;",
+                        extra: (),
+                    },
+                    Nom(
+                        Eof,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 9,
+                        line: 1,
+                        fragment: "= ;",
+                        extra: (),
+                    },
+                    Nom(
+                        Alt,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 9,
+                        line: 1,
+                        fragment: "= ;",
+                        extra: (),
+                    },
+                    Context(
+                        "Terminator",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

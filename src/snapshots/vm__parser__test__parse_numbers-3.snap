@@ -1,0 +1,27 @@
+---
+source: src/parser.rs
+expression: "number_expr(\"12s3.123\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 2,
+            line: 1,
+            fragment: "s3.123",
+            extra: (),
+        },
+        Ast {
+            node: Literal(
+                Int(
+                    12,
+                ),
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "12",
+                extra: (),
+            },
+        },
+    ),
+)

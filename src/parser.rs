@@ -179,134 +179,34 @@ fn ws<'a, P: Parser<Span<'a>, O, E>, O, E: ParseError<Span<'a>>>(
 
 #[cfg(test)]
 mod test {
+    use insta::assert_debug_snapshot;
+
     use super::*;
 
     #[test]
     fn parse_ident() {
-        let (rest, ast) = ident_expr("haha".into()).unwrap();
-        assert!(rest.is_empty());
-        assert!(
-            matches!(
-                ast,
-                Ast {
-                    node: Node::Ident("haha"),
-                    ..
-                }
-            ),
-            "Recived {ast:?}"
-        );
-        let (rest, ast) = ident_expr("AS_23ds_s".into()).unwrap();
-        assert!(rest.is_empty());
-        assert!(
-            matches!(
-                ast,
-                Ast {
-                    node: Node::Ident("AS_23ds_s"),
-                    ..
-                }
-            ),
-            "Recived {ast:?}"
-        );
-
-        // Invalid idents
-        let err =
-            ident_expr("12haha".into()).expect_err("Ident starting with numbers did not fail");
-        assert_eq!(
-            err.to_string(),
-            r#"Parsing Error: VerboseError { errors: [(LocatedSpan { offset: 0, line: 1, fragment: "12haha", extra: () }, Nom(Alpha)), (LocatedSpan { offset: 0, line: 1, fragment: "12haha", extra: () }, Context("Identifier"))] }"#
-        );
-        let (rest, ast) =
-            ident_expr("left-right".into()).expect("Ident with dashes to partially parse");
-        assert_eq!(rest.fragment(), &"-right");
-        assert!(
-            matches!(
-                ast,
-                Ast {
-                    node: Node::Ident("left"),
-                    ..
-                }
-            ),
-            "Recived {ast:?}"
-        );
+        assert_debug_snapshot!(ident_expr("haha".into()));
+        assert_debug_snapshot!(ident_expr("AS_23ds_s".into()));
+        assert_debug_snapshot!(ident_expr("12haha".into()));
+        assert_debug_snapshot!(ident_expr("left-right".into()));
     }
 
     #[test]
     fn parse_strings() {
-        let (rest, ast) = string_expr(Span::new(r#""123""#)).unwrap();
-        assert!(rest.is_empty());
-        assert!(
-            matches!(
-                ast,
-                Ast {
-                    node: Node::Literal(Literal::String("123")),
-                    span,
-                } if span.fragment() == &r#""123""#
-            ),
-            "Recived {ast:?}"
-        );
+        assert_debug_snapshot!(string_expr(r#""123""#.into()));
     }
 
     #[test]
     fn parse_numbers() {
-        let (rest, ast) = number_expr(Span::new("123")).unwrap();
-        assert!(rest.is_empty());
-        assert!(
-            matches!(
-                ast,
-                Ast {
-                    node: Node::Literal(Literal::Int(123)),
-                    ..
-                }
-            ),
-            "Recived {ast:?}"
-        );
-        let (rest, ast) = number_expr(Span::new("123.123")).unwrap();
-        assert!(rest.is_empty());
-        assert!(
-            matches!(
-                ast,
-                Ast {
-                    node: Node::Literal(Literal::Float(n)),
-                    ..
-                } if n == 123.123
-            ),
-            "Recived {ast:?}"
-        );
+        assert_debug_snapshot!(number_expr("123".into()));
+        assert_debug_snapshot!(number_expr("123.123".into()));
+        assert_debug_snapshot!(number_expr("12s3.123".into()));
     }
 
     #[test]
     fn parse_let_expr() {
-        let (rest, ast) = let_expr("let yeet;".into()).unwrap();
-        assert!(rest.is_empty());
-        assert!(
-            matches!(
-                ast,
-                Ast {
-                    node: Node::VariableDeclaration("yeet", None),
-                    ..
-                }
-            ),
-            "Recived {ast:?}"
-        );
-        let (rest, ast) = let_expr("let yeet = 123;".into()).unwrap();
-        assert!(rest.is_empty());
-        assert!(
-            matches!(
-                &ast,
-                Ast {
-                    node: Node::VariableDeclaration("yeet", Some(value)),
-                    ..
-                } if matches!(value.as_ref(), Ast { node: Node::Literal(Literal::Int(123)),.. })
-            ),
-            "Recived {ast:?}"
-        );
-
-        // Invalid idents
-        let err =
-            let_expr("let yeet = ".into()).expect_err("Ident starting with numbers did not fail");
-        assert_eq!(
-            err.to_string(),
-            r#"Parsing Error: VerboseError { errors: [(LocatedSpan { offset: 9, line: 1, fragment: "= ", extra: () }, Nom(Eof)), (LocatedSpan { offset: 9, line: 1, fragment: "= ", extra: () }, Nom(Alt))] }"#
-        );
+        assert_debug_snapshot!(let_expr("let yeet;".into()));
+        assert_debug_snapshot!(let_expr("let yeet = 123;".into()));
+        assert_debug_snapshot!(let_expr("let yeet = ;".into()));
     }
 }

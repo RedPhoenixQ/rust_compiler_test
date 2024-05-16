@@ -1,0 +1,26 @@
+---
+source: src/parser.rs
+expression: "let_expr(\"let yeet;\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 9,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: VariableDeclaration(
+                "yeet",
+                None,
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "let",
+                extra: (),
+            },
+        },
+    ),
+)

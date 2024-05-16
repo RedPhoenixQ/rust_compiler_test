@@ -1,0 +1,27 @@
+---
+source: src/parser.rs
+expression: "string_expr(r#\"\"123\"\"#.into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 5,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: Literal(
+                String(
+                    "123",
+                ),
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "\"123\"",
+                extra: (),
+            },
+        },
+    ),
+)
