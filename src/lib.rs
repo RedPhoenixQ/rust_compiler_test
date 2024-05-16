@@ -15,16 +15,18 @@ use ast::{Ast, BinaryOp, Block, Ident, Literal, UniaryOp};
 pub struct VM {
     globals: BTreeMap<Ident, Value>,
     stack: Vec<BTreeMap<Ident, Value>>,
+    return_register: Value,
     pub strings: BTreeSet<Rc<str>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub enum Value {
     String(Rc<str>),
     Int(i64),
     Float(f64),
     Boolean(bool),
     Function(Rc<Function>),
+    #[default]
     None,
 }
 
@@ -236,6 +238,20 @@ impl From<&Literal> for Value {
     }
 }
 
+#[derive(Debug)]
+pub enum ControlFlow {
+    Return,
+}
+
+impl std::fmt::Display for ControlFlow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)?;
+        Ok(())
+    }
+}
+
+impl std::error::Error for ControlFlow {}
+
 impl VM {
     pub fn eval_file(&mut self, path: &std::path::Path) -> Result<Value> {
         let code = std::fs::read_to_string(path)?;
@@ -337,11 +353,24 @@ impl VM {
                     scope.insert(arg, value);
                 }
                 self.stack.push(scope);
-                let value = self.eval_iter(function.body.content.iter())?;
+                let value = match self.eval_iter(function.body.content.iter()) {
+                    Ok(value) => value,
+                    Err(err) => match err.downcast_ref::<ControlFlow>() {
+                        Some(ControlFlow::Return) => self.return_register.to_owned(),
+                        _ => return Err(err),
+                    },
+                };
                 self.stack.pop();
                 value
             }
-            Ast::Return(value) => todo!("handle return of {:?}", value),
+            Ast::Return(value) => {
+                self.return_register = if let Some(value) = value {
+                    self.eval(value)?
+                } else {
+                    Value::None
+                };
+                return Err(ControlFlow::Return.into());
+            }
             Ast::Group(ast) => self.eval(ast)?,
             Ast::Block(Block {
                 content,
@@ -561,6 +590,56 @@ mod test {
         assert!(
             matches!(call_sub_with_add_one, Ok(Value::Int(2))),
             "{call_sub_with_add_one:?}"
+        );
+    }
+
+    #[test]
+    fn function_return() {
+        const CODE: &str = r#"fn check(in) {
+            if in >= 3 {
+                if in == 3 {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            in
+        }
+        check(10);
+        check(1);
+        check(3);
+        "#;
+        let (mut vm, ast) = setup(CODE);
+        let mut ast = ast.into_iter();
+
+        let decl_check = vm.eval(&ast.next().unwrap());
+        assert!(
+            matches!(decl_check, Ok(Value::None)),
+            "Declaration of check failed: {decl_check:?}"
+        );
+
+        let fn_check = vm.globals.get(&Ident("check".to_owned().into()));
+        assert!(
+            matches!(fn_check, Some(Value::Function(_))),
+            "check not a function: {fn_check:?}"
+        );
+
+        let call_check_10 = vm.eval(&ast.next().unwrap());
+        assert!(
+            matches!(call_check_10, Ok(Value::Boolean(false))),
+            "Call check with 10 failed: {call_check_10:?}"
+        );
+
+        let call_check_1 = vm.eval(&ast.next().unwrap());
+        assert!(
+            matches!(call_check_1, Ok(Value::Int(1))),
+            "Call check with 1 failed: {call_check_1:?}"
+        );
+
+        let call_check_3 = vm.eval(&ast.next().unwrap());
+        assert!(
+            matches!(call_check_3, Ok(Value::Boolean(true))),
+            "Call check with 3 failed: {call_check_3:?}"
         );
     }
 }
