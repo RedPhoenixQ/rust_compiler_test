@@ -92,7 +92,7 @@ impl std::fmt::Display for SyntaxError {
 }
 
 fn expr(input: Span) -> SResult<Ast> {
-    alt((ident_expr, string_expr, number_expr)).parse(input)
+    alt((let_expr, ident_expr, string_expr, number_expr)).parse(input)
 }
 
 fn let_expr(input: Span) -> SResult<Ast> {
