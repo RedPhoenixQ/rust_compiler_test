@@ -27,11 +27,7 @@ pub enum Ast {
         ident: Ident,
         value: Box<Ast>,
     },
-    If {
-        predicate: Box<Ast>,
-        then_branch: Box<Block>,
-        else_branch: Option<Box<Block>>,
-    },
+    If(Vec<(Ast, Block)>),
     FunctionDecl {
         args: Vec<Ident>,
         body: Box<Block>,
@@ -595,12 +591,11 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     }
 
     fn parse_if(&mut self) -> Result<Ast> {
-        let predicate = Box::new(self.parse_next().context("Could not parse if predicate")?);
-        let then_branch = Box::new(
-            self.parse_block()
-                .context("Could not parse then_brach block")?,
-        );
-        let else_branch = if matches!(
+        let mut branches = vec![(
+            self.parse_next().context("Could not parse if predicate")?,
+            self.parse_block().context("Could not parse if block")?,
+        )];
+        while matches!(
             self.tokens.peek(),
             Some(Token {
                 token: TokenType::Keyword(Keyword::Else),
@@ -608,19 +603,34 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             })
         ) {
             // Consume 'else' token
-            self.tokens.next();
-            Some(Box::new(
-                self.parse_block()
-                    .context("Could not parse else_brach block")?,
-            ))
-        } else {
-            None
-        };
-        Ok(Ast::If {
-            predicate,
-            then_branch,
-            else_branch,
-        })
+            let Some(Token { span, .. }) = self.tokens.next() else {
+                unreachable!("Else token was peeked and must exist");
+            };
+
+            let predicate = if matches!(
+                self.tokens.peek(),
+                Some(Token {
+                    token: TokenType::Keyword(Keyword::If),
+                    ..
+                })
+            ) {
+                // Consume 'if' token
+                self.tokens.next();
+                self.parse_next().context("Could not parse if predicate")?
+            } else {
+                // Default else branch that is always true
+                Ast::Literal(Literal::Boolean(true))
+            };
+
+            let block = self
+                .parse_block()
+                .context(self.location(&span))
+                .context("Could not parse if branch block")?;
+
+            branches.push((predicate, block))
+        }
+
+        Ok(Ast::If(branches))
     }
 
     fn parse_function_declaration(&mut self) -> Result<Ast> {
