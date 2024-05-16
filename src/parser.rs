@@ -23,7 +23,10 @@ pub struct Ast<'a> {
 pub enum Node<'a> {
     Ident(&'a str),
     Literal(Literal<'a>),
-    VariableDeclaration(&'a str, Option<Box<Ast<'a>>>),
+    VariableDeclaration {
+        ident: &'a str,
+        value: Option<Box<Ast<'a>>>,
+    },
     FunctionDeclaration {
         ident: &'a str,
         arguments: Vec<Ast<'a>>,
@@ -97,7 +100,10 @@ fn let_expr(input: Span) -> SResult<Ast> {
         ),
     )
     .map(|(span, ident, value)| Ast {
-        node: Node::VariableDeclaration(ident.fragment(), value),
+        node: Node::VariableDeclaration {
+            ident: ident.fragment(),
+            value,
+        },
         span,
     })
     .parse(input)
