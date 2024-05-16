@@ -76,6 +76,23 @@ pub enum BinaryOp {
     BitwiseAnd,
 }
 
+impl BinaryOp {
+    /// https://en.cppreference.com/w/c/language/operator_precedence
+    /// Lower value should be evaluated first
+    fn priority(&self) -> u8 {
+        match self {
+            Self::Mul | Self::Div | Self::Mod => 3,
+            Self::Add | Self::Sub => 4,
+            Self::Lt | Self::Gt | Self::LtEq | Self::GtEq => 6,
+            Self::Eq | Self::Neq => 7,
+            Self::BitwiseAnd => 8,
+            Self::BitwiseOr => 10,
+            Self::LogicalAnd => 11,
+            Self::LogicalOr => 12,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Block {
     pub content: Vec<Ast>,
@@ -452,7 +469,26 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 };
                 // Consume operand token
                 self.tokens.next();
-                Ok(Ast::BinaryOp(operation, lhs, Box::new(self.parse_next()?)))
+
+                match self.parse_next()? {
+                    Ast::BinaryOp(right_op, middle, rhs) => {
+                        if operation.priority() < right_op.priority() {
+                            // Operation has lower priority number, should be evaluated first
+                            Ok(Ast::BinaryOp(
+                                right_op,
+                                Box::new(Ast::BinaryOp(operation, lhs, middle)),
+                                rhs,
+                            ))
+                        } else {
+                            Ok(Ast::BinaryOp(
+                                operation,
+                                lhs,
+                                Box::new(Ast::BinaryOp(right_op, middle, rhs)),
+                            ))
+                        }
+                    }
+                    rhs => Ok(Ast::BinaryOp(operation, lhs, Box::new(rhs))),
+                }
             }
             Some(Token { token, span }) => {
                 return Err(SyntaxError::InvalidToken)
