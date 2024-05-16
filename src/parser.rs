@@ -165,7 +165,7 @@ fn ident(input: Span) -> SResult<Span> {
 }
 
 fn end_of_expr(input: Span) -> SResult<Span> {
-    alt((tag(";"), eof)).parse(input)
+    context("Terminator", alt((tag(";"), eof))).parse(input)
 }
 
 fn ws<'a, P: Parser<Span<'a>, O, E>, O, E: ParseError<Span<'a>>>(
