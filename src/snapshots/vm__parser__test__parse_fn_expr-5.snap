@@ -35,7 +35,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "fn",
+                fragment: "fn no_args() { 123; }",
                 extra: (),
             },
         },

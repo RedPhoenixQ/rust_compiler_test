@@ -132,15 +132,17 @@ fn let_statement(input: Span) -> SResult<Ast> {
     context(
         "Variable declaration",
         terminated(
-            tuple((
+            consumed(preceded(
                 ws(tag("let")),
-                ws(ident),
-                opt(preceded(ws(tag("=")), ws(expr)).map(Box::new)),
+                pair(
+                    ws(ident),
+                    opt(preceded(ws(tag("=")), ws(expr)).map(Box::new)),
+                ),
             )),
             ws(terminator),
         ),
     )
-    .map(|(span, ident, value)| Ast {
+    .map(|(span, (ident, value))| Ast {
         node: Node::VariableDeclaration { ident, value },
         span,
     })
@@ -150,25 +152,27 @@ fn let_statement(input: Span) -> SResult<Ast> {
 fn fn_statement(input: Span) -> SResult<Ast> {
     context(
         "Function declaration",
-        tuple((
+        consumed(preceded(
             keyword("fn"),
-            ws(ident),
-            context(
-                "Function arguments",
-                ws(delimited(
-                    char('('),
-                    separated_list0(ws(char(',')), ws(ident)),
-                    char(')'),
-                )),
-            ),
-            delimited(
-                ws(context("Start of function block", char('{'))),
-                context("Function body", many1(statement)),
-                ws(context("End of function block", char('}'))),
-            ),
+            tuple((
+                ws(ident),
+                context(
+                    "Function arguments",
+                    ws(delimited(
+                        char('('),
+                        separated_list0(ws(char(',')), ws(ident)),
+                        char(')'),
+                    )),
+                ),
+                delimited(
+                    ws(context("Start of function block", char('{'))),
+                    context("Function body", many1(statement)),
+                    ws(context("End of function block", char('}'))),
+                ),
+            )),
         )),
     )
-    .map(|(span, ident, arguments, body)| Ast {
+    .map(|(span, (ident, arguments, body))| Ast {
         node: Node::FunctionDeclaration {
             ident,
             arguments,

@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-expression: "let_expr(\"let yeet = 123;\".into())"
+expression: "let_statement(\"let yeet = 123;\".into())"
 ---
 Ok(
     (
@@ -34,7 +34,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "let",
+                fragment: "let yeet = 123",
                 extra: (),
             },
         },

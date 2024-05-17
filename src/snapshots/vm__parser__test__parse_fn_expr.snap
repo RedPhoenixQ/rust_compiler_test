@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-expression: "fn_expr(\"fn test(a, b) { let c = 123; }\".into())"
+expression: "fn_statement(\"fn test(a, b) { let c = 123; }\".into())"
 ---
 Ok(
     (
@@ -48,7 +48,7 @@ Ok(
                         span: LocatedSpan {
                             offset: 16,
                             line: 1,
-                            fragment: "let",
+                            fragment: "let c = 123",
                             extra: (),
                         },
                     },
@@ -57,7 +57,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "fn",
+                fragment: "fn test(a, b) { let c = 123; }",
                 extra: (),
             },
         },
