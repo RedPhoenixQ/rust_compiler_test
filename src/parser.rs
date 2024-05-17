@@ -99,12 +99,16 @@ impl BinaryOp {
 }
 
 fn statement(input: Span) -> SResult<Ast> {
-    ws(alt((
-        let_statement,
-        fn_statement,
-        assignment_statement,
-        terminated(expr, ws(terminator)),
-    )))
+    context(
+        "Statement",
+        ws(alt((
+            let_statement,
+            fn_statement,
+            assignment_statement,
+            terminated(expr, ws(terminator)),
+            fail,
+        ))),
+    )
     .parse(input)
 }
 
