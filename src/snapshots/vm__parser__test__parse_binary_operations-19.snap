@@ -1,0 +1,75 @@
+---
+source: src/parser.rs
+expression: "binary_operation_expr(\"a || b && c\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 11,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: BinaryOp(
+                LogicalOr,
+                Ast {
+                    node: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "a",
+                        extra: (),
+                    },
+                },
+                Ast {
+                    node: BinaryOp(
+                        LogicalAnd,
+                        Ast {
+                            node: Ident(
+                                Ident(
+                                    "b",
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 5,
+                                line: 1,
+                                fragment: "b",
+                                extra: (),
+                            },
+                        },
+                        Ast {
+                            node: Ident(
+                                Ident(
+                                    "c",
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 10,
+                                line: 1,
+                                fragment: "c",
+                                extra: (),
+                            },
+                        },
+                    ),
+                    span: LocatedSpan {
+                        offset: 5,
+                        line: 1,
+                        fragment: "b && c",
+                        extra: (),
+                    },
+                },
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "a || b && c",
+                extra: (),
+            },
+        },
+    ),
+)

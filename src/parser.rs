@@ -399,4 +399,41 @@ mod test {
         assert_debug_snapshot!(group_expr("123)".into()));
         assert_debug_snapshot!(group_expr("(123".into()));
     }
+
+    #[test]
+    fn parse_binary_operations() {
+        // Basic operations
+        assert_debug_snapshot!(binary_operation_expr("a + b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a - b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a / b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a * b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a % b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a & b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a | b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a && b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a || b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a < b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a > b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a <= b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a >= b".into()));
+
+        // Operator priority
+        assert_debug_snapshot!(binary_operation_expr("a * b + c".into()));
+        assert_debug_snapshot!(binary_operation_expr("a + b * c".into()));
+
+        assert_debug_snapshot!(binary_operation_expr("a > b && c".into()));
+        assert_debug_snapshot!(binary_operation_expr("b && a > 0".into()));
+        assert_debug_snapshot!(binary_operation_expr("a && b || c".into()));
+        assert_debug_snapshot!(binary_operation_expr("a || b && c".into()));
+        assert_debug_snapshot!(binary_operation_expr("a && (b || c)".into()));
+        assert_debug_snapshot!(binary_operation_expr("(a || b) && c".into()));
+
+        // Formatings
+        assert_debug_snapshot!(binary_operation_expr("a + b;".into()));
+        assert_debug_snapshot!(binary_operation_expr("a-b".into()));
+
+        // Failures
+        assert_debug_snapshot!(binary_operation_expr("a && b = c".into()));
+        assert_debug_snapshot!(binary_operation_expr("a = b".into()));
+    }
 }
