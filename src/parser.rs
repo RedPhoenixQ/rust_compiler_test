@@ -32,6 +32,10 @@ pub enum Node<'a> {
         arguments: Vec<Ident<'a>>,
         body: Vec<Ast<'a>>,
     },
+    Assignment {
+        ident: Ident<'a>,
+        value: Box<Ast<'a>>,
+    },
 }
 
 #[derive(Debug)]
@@ -96,6 +100,7 @@ fn statement(input: Span) -> SResult<Ast> {
     ws(alt((
         let_statement,
         fn_statement,
+        assignment_statement,
         terminated(expr, ws(terminator)),
     )))
     .parse(input)
@@ -151,6 +156,22 @@ fn fn_statement(input: Span) -> SResult<Ast> {
             arguments,
             body,
         },
+        span,
+    })
+    .parse(input)
+}
+
+fn assignment_statement(input: Span) -> SResult<Ast> {
+    context(
+        "Variable assignment",
+        consumed(terminated(
+            tuple((ident, ws(char('=')), expr.map(Box::new))),
+            terminator,
+        )),
+    )
+    // TODO: Handle other assignment operators
+    .map(|(span, (ident, _operator, value))| Ast {
+        node: Node::Assignment { ident, value },
         span,
     })
     .parse(input)
@@ -289,5 +310,11 @@ mod test {
         // assert_debug_snapshot!(fn_statement(
         //     "fn nesting(a, b) { fn nested() { let c = 123 } }".into()
         // ));
+    }
+
+    #[test]
+    fn parse_assignment() {
+        assert_debug_snapshot!(assignment_statement("yeet = 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet + 123;".into()));
     }
 }
