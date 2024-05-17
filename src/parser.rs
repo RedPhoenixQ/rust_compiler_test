@@ -113,7 +113,13 @@ fn statement(input: Span) -> SResult<Ast> {
 }
 
 fn expr(input: Span) -> SResult<Ast> {
-    ws(alt((binary_operation_expr, value_expr, fail))).parse(input)
+    ws(alt((
+        uniary_operation_expr,
+        binary_operation_expr,
+        value_expr,
+        fail,
+    )))
+    .parse(input)
 }
 
 fn value_expr(input: Span) -> SResult<Ast> {
@@ -182,6 +188,25 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
     // TODO: Handle other assignment operators
     .map(|(span, (ident, _operator, value))| Ast {
         node: Node::Assignment { ident, value },
+        span,
+    })
+    .parse(input)
+}
+
+fn uniary_operation_expr(input: Span) -> SResult<Ast> {
+    context(
+        "Uniary operation",
+        consumed(pair(
+            alt((
+                value(UniaryOp::Not, char('!')),
+                value(UniaryOp::BitwiseNot, char('~')),
+                fail,
+            )),
+            ws(value_expr),
+        )),
+    )
+    .map(|(span, (operation, value))| Ast {
+        node: Node::UniaryOp(operation, Box::new(value)),
         span,
     })
     .parse(input)
