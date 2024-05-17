@@ -443,6 +443,12 @@ mod test {
     }
 
     #[test]
+    fn parse_booleans() {
+        assert_debug_snapshot!(boolean(r#"true"#.into()));
+        assert_debug_snapshot!(boolean(r#"false"#.into()));
+    }
+
+    #[test]
     fn test_keyword() {
         assert_debug_snapshot!(keyword("let").parse("let test".into()));
         assert_debug_snapshot!(keyword("let").parse("leting test".into()));
