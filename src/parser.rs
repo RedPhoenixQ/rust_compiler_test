@@ -382,10 +382,17 @@ fn terminator(input: Span) -> SResult<Span> {
     context("Terminator", alt((tag(";"), eof))).parse(input)
 }
 
-fn keyword<'a, E: ParseError<Span<'a>>>(
-    word: &'static str,
-) -> impl FnMut(Span<'a>) -> IResult<Span, Span, E> {
-    move |input: Span| terminated(tag(word), peek(multispace1)).parse(input)
+fn keyword<'a>(word: &'static str) -> impl FnMut(Span<'a>) -> SResult<Span> {
+    move |input: Span| {
+        context(
+            "Keyword",
+            terminated(
+                tag(word),
+                context("Is part of another word", peek(not(ident))),
+            ),
+        )
+        .parse(input)
+    }
 }
 
 fn ws<'a, P: Parser<Span<'a>, O, E>, O, E: ParseError<Span<'a>>>(
@@ -426,8 +433,9 @@ mod test {
 
     #[test]
     fn test_keyword() {
-        assert_debug_snapshot!(keyword::<VerboseError<Span>>("let").parse("let test".into()));
-        assert_debug_snapshot!(keyword::<VerboseError<Span>>("let").parse("leting test".into()));
+        assert_debug_snapshot!(keyword("let").parse("let test".into()));
+        assert_debug_snapshot!(keyword("let").parse("leting test".into()));
+        assert_debug_snapshot!(keyword("true").parse("true)".into()));
     }
 
     #[test]
