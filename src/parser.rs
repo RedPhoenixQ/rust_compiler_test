@@ -182,14 +182,47 @@ fn fn_statement(input: Span) -> SResult<Ast> {
 fn assignment_statement(input: Span) -> SResult<Ast> {
     context(
         "Variable assignment",
-        consumed(terminated(
-            tuple((ident, ws(char('=')), expr.map(Box::new))),
+        terminated(
+            consumed(tuple((
+                consumed(ident),
+                ws(terminated(
+                    opt(alt((
+                        value(BinaryOp::Add, char('+')),
+                        value(BinaryOp::Sub, char('-')),
+                        value(BinaryOp::Div, char('/')),
+                        value(BinaryOp::Mul, char('*')),
+                        value(BinaryOp::Mod, char('%')),
+                        value(BinaryOp::BitwiseAnd, char('&')),
+                        value(BinaryOp::BitwiseOr, char('|')),
+                    ))),
+                    char('='),
+                )),
+                expr,
+            ))),
             terminator,
-        )),
+        ),
     )
-    // TODO: Handle other assignment operators
-    .map(|(span, (ident, _operator, value))| Ast {
-        node: Node::Assignment { ident, value },
+    .map(|(span, ((ident_span, ident), operation, value))| Ast {
+        node: Node::Assignment {
+            ident,
+            value: match operation {
+                Some(operation) => Ast {
+                    node: Node::BinaryOp(
+                        operation,
+                        Ast {
+                            node: ident.into(),
+                            span: ident_span,
+                        }
+                        .into(),
+                        value.into(),
+                    ),
+                    span,
+                },
+                None => value,
+            }
+            .into(),
+        }
+        .into(),
         span,
     })
     .parse(input)
