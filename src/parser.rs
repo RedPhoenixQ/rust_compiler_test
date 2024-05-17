@@ -330,7 +330,7 @@ fn ident_expr(input: Span) -> SResult<Ast> {
 }
 
 fn literal_expr(input: Span) -> SResult<Ast> {
-    consumed(alt((string, number, fail)))
+    consumed(alt((string, number, boolean, fail)))
         .map(|(span, literal)| Ast {
             node: Node::Literal(literal),
             span,
@@ -374,6 +374,17 @@ fn number(input: Span) -> SResult<Literal> {
                 Literal::Float(value)
             }
         }),
+    )
+    .parse(input)
+}
+
+fn boolean(input: Span) -> SResult<Literal> {
+    context(
+        "Boolean literal",
+        alt((
+            value(Literal::Boolean(true), keyword("true")),
+            value(Literal::Boolean(false), keyword("false")),
+        )),
     )
     .parse(input)
 }
