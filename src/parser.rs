@@ -399,7 +399,10 @@ fn keyword<'a>(word: &'static str) -> impl FnMut(Span<'a>) -> SResult<Span> {
             "Keyword",
             terminated(
                 tag(word),
-                context("Is part of another word", peek(not(ident))),
+                context(
+                    "Is part of another word",
+                    peek(not(alt((alphanumeric1, tag("_"))))),
+                ),
             ),
         )
         .parse(input)
@@ -453,6 +456,8 @@ mod test {
         assert_debug_snapshot!(keyword("let").parse("let test".into()));
         assert_debug_snapshot!(keyword("let").parse("leting test".into()));
         assert_debug_snapshot!(keyword("true").parse("true)".into()));
+        assert_debug_snapshot!(keyword("true").parse("true|".into()));
+        assert_debug_snapshot!(keyword("true").parse("true_".into()));
     }
 
     #[test]
