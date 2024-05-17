@@ -133,7 +133,7 @@ fn let_statement(input: Span) -> SResult<Ast> {
         "Variable declaration",
         terminated(
             consumed(preceded(
-                ws(tag("let")),
+                tag("let"),
                 pair(
                     ws(ident),
                     opt(preceded(ws(tag("=")), ws(expr)).map(Box::new)),
