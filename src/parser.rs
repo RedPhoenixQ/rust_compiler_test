@@ -23,6 +23,7 @@ pub struct Ast<'a> {
 pub enum Node<'a> {
     Ident(Ident<'a>),
     Literal(Literal<'a>),
+    Group(Box<Ast<'a>>),
     VariableDeclaration {
         ident: Ident<'a>,
         value: Option<Box<Ast<'a>>>,
@@ -177,6 +178,15 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
     .parse(input)
 }
 
+fn group_expr(input: Span) -> SResult<Ast> {
+    context("Group", consumed(delimited(char('('), expr, ws(char(')')))))
+        .map(|(span, group)| Ast {
+            node: Node::Group(group.into()),
+            span,
+        })
+        .parse(input)
+}
+
 fn ident_expr(input: Span) -> SResult<Ast> {
     consumed(ident)
         .map(|(span, ident)| Ast {
@@ -316,5 +326,12 @@ mod test {
     fn parse_assignment() {
         assert_debug_snapshot!(assignment_statement("yeet = 123;".into()));
         assert_debug_snapshot!(assignment_statement("yeet + 123;".into()));
+    }
+
+    #[test]
+    fn parse_group() {
+        assert_debug_snapshot!(group_expr("(123)".into()));
+        assert_debug_snapshot!(group_expr("123)".into()));
+        assert_debug_snapshot!(group_expr("(123".into()));
     }
 }
