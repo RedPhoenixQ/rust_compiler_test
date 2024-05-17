@@ -1,11 +1,11 @@
 ---
 source: src/parser.rs
-expression: "fn_expr(\"fn test(a, b) { let c = 123; }\".into())"
+expression: "fn_expr(\"fn test(a, b) { 123; }\".into())"
 ---
 Ok(
     (
         LocatedSpan {
-            offset: 30,
+            offset: 22,
             line: 1,
             fragment: "",
             extra: (),
@@ -25,30 +25,15 @@ Ok(
                 ],
                 body: [
                     Ast {
-                        node: VariableDeclaration {
-                            ident: Ident(
-                                "c",
+                        node: Literal(
+                            Int(
+                                123,
                             ),
-                            value: Some(
-                                Ast {
-                                    node: Literal(
-                                        Int(
-                                            123,
-                                        ),
-                                    ),
-                                    span: LocatedSpan {
-                                        offset: 24,
-                                        line: 1,
-                                        fragment: "123",
-                                        extra: (),
-                                    },
-                                },
-                            ),
-                        },
+                        ),
                         span: LocatedSpan {
                             offset: 16,
                             line: 1,
-                            fragment: "let",
+                            fragment: "123",
                             extra: (),
                         },
                     },
