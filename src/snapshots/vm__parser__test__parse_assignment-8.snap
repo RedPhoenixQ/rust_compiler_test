@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-expression: "assignment_statement(\"yeet += 123;\".into())"
+expression: "assignment_statement(\"yeet |= 123;\".into())"
 ---
 Ok(
     (
@@ -17,7 +17,7 @@ Ok(
                 ),
                 value: Ast {
                     node: BinaryOp(
-                        Add,
+                        BitwiseOr,
                         Ast {
                             node: Ident(
                                 Ident(
@@ -48,7 +48,7 @@ Ok(
                     span: LocatedSpan {
                         offset: 0,
                         line: 1,
-                        fragment: "yeet += 123",
+                        fragment: "yeet |= 123",
                         extra: (),
                     },
                 },
@@ -56,7 +56,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "yeet += 123",
+                fragment: "yeet |= 123",
                 extra: (),
             },
         },

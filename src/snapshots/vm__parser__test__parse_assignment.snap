@@ -32,7 +32,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "yeet = 123;",
+                fragment: "yeet = 123",
                 extra: (),
             },
         },

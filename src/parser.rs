@@ -41,7 +41,7 @@ pub enum Node<'a> {
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Ident<'a>(&'a str);
 
 impl<'a> From<Ident<'a>> for Node<'a> {
@@ -454,6 +454,15 @@ mod test {
     #[test]
     fn parse_assignment() {
         assert_debug_snapshot!(assignment_statement("yeet = 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet += 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet -= 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet /= 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet *= 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet %= 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet &= 123;".into()));
+        assert_debug_snapshot!(assignment_statement("yeet |= 123;".into()));
+
+        // Failures
         assert_debug_snapshot!(assignment_statement("yeet + 123;".into()));
     }
 
