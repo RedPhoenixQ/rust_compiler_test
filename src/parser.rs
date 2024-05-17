@@ -113,7 +113,11 @@ fn statement(input: Span) -> SResult<Ast> {
 }
 
 fn expr(input: Span) -> SResult<Ast> {
-    ws(alt((binary_operation_expr, ident_expr, literal_expr))).parse(input)
+    ws(alt((binary_operation_expr, value_expr))).parse(input)
+}
+
+fn value_expr(input: Span) -> SResult<Ast> {
+    context("Value", alt((group_expr, ident_expr, literal_expr, fail))).parse(input)
 }
 
 fn let_statement(input: Span) -> SResult<Ast> {
