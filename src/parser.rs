@@ -277,5 +277,17 @@ mod test {
     fn parse_fn_expr() {
         assert_debug_snapshot!(fn_statement("fn test(a, b) { let c = 123; }".into()));
         assert_debug_snapshot!(fn_statement("fn test(a, b) { 123; }".into()));
+        assert_debug_snapshot!(fn_statement(
+            "fn invalid_argument(123, b) { let c = 123; }".into()
+        ));
+        assert_debug_snapshot!(fn_statement("fn incomplete_args(a { 123; }".into()));
+        assert_debug_snapshot!(fn_statement("fn no_args() { 123; }".into()));
+        assert_debug_snapshot!(fn_statement("fn missing_block_start()  123; }".into()));
+        assert_debug_snapshot!(fn_statement("fn missing_block_end() { 123; ".into()));
+        assert_debug_snapshot!(fn_statement("fn only_ident".into()));
+        assert_debug_snapshot!(fn_statement("fn ".into()));
+        // assert_debug_snapshot!(fn_statement(
+        //     "fn nesting(a, b) { fn nested() { let c = 123 } }".into()
+        // ));
     }
 }
