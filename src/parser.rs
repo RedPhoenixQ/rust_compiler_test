@@ -202,6 +202,12 @@ fn end_of_expr(input: Span) -> SResult<Span> {
     context("Terminator", alt((tag(";"), eof))).parse(input)
 }
 
+fn keyword<'a, E: ParseError<Span<'a>>>(
+    word: &'static str,
+) -> impl FnMut(Span<'a>) -> IResult<Span, Span, E> {
+    move |input: Span| terminated(tag(word), peek(multispace1)).parse(input)
+}
+
 fn ws<'a, P: Parser<Span<'a>, O, E>, O, E: ParseError<Span<'a>>>(
     mut parser: P,
 ) -> impl FnMut(Span<'a>) -> IResult<Span, O, E> {
@@ -235,6 +241,12 @@ mod test {
         assert_debug_snapshot!(number("123".into()));
         assert_debug_snapshot!(number("123.123".into()));
         assert_debug_snapshot!(number("12s3.123".into()));
+    }
+
+    #[test]
+    fn test_keyword() {
+        assert_debug_snapshot!(keyword::<VerboseError<Span>>("let").parse("let test".into()));
+        assert_debug_snapshot!(keyword::<VerboseError<Span>>("let").parse("leting test".into()));
     }
 
     #[test]
