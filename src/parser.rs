@@ -21,17 +21,26 @@ pub struct Ast<'a> {
 
 #[derive(Debug)]
 pub enum Node<'a> {
-    Ident(&'a str),
+    Ident(Ident<'a>),
     Literal(Literal<'a>),
     VariableDeclaration {
-        ident: &'a str,
+        ident: Ident<'a>,
         value: Option<Box<Ast<'a>>>,
     },
     FunctionDeclaration {
-        ident: &'a str,
-        arguments: Vec<Ast<'a>>,
+        ident: Ident<'a>,
+        arguments: Vec<Ident<'a>>,
         body: Vec<Ast<'a>>,
     },
+}
+
+#[derive(Debug)]
+pub struct Ident<'a>(&'a str);
+
+impl<'a> From<Ident<'a>> for Node<'a> {
+    fn from(value: Ident<'a>) -> Self {
+        Self::Ident(value)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -83,11 +92,20 @@ impl BinaryOp {
     }
 }
 
-fn expr(input: Span) -> SResult<Ast> {
-    ws(alt((let_expr, fn_expr, ident_expr, literal_expr))).parse(input)
+fn statement(input: Span) -> SResult<Ast> {
+    ws(alt((
+        let_statement,
+        fn_statement,
+        terminated(expr, ws(terminator)),
+    )))
+    .parse(input)
 }
 
-fn let_expr(input: Span) -> SResult<Ast> {
+fn expr(input: Span) -> SResult<Ast> {
+    ws(alt((ident_expr, literal_expr))).parse(input)
+}
+
+fn let_statement(input: Span) -> SResult<Ast> {
     context(
         "Variable declaration",
         terminated(
@@ -96,42 +114,40 @@ fn let_expr(input: Span) -> SResult<Ast> {
                 ws(ident),
                 opt(preceded(ws(tag("=")), ws(expr)).map(Box::new)),
             )),
-            ws(end_of_expr),
+            ws(terminator),
         ),
     )
     .map(|(span, ident, value)| Ast {
-        node: Node::VariableDeclaration {
-            ident: ident.fragment(),
-            value,
-        },
+        node: Node::VariableDeclaration { ident, value },
         span,
     })
     .parse(input)
 }
 
-fn fn_expr(input: Span) -> SResult<Ast> {
+fn fn_statement(input: Span) -> SResult<Ast> {
     context(
         "Function declaration",
         tuple((
-            ws(tag("fn")),
+            keyword("fn"),
             ws(ident),
             context(
                 "Function arguments",
                 ws(delimited(
                     char('('),
-                    separated_list0(ws(char(',')), ws(ident_expr)),
+                    separated_list0(ws(char(',')), ws(ident)),
                     char(')'),
                 )),
             ),
-            context(
-                "Function body",
-                delimited(ws(char('{')), many1(ws(expr)), ws(char('}'))),
+            delimited(
+                ws(context("Start of function block", char('{'))),
+                context("Function body", many1(statement)),
+                ws(context("End of function block", char('}'))),
             ),
         )),
     )
     .map(|(span, ident, arguments, body)| Ast {
         node: Node::FunctionDeclaration {
-            ident: ident.fragment(),
+            ident,
             arguments,
             body,
         },
@@ -141,7 +157,7 @@ fn fn_expr(input: Span) -> SResult<Ast> {
 }
 
 fn ident_expr(input: Span) -> SResult<Ast> {
-    terminated(consumed(ident), ws(end_of_expr))
+    consumed(ident)
         .map(|(span, ident)| Ast {
             node: Node::Ident(ident),
             span,
@@ -150,7 +166,7 @@ fn ident_expr(input: Span) -> SResult<Ast> {
 }
 
 fn literal_expr(input: Span) -> SResult<Ast> {
-    terminated(consumed(alt((string, number))), ws(end_of_expr))
+    consumed(alt((string, number)))
         .map(|(span, literal)| Ast {
             node: Node::Literal(literal),
             span,
@@ -198,7 +214,7 @@ fn number(input: Span) -> SResult<Literal> {
     .parse(input)
 }
 
-fn end_of_expr(input: Span) -> SResult<Span> {
+fn terminator(input: Span) -> SResult<Span> {
     context("Terminator", alt((tag(";"), eof))).parse(input)
 }
 
@@ -252,13 +268,14 @@ mod test {
 
     #[test]
     fn parse_let_expr() {
-        assert_debug_snapshot!(let_expr("let yeet;".into()));
-        assert_debug_snapshot!(let_expr("let yeet = 123;".into()));
-        assert_debug_snapshot!(let_expr("let yeet = ;".into()));
+        assert_debug_snapshot!(let_statement("let yeet;".into()));
+        assert_debug_snapshot!(let_statement("let yeet = 123;".into()));
+        assert_debug_snapshot!(let_statement("let yeet = ;".into()));
     }
 
     #[test]
     fn parse_fn_expr() {
-        assert_debug_snapshot!(fn_expr("fn test(a, b) { let c = 123; }".into()));
+        assert_debug_snapshot!(fn_statement("fn test(a, b) { let c = 123; }".into()));
+        assert_debug_snapshot!(fn_statement("fn test(a, b) { 123; }".into()));
     }
 }
