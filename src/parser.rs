@@ -37,6 +37,7 @@ pub enum Node<'a> {
         ident: Ident<'a>,
         value: Box<Ast<'a>>,
     },
+    UniaryOp(UniaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
 }
 
@@ -60,6 +61,7 @@ pub enum Literal<'a> {
 #[derive(Debug, Clone, Copy)]
 pub enum UniaryOp {
     Not,
+    BitwiseNot,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -464,5 +466,12 @@ mod test {
         // Failures
         assert_debug_snapshot!(binary_operation_expr("a && b = c".into()));
         assert_debug_snapshot!(binary_operation_expr("a = b".into()));
+    }
+
+    #[test]
+    fn parse_uniary_operations() {
+        assert_debug_snapshot!(uniary_operation_expr("!a".into()));
+        assert_debug_snapshot!(uniary_operation_expr("~a".into()));
+        assert_debug_snapshot!(uniary_operation_expr("!(a || b) + c".into()));
     }
 }

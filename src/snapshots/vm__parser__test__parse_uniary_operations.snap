@@ -1,0 +1,38 @@
+---
+source: src/parser.rs
+expression: "uniary_operation_expr(\"!a\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 2,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: UniaryOp(
+                Not,
+                Ast {
+                    node: Ident(
+                        Ident(
+                            "a",
+                        ),
+                    ),
+                    span: LocatedSpan {
+                        offset: 1,
+                        line: 1,
+                        fragment: "a",
+                        extra: (),
+                    },
+                },
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "!a",
+                extra: (),
+            },
+        },
+    ),
+)
