@@ -113,7 +113,7 @@ fn statement(input: Span) -> SResult<Ast> {
 }
 
 fn expr(input: Span) -> SResult<Ast> {
-    ws(alt((binary_operation_expr, value_expr))).parse(input)
+    ws(alt((binary_operation_expr, value_expr, fail))).parse(input)
 }
 
 fn value_expr(input: Span) -> SResult<Ast> {
@@ -209,7 +209,7 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
                 fail,
             )),
         )),
-        ws(alt((binary_operation_expr, value_expr))),
+        ws(expr),
     )))
     .parse(input)?;
 
@@ -247,10 +247,6 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
     Ok((input, Ast { node, span }))
 }
 
-fn value_expr(input: Span) -> SResult<Ast> {
-    context("Value", alt((ident_expr, literal_expr, group_expr))).parse(input)
-}
-
 fn group_expr(input: Span) -> SResult<Ast> {
     context("Group", consumed(delimited(char('('), expr, ws(char(')')))))
         .map(|(span, group)| Ast {
@@ -270,7 +266,7 @@ fn ident_expr(input: Span) -> SResult<Ast> {
 }
 
 fn literal_expr(input: Span) -> SResult<Ast> {
-    consumed(alt((string, number)))
+    consumed(alt((string, number, fail)))
         .map(|(span, literal)| Ast {
             node: Node::Literal(literal),
             span,
