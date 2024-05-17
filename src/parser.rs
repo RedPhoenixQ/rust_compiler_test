@@ -84,7 +84,7 @@ impl BinaryOp {
 }
 
 fn expr(input: Span) -> SResult<Ast> {
-    alt((let_expr, fn_expr, ident_expr, string_expr, number_expr)).parse(input)
+    ws(alt((let_expr, fn_expr, ident_expr, literal_expr))).parse(input)
 }
 
 fn let_expr(input: Span) -> SResult<Ast> {
@@ -141,54 +141,59 @@ fn fn_expr(input: Span) -> SResult<Ast> {
 }
 
 fn ident_expr(input: Span) -> SResult<Ast> {
-    ident
-        .map(|word| Ast {
-            node: Node::Ident(*word.fragment()),
-            span: word,
+    terminated(consumed(ident), ws(end_of_expr))
+        .map(|(span, ident)| Ast {
+            node: Node::Ident(ident),
+            span,
         })
         .parse(input)
 }
 
-fn string_expr(input: Span) -> SResult<Ast> {
-    // TODO: Handle escaped strings
-
-    context(
-        "String literal",
-        consumed(delimited(
-            char::<Span, VerboseError<_>>('"'),
-            take_until("\""),
-            char('"'),
-        )),
-    )
-    .map(|(span, str)| Ast {
-        node: Node::Literal(Literal::String(*str.fragment())),
-        span,
-    })
-    .parse(input)
-}
-
-fn number_expr(input: Span) -> SResult<Ast> {
-    context(
-        "Number literal",
-        consumed(nom::number::complete::double).map(|(span, value)| Ast {
-            node: Node::Literal(if value.fract() == 0.0 {
-                Literal::Int(value as i64)
-            } else {
-                Literal::Float(value)
-            }),
+fn literal_expr(input: Span) -> SResult<Ast> {
+    terminated(consumed(alt((string, number))), ws(end_of_expr))
+        .map(|(span, literal)| Ast {
+            node: Node::Literal(literal),
             span,
-        }),
-    )
-    .parse(input)
+        })
+        .parse(input)
 }
 
-fn ident(input: Span) -> SResult<Span> {
+fn ident(input: Span) -> SResult<Ident> {
     context(
         "Identifier",
         recognize(tuple((
             alpha1,
             many0(preceded(many0(char('_')), alphanumeric1)),
-        ))),
+        )))
+        .map(|ident: Span| Ident(ident.fragment())),
+    )
+    .parse(input)
+}
+
+fn string(input: Span) -> SResult<Literal> {
+    // TODO: Handle escaped strings
+    context(
+        "String literal",
+        delimited(
+            char::<Span, VerboseError<_>>('"'),
+            take_until("\""),
+            char('"'),
+        )
+        .map(|span| Literal::String(span.into_fragment())),
+    )
+    .parse(input)
+}
+
+fn number(input: Span) -> SResult<Literal> {
+    context(
+        "Number literal",
+        nom::number::complete::double.map(|value| {
+            if value.fract() == 0.0 {
+                Literal::Int(value as i64)
+            } else {
+                Literal::Float(value)
+            }
+        }),
     )
     .parse(input)
 }
@@ -222,14 +227,14 @@ mod test {
 
     #[test]
     fn parse_strings() {
-        assert_debug_snapshot!(string_expr(r#""123""#.into()));
+        assert_debug_snapshot!(string(r#""123""#.into()));
     }
 
     #[test]
     fn parse_numbers() {
-        assert_debug_snapshot!(number_expr("123".into()));
-        assert_debug_snapshot!(number_expr("123.123".into()));
-        assert_debug_snapshot!(number_expr("12s3.123".into()));
+        assert_debug_snapshot!(number("123".into()));
+        assert_debug_snapshot!(number("123.123".into()));
+        assert_debug_snapshot!(number("12s3.123".into()));
     }
 
     #[test]
