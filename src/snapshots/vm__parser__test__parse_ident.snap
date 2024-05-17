@@ -12,7 +12,9 @@ Ok(
         },
         Ast {
             node: Ident(
-                "haha",
+                Ident(
+                    "haha",
+                ),
             ),
             span: LocatedSpan {
                 offset: 0,

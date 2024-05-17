@@ -1,25 +1,25 @@
 ---
 source: src/parser.rs
-expression: "ident_expr(\"left-right\".into())"
+expression: "ident_expr(\"a\".into())"
 ---
 Ok(
     (
         LocatedSpan {
-            offset: 4,
+            offset: 1,
             line: 1,
-            fragment: "-right",
+            fragment: "",
             extra: (),
         },
         Ast {
             node: Ident(
                 Ident(
-                    "left",
+                    "a",
                 ),
             ),
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "left",
+                fragment: "a",
                 extra: (),
             },
         },

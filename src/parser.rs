@@ -229,6 +229,7 @@ mod test {
         assert_debug_snapshot!(ident_expr("AS_23ds_s".into()));
         assert_debug_snapshot!(ident_expr("12haha".into()));
         assert_debug_snapshot!(ident_expr("left-right".into()));
+        assert_debug_snapshot!(ident_expr("a".into()));
     }
 
     #[test]

@@ -11,10 +11,12 @@ Ok(
             extra: (),
         },
         Ast {
-            node: VariableDeclaration(
-                "yeet",
-                None,
-            ),
+            node: VariableDeclaration {
+                ident: Ident(
+                    "yeet",
+                ),
+                value: None,
+            },
             span: LocatedSpan {
                 offset: 0,
                 line: 1,

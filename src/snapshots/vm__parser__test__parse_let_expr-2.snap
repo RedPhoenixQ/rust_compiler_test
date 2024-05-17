@@ -11,9 +11,11 @@ Ok(
             extra: (),
         },
         Ast {
-            node: VariableDeclaration(
-                "yeet",
-                Some(
+            node: VariableDeclaration {
+                ident: Ident(
+                    "yeet",
+                ),
+                value: Some(
                     Ast {
                         node: Literal(
                             Int(
@@ -28,7 +30,7 @@ Ok(
                         },
                     },
                 ),
-            ),
+            },
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
