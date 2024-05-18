@@ -15,8 +15,8 @@ type SResult<'a, T> = IResult<Span<'a>, T, VerboseError<Span<'a>>>;
 
 #[derive(Debug)]
 pub struct Ast<'a> {
-    node: Node<'a>,
-    span: Span<'a>,
+    pub node: Node<'a>,
+    pub span: Span<'a>,
 }
 
 #[derive(Debug)]
