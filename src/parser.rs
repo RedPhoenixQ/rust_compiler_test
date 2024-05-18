@@ -503,6 +503,13 @@ mod test {
     }
 
     #[test]
+    fn parse_return() {
+        assert_debug_snapshot!(return_statement("return;".into()));
+        assert_debug_snapshot!(return_statement("return a".into()));
+        assert_debug_snapshot!(return_statement("return a + b - c".into()));
+    }
+
+    #[test]
     fn parse_assignment() {
         assert_debug_snapshot!(assignment_statement("yeet = 123;".into()));
         assert_debug_snapshot!(assignment_statement("yeet += 123;".into()));

@@ -1,0 +1,39 @@
+---
+source: src/parser.rs
+expression: "return_statement(\"return a\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 8,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: Return(
+                Some(
+                    Ast {
+                        node: Ident(
+                            Ident(
+                                "a",
+                            ),
+                        ),
+                        span: LocatedSpan {
+                            offset: 7,
+                            line: 1,
+                            fragment: "a",
+                            extra: (),
+                        },
+                    },
+                ),
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "return a",
+                extra: (),
+            },
+        },
+    ),
+)
