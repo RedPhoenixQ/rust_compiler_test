@@ -123,7 +123,7 @@ fn expr(input: Span) -> SResult<Ast> {
 }
 
 fn value_expr(input: Span) -> SResult<Ast> {
-    context("Value", alt((group_expr, ident_expr, literal_expr, fail))).parse(input)
+    context("Value", alt((ident_expr, literal_expr, fail))).parse(input)
 }
 
 fn let_statement(input: Span) -> SResult<Ast> {
@@ -310,7 +310,7 @@ fn unary_operation_expr(input: Span) -> SResult<Ast> {
                 value(UnaryOp::Positive, char('+')),
                 fail,
             )),
-            ws(value_expr),
+            ws(alt((delimited(char('('), expr, char(')')), value_expr))),
         )),
     )
     .map(|(span, (operation, value))| Ast {
@@ -321,49 +321,60 @@ fn unary_operation_expr(input: Span) -> SResult<Ast> {
 }
 
 fn binary_operation_expr(input: Span) -> SResult<Ast> {
-    let (input, (span, (lhs, first_operator, rhs))) = consumed(tuple((
-        ws(value_expr),
-        ws(context(
-            "Binary operator",
+    let (input, (span, ((lhs_grouped, lhs), first_operator, (rhs_grouped, rhs)))) =
+        consumed(tuple((
             alt((
-                value(BinaryOp::LogicalAnd, tag("&&")),
-                value(BinaryOp::LogicalOr, tag("||")),
-                value(BinaryOp::Eq, tag("==")),
-                value(BinaryOp::Neq, tag("!=")),
-                value(BinaryOp::LtEq, tag("<=")),
-                value(BinaryOp::GtEq, tag(">=")),
-                value(BinaryOp::Lt, char('<')),
-                value(BinaryOp::Gt, char('>')),
-                value(BinaryOp::Add, char('+')),
-                value(BinaryOp::Sub, char('-')),
-                value(BinaryOp::Div, char('/')),
-                value(BinaryOp::Mul, char('*')),
-                value(BinaryOp::Mod, char('%')),
-                value(BinaryOp::BitwiseAnd, char('&')),
-                value(BinaryOp::BitwiseOr, char('|')),
-                fail,
+                delimited(char('('), expr, char(')')).map(|e| (true, e)),
+                value_expr.map(|e| (false, e)),
             )),
-        )),
-        ws(expr),
-    )))
-    .parse(input)?;
+            ws(context(
+                "Binary operator",
+                alt((
+                    value(BinaryOp::LogicalAnd, tag("&&")),
+                    value(BinaryOp::LogicalOr, tag("||")),
+                    value(BinaryOp::Eq, tag("==")),
+                    value(BinaryOp::Neq, tag("!=")),
+                    value(BinaryOp::LtEq, tag("<=")),
+                    value(BinaryOp::GtEq, tag(">=")),
+                    value(BinaryOp::Lt, char('<')),
+                    value(BinaryOp::Gt, char('>')),
+                    value(BinaryOp::Add, char('+')),
+                    value(BinaryOp::Sub, char('-')),
+                    value(BinaryOp::Div, char('/')),
+                    value(BinaryOp::Mul, char('*')),
+                    value(BinaryOp::Mod, char('%')),
+                    value(BinaryOp::BitwiseAnd, char('&')),
+                    value(BinaryOp::BitwiseOr, char('|')),
+                    fail,
+                )),
+            )),
+            ws(alt((
+                delimited(char('('), expr, char(')')).map(|e| (true, e)),
+                expr.map(|e| (false, e)),
+            ))),
+        )))
+        .parse(input)?;
 
     let node = match rhs {
         Ast {
             node: Node::BinaryOp(other_operator, middle, rhs),
             span,
-        } => {
-            if first_operator.priority() < other_operator.priority() {
-                // Operation has lower priority number, should be evaluated first
-                Node::BinaryOp(
-                    other_operator,
-                    Ast {
-                        node: Node::BinaryOp(first_operator, lhs.into(), middle),
-                        span,
-                    }
-                    .into(),
-                    rhs,
-                )
+        } if !lhs_grouped
+            && !rhs_grouped
+            && first_operator.priority() < other_operator.priority() =>
+        {
+            // If non of the sides are grouped with parentheses, group them based on priority
+            // Operation with a lower priority number should be evaluated first
+            // The order in the tree is swap so the right hand side evaluates first
+            Node::BinaryOp(
+                other_operator,
+                Ast {
+                    node: Node::BinaryOp(first_operator, lhs.into(), middle),
+                    span,
+                }
+                .into(),
+                rhs,
+            )
             } else {
                 Node::BinaryOp(
                     first_operator,

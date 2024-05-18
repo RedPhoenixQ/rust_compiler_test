@@ -14,45 +14,35 @@ Ok(
             node: UnaryOp(
                 LogicalNot,
                 Ast {
-                    node: Group(
+                    node: BinaryOp(
+                        LogicalOr,
                         Ast {
-                            node: BinaryOp(
-                                LogicalOr,
-                                Ast {
-                                    node: Ident(
-                                        u!("a"),
-                                    ),
-                                    span: LocatedSpan {
-                                        offset: 2,
-                                        line: 1,
-                                        fragment: "a",
-                                        extra: (),
-                                    },
-                                },
-                                Ast {
-                                    node: Ident(
-                                        u!("b"),
-                                    ),
-                                    span: LocatedSpan {
-                                        offset: 7,
-                                        line: 1,
-                                        fragment: "b",
-                                        extra: (),
-                                    },
-                                },
+                            node: Ident(
+                                u!("a"),
                             ),
                             span: LocatedSpan {
                                 offset: 2,
                                 line: 1,
-                                fragment: "a || b",
+                                fragment: "a",
+                                extra: (),
+                            },
+                        },
+                        Ast {
+                            node: Ident(
+                                u!("b"),
+                            ),
+                            span: LocatedSpan {
+                                offset: 7,
+                                line: 1,
+                                fragment: "b",
                                 extra: (),
                             },
                         },
                     ),
                     span: LocatedSpan {
-                        offset: 1,
+                        offset: 2,
                         line: 1,
-                        fragment: "(a || b)",
+                        fragment: "a || b",
                         extra: (),
                     },
                 },
