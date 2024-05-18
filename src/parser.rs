@@ -280,6 +280,8 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
             alt((
                 value(BinaryOp::LogicalAnd, tag("&&")),
                 value(BinaryOp::LogicalOr, tag("||")),
+                value(BinaryOp::Eq, tag("==")),
+                value(BinaryOp::Neq, tag("!=")),
                 value(BinaryOp::LtEq, tag("<=")),
                 value(BinaryOp::GtEq, tag(">=")),
                 value(BinaryOp::Lt, char('<')),
