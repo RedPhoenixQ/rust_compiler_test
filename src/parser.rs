@@ -9,6 +9,7 @@ use nom::{
     IResult, Parser,
 };
 use nom_locate::LocatedSpan;
+use ustr::Ustr;
 
 pub type Span<'a> = LocatedSpan<&'a str>;
 type SResult<'a, T> = IResult<Span<'a>, T, VerboseError<Span<'a>>>;
@@ -21,7 +22,7 @@ pub struct Ast<'a> {
 
 #[derive(Debug)]
 pub enum Node<'a> {
-    Ident(Ident<'a>),
+    Ident(Ustr),
     Literal(Literal<'a>),
     Group(Box<Ast<'a>>),
     If {
@@ -32,30 +33,21 @@ pub enum Node<'a> {
         else_block: Option<Vec<Ast<'a>>>,
     },
     VariableDeclaration {
-        ident: Ident<'a>,
+        ident: Ustr,
         value: Option<Box<Ast<'a>>>,
     },
     FunctionDeclaration {
-        ident: Ident<'a>,
-        arguments: Vec<Ident<'a>>,
+        ident: Ustr,
+        arguments: Vec<Ustr>,
         body: Vec<Ast<'a>>,
     },
     Assignment {
-        ident: Ident<'a>,
+        ident: Ustr,
         value: Box<Ast<'a>>,
     },
     Return(Option<Box<Ast<'a>>>),
     UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Ident<'a>(&'a str);
-
-impl<'a> From<Ident<'a>> for Node<'a> {
-    fn from(value: Ident<'a>) -> Self {
-        Self::Ident(value)
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -264,7 +256,7 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
                     node: Node::BinaryOp(
                         operation,
                         Ast {
-                            node: ident.into(),
+                            node: Node::Ident(ident),
                             span: ident_span,
                         }
                         .into(),
@@ -407,14 +399,14 @@ fn literal_expr(input: Span) -> SResult<Ast> {
         .parse(input)
 }
 
-fn ident(input: Span) -> SResult<Ident> {
+fn ident(input: Span) -> SResult<Ustr> {
     context(
         "Identifier",
         recognize(tuple((
             alpha1,
             many0(preceded(many0(char('_')), alphanumeric1)),
         )))
-        .map(|ident: Span| Ident(ident.fragment())),
+        .map(|ident: Span| ident.into_fragment().into()),
     )
     .parse(input)
 }
