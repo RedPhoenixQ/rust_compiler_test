@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-expression: "uniary_operation_expr(\"!a\".into())"
+expression: "unary_operation_expr(\"~a\".into())"
 ---
 Ok(
     (
@@ -11,8 +11,8 @@ Ok(
             extra: (),
         },
         Ast {
-            node: UniaryOp(
-                Not,
+            node: UnaryOp(
+                BitwiseNot,
                 Ast {
                     node: Ident(
                         Ident(
@@ -30,7 +30,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "!a",
+                fragment: "~a",
                 extra: (),
             },
         },

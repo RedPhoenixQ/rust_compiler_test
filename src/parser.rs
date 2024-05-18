@@ -38,7 +38,7 @@ pub enum Node<'a> {
         value: Box<Ast<'a>>,
     },
     Return(Option<Box<Ast<'a>>>),
-    UniaryOp(UniaryOp, Box<Ast<'a>>),
+    UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
 }
 
@@ -60,9 +60,10 @@ pub enum Literal<'a> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum UniaryOp {
+pub enum UnaryOp {
     LogicalNot,
     BitwiseNot,
+    Negate,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -118,7 +119,7 @@ fn statement(input: Span) -> SResult<Ast> {
 
 fn expr(input: Span) -> SResult<Ast> {
     ws(alt((
-        uniary_operation_expr,
+        unary_operation_expr,
         binary_operation_expr,
         value_expr,
         fail,
@@ -249,20 +250,20 @@ fn return_statement(input: Span) -> SResult<Ast> {
     .parse(input)
 }
 
-fn uniary_operation_expr(input: Span) -> SResult<Ast> {
+fn unary_operation_expr(input: Span) -> SResult<Ast> {
     context(
-        "Uniary operation",
+        "Unary operation",
         consumed(pair(
             alt((
-                value(UniaryOp::LogicalNot, char('!')),
-                value(UniaryOp::BitwiseNot, char('~')),
+                value(UnaryOp::LogicalNot, char('!')),
+                value(UnaryOp::BitwiseNot, char('~')),
                 fail,
             )),
             ws(value_expr),
         )),
     )
     .map(|(span, (operation, value))| Ast {
-        node: Node::UniaryOp(operation, Box::new(value)),
+        node: Node::UnaryOp(operation, Box::new(value)),
         span,
     })
     .parse(input)
@@ -569,9 +570,9 @@ mod test {
     }
 
     #[test]
-    fn parse_uniary_operations() {
-        assert_debug_snapshot!(uniary_operation_expr("!a".into()));
-        assert_debug_snapshot!(uniary_operation_expr("~a".into()));
-        assert_debug_snapshot!(uniary_operation_expr("!(a || b) + c".into()));
+    fn parse_unary_operations() {
+        assert_debug_snapshot!(unary_operation_expr("!a".into()));
+        assert_debug_snapshot!(unary_operation_expr("~a".into()));
+        assert_debug_snapshot!(unary_operation_expr("!(a || b) + c".into()));
     }
 }

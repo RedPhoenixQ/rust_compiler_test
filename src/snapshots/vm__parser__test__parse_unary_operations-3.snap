@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-expression: "uniary_operation_expr(\"!(a || b) + c\".into())"
+expression: "unary_operation_expr(\"!(a || b) + c\".into())"
 ---
 Ok(
     (
@@ -11,8 +11,8 @@ Ok(
             extra: (),
         },
         Ast {
-            node: UniaryOp(
-                Not,
+            node: UnaryOp(
+                LogicalNot,
                 Ast {
                     node: Group(
                         Ast {
