@@ -1,0 +1,81 @@
+---
+source: src/parser.rs
+expression: "if_statement(\"if (a == 1) { a; }\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 18,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: If {
+                branches: [
+                    (
+                        Ast {
+                            node: BinaryOp(
+                                Eq,
+                                Ast {
+                                    node: Ident(
+                                        Ident(
+                                            "a",
+                                        ),
+                                    ),
+                                    span: LocatedSpan {
+                                        offset: 4,
+                                        line: 1,
+                                        fragment: "a",
+                                        extra: (),
+                                    },
+                                },
+                                Ast {
+                                    node: Literal(
+                                        Int(
+                                            1,
+                                        ),
+                                    ),
+                                    span: LocatedSpan {
+                                        offset: 9,
+                                        line: 1,
+                                        fragment: "1",
+                                        extra: (),
+                                    },
+                                },
+                            ),
+                            span: LocatedSpan {
+                                offset: 4,
+                                line: 1,
+                                fragment: "a == 1",
+                                extra: (),
+                            },
+                        },
+                        [
+                            Ast {
+                                node: Ident(
+                                    Ident(
+                                        "a",
+                                    ),
+                                ),
+                                span: LocatedSpan {
+                                    offset: 14,
+                                    line: 1,
+                                    fragment: "a",
+                                    extra: (),
+                                },
+                            },
+                        ],
+                    ),
+                ],
+                else_block: None,
+            },
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "if (a == 1) { a; }",
+                extra: (),
+            },
+        },
+    ),
+)

@@ -555,6 +555,18 @@ mod test {
     }
 
     #[test]
+    fn parse_if() {
+        assert_debug_snapshot!(if_statement("if (a == 1) { a; }".into()));
+        assert_debug_snapshot!(if_statement("if (a == 1) { a; } else { b; }".into()));
+        assert_debug_snapshot!(if_statement(
+            "if (a == 1) { a; } else if (a < 1) { b; }".into()
+        ));
+        assert_debug_snapshot!(if_statement(
+            "if (a == 1) { a; } else if (a < 1) { b; } else { c; }".into()
+        ));
+    }
+
+    #[test]
     fn parse_return() {
         assert_debug_snapshot!(return_statement("return;".into()));
         assert_debug_snapshot!(return_statement("return a".into()));
