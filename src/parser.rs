@@ -23,7 +23,7 @@ pub struct Ast<'a> {
 #[derive(Debug)]
 pub enum Node<'a> {
     Ident(Ustr),
-    Literal(Literal<'a>),
+    Literal(Literal),
     Group(Box<Ast<'a>>),
     If {
         /// There should always be a root branch in this Vec
@@ -51,8 +51,8 @@ pub enum Node<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Literal<'a> {
-    String(&'a str),
+pub enum Literal {
+    String(Ustr),
     Int(i64),
     Float(f64),
     Boolean(bool),
@@ -420,7 +420,7 @@ fn string(input: Span) -> SResult<Literal> {
             take_until("\""),
             char('"'),
         )
-        .map(|span| Literal::String(span.into_fragment())),
+        .map(|span| Literal::String(span.into_fragment().into())),
     )
     .parse(input)
 }
