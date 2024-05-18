@@ -24,6 +24,13 @@ pub enum Node<'a> {
     Ident(Ident<'a>),
     Literal(Literal<'a>),
     Group(Box<Ast<'a>>),
+    If {
+        /// There should always be a root branch in this Vec
+        ///
+        /// branches.len() >= 1
+        branches: Vec<(Ast<'a>, Vec<Ast<'a>>)>,
+        else_block: Option<Vec<Ast<'a>>>,
+    },
     VariableDeclaration {
         ident: Ident<'a>,
         value: Option<Box<Ast<'a>>>,
@@ -108,6 +115,7 @@ fn statement(input: Span) -> SResult<Ast> {
         "Statement",
         ws(alt((
             let_statement,
+            if_statement,
             fn_statement,
             assignment_statement,
             return_statement,
@@ -149,6 +157,44 @@ fn let_statement(input: Span) -> SResult<Ast> {
     .map(|(span, (ident, value))| Ast {
         node: Node::VariableDeclaration { ident, value },
         span,
+    })
+    .parse(input)
+}
+
+fn if_statement(input: Span) -> SResult<Ast> {
+    context(
+        "If statement",
+        consumed(tuple((
+            preceded(
+                keyword("if"),
+                pair(
+                    delimited(ws(char('(')), expr, ws(char(')'))),
+                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                ),
+            ),
+            many0(preceded(
+                pair(ws(keyword("else")), ws(keyword("if"))),
+                pair(
+                    delimited(ws(char('(')), expr, ws(char(')'))),
+                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                ),
+            )),
+            opt(preceded(
+                ws(keyword("else")),
+                delimited(ws(char('{')), many1(statement), ws(char('}'))),
+            )),
+        ))),
+    )
+    .map(|(span, (root_if, mut branches, else_block))| {
+        // Put root at the first index
+        branches.insert(0, root_if);
+        Ast {
+            node: Node::If {
+                branches,
+                else_block,
+            },
+            span,
+        }
     })
     .parse(input)
 }
