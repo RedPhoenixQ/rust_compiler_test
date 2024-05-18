@@ -14,3 +14,4 @@ clap = { version = "4.5.4", features = ["derive"] }
 insta = "1.39.0"
 nom = "7.1.3"
 nom_locate = "4.2.0"
+ustr = "1.0.0"
