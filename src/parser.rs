@@ -63,7 +63,8 @@ pub enum Literal<'a> {
 pub enum UnaryOp {
     LogicalNot,
     BitwiseNot,
-    Negate,
+    Negative,
+    Positive,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -257,6 +258,8 @@ fn unary_operation_expr(input: Span) -> SResult<Ast> {
             alt((
                 value(UnaryOp::LogicalNot, char('!')),
                 value(UnaryOp::BitwiseNot, char('~')),
+                value(UnaryOp::Negative, char('-')),
+                value(UnaryOp::Positive, char('+')),
                 fail,
             )),
             ws(value_expr),
@@ -574,5 +577,7 @@ mod test {
         assert_debug_snapshot!(unary_operation_expr("!a".into()));
         assert_debug_snapshot!(unary_operation_expr("~a".into()));
         assert_debug_snapshot!(unary_operation_expr("!(a || b) + c".into()));
+        assert_debug_snapshot!(unary_operation_expr("+a".into()));
+        assert_debug_snapshot!(unary_operation_expr("-a".into()));
     }
 }
