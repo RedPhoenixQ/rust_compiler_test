@@ -37,6 +37,7 @@ pub enum Node<'a> {
         ident: Ident<'a>,
         value: Box<Ast<'a>>,
     },
+    Return(Option<Box<Ast<'a>>>),
     UniaryOp(UniaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
 }
@@ -107,6 +108,7 @@ fn statement(input: Span) -> SResult<Ast> {
             let_statement,
             fn_statement,
             assignment_statement,
+            return_statement,
             terminated(expr, ws(terminator)),
             fail,
         ))),
@@ -227,6 +229,21 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
             .into(),
         }
         .into(),
+        span,
+    })
+    .parse(input)
+}
+
+fn return_statement(input: Span) -> SResult<Ast> {
+    context(
+        "Return statement",
+        terminated(
+            consumed(preceded(keyword("return"), ws(opt(expr)))),
+            ws(terminator),
+        ),
+    )
+    .map(|(span, value)| Ast {
+        node: Node::Return(value.map(Box::new)),
         span,
     })
     .parse(input)
