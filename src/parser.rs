@@ -26,7 +26,6 @@ pub struct Ast<'a> {
 pub enum Node<'a> {
     Ident(Ustr),
     Literal(Value),
-    Group(Box<Ast<'a>>),
     If {
         /// There should always be a root branch in this Vec
         ///
@@ -375,31 +374,11 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
                 .into(),
                 rhs,
             )
-            } else {
-                Node::BinaryOp(
-                    first_operator,
-                    lhs.into(),
-                    Ast {
-                        node: Node::BinaryOp(other_operator, middle, rhs),
-                        span,
-                    }
-                    .into(),
-                )
-            }
         }
         _ => Node::BinaryOp(first_operator, lhs.into(), rhs.into()),
     };
 
     Ok((input, Ast { node, span }))
-}
-
-fn group_expr(input: Span) -> SResult<Ast> {
-    context("Group", consumed(delimited(char('('), expr, ws(char(')')))))
-        .map(|(span, group)| Ast {
-            node: Node::Group(group.into()),
-            span,
-        })
-        .parse(input)
 }
 
 fn ident_expr(input: Span) -> SResult<Ast> {
@@ -599,13 +578,6 @@ mod test {
 
         // Failures
         assert_debug_snapshot!(assignment_statement("yeet + 123;".into()));
-    }
-
-    #[test]
-    fn parse_group() {
-        assert_debug_snapshot!(group_expr("(123)".into()));
-        assert_debug_snapshot!(group_expr("123)".into()));
-        assert_debug_snapshot!(group_expr("(123".into()));
     }
 
     #[test]
