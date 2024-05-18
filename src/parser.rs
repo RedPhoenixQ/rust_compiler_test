@@ -11,6 +11,8 @@ use nom::{
 use nom_locate::LocatedSpan;
 use ustr::Ustr;
 
+use crate::value::Value;
+
 pub type Span<'a> = LocatedSpan<&'a str>;
 type SResult<'a, T> = IResult<Span<'a>, T, VerboseError<Span<'a>>>;
 
@@ -23,14 +25,14 @@ pub struct Ast<'a> {
 #[derive(Debug)]
 pub enum Node<'a> {
     Ident(Ustr),
-    Literal(Literal),
+    Literal(Value),
     Group(Box<Ast<'a>>),
     If {
         /// There should always be a root branch in this Vec
         ///
         /// branches.len() >= 1
-        branches: Vec<(Ast<'a>, Vec<Ast<'a>>)>,
-        else_block: Option<Vec<Ast<'a>>>,
+        branches: Box<[(Ast<'a>, Box<[Ast<'a>]>)]>,
+        else_block: Option<Box<[Ast<'a>]>>,
     },
     VariableDeclaration {
         ident: Ustr,
@@ -38,8 +40,8 @@ pub enum Node<'a> {
     },
     FunctionDeclaration {
         ident: Ustr,
-        arguments: Vec<Ustr>,
-        body: Vec<Ast<'a>>,
+        arguments: Box<[Ustr]>,
+        body: Box<[Ast<'a>]>,
     },
     Assignment {
         ident: Ustr,
@@ -48,14 +50,6 @@ pub enum Node<'a> {
     Return(Option<Box<Ast<'a>>>),
     UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
-}
-
-#[derive(Debug, Clone)]
-pub enum Literal {
-    String(Ustr),
-    Int(i64),
-    Float(f64),
-    Boolean(bool),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -161,19 +155,31 @@ fn if_statement(input: Span) -> SResult<Ast> {
                 keyword("if"),
                 pair(
                     delimited(ws(char('(')), expr, ws(char(')'))),
-                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                    delimited(
+                        ws(char('{')),
+                        many1(statement).map(|body| body.into_boxed_slice()),
+                        ws(char('}')),
+                    ),
                 ),
             ),
             many0(preceded(
                 pair(ws(keyword("else")), ws(keyword("if"))),
                 pair(
                     delimited(ws(char('(')), expr, ws(char(')'))),
-                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                    delimited(
+                        ws(char('{')),
+                        many1(statement).map(|body| body.into_boxed_slice()),
+                        ws(char('}')),
+                    ),
                 ),
             )),
             opt(preceded(
                 ws(keyword("else")),
-                delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                delimited(
+                    ws(char('{')),
+                    many1(statement).map(|body| body.into_boxed_slice()),
+                    ws(char('}')),
+                ),
             )),
         ))),
     )
@@ -182,7 +188,7 @@ fn if_statement(input: Span) -> SResult<Ast> {
         branches.insert(0, root_if);
         Ast {
             node: Node::If {
-                branches,
+                branches: branches.into_boxed_slice(),
                 else_block,
             },
             span,
@@ -202,13 +208,17 @@ fn fn_statement(input: Span) -> SResult<Ast> {
                     "Function arguments",
                     ws(delimited(
                         char('('),
-                        separated_list0(ws(char(',')), ws(ident)),
+                        separated_list0(ws(char(',')), ws(ident))
+                            .map(|args| args.into_boxed_slice()),
                         char(')'),
                     )),
                 ),
                 delimited(
                     ws(context("Start of function block", char('{'))),
-                    context("Function body", many1(statement)),
+                    context(
+                        "Function body",
+                        many1(statement).map(|body| body.into_boxed_slice()),
+                    ),
                     ws(context("End of function block", char('}'))),
                 ),
             )),
@@ -411,7 +421,7 @@ fn ident(input: Span) -> SResult<Ustr> {
     .parse(input)
 }
 
-fn string(input: Span) -> SResult<Literal> {
+fn string(input: Span) -> SResult<Value> {
     // TODO: Handle escaped strings
     context(
         "String literal",
@@ -420,31 +430,31 @@ fn string(input: Span) -> SResult<Literal> {
             take_until("\""),
             char('"'),
         )
-        .map(|span| Literal::String(span.into_fragment().into())),
+        .map(|span| Value::String(span.into_fragment().into())),
     )
     .parse(input)
 }
 
-fn number(input: Span) -> SResult<Literal> {
+fn number(input: Span) -> SResult<Value> {
     context(
         "Number literal",
         nom::number::complete::double.map(|value| {
             if value.fract() == 0.0 {
-                Literal::Int(value as i64)
+                Value::Int(value as i64)
             } else {
-                Literal::Float(value)
+                Value::Float(value)
             }
         }),
     )
     .parse(input)
 }
 
-fn boolean(input: Span) -> SResult<Literal> {
+fn boolean(input: Span) -> SResult<Value> {
     context(
         "Boolean literal",
         alt((
-            value(Literal::Boolean(true), keyword("true")),
-            value(Literal::Boolean(false), keyword("false")),
+            value(Value::Boolean(true), keyword("true")),
+            value(Value::Boolean(false), keyword("false")),
         )),
     )
     .parse(input)

@@ -9,6 +9,7 @@ use anyhow::{anyhow, bail, Result};
 mod ast;
 mod parser;
 mod tokenizer;
+mod value;
 
 use ast::{Ast, BinaryOp, Block, Ident, Literal, UniaryOp};
 
