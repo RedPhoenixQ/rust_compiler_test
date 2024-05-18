@@ -12,9 +12,7 @@ Ok(
         },
         Ast {
             node: FunctionDeclaration {
-                ident: Ident(
-                    "no_args",
-                ),
+                ident: u!("no_args"),
                 arguments: [],
                 body: [
                     Ast {

@@ -19,9 +19,7 @@ Ok(
                                 Eq,
                                 Ast {
                                     node: Ident(
-                                        Ident(
-                                            "a",
-                                        ),
+                                        u!("a"),
                                     ),
                                     span: LocatedSpan {
                                         offset: 4,
@@ -54,9 +52,7 @@ Ok(
                         [
                             Ast {
                                 node: Ident(
-                                    Ident(
-                                        "a",
-                                    ),
+                                    u!("a"),
                                 ),
                                 span: LocatedSpan {
                                     offset: 14,
@@ -73,9 +69,7 @@ Ok(
                                 Lt,
                                 Ast {
                                     node: Ident(
-                                        Ident(
-                                            "a",
-                                        ),
+                                        u!("a"),
                                     ),
                                     span: LocatedSpan {
                                         offset: 28,
@@ -108,9 +102,7 @@ Ok(
                         [
                             Ast {
                                 node: Ident(
-                                    Ident(
-                                        "b",
-                                    ),
+                                    u!("b"),
                                 ),
                                 span: LocatedSpan {
                                     offset: 37,
@@ -126,9 +118,7 @@ Ok(
                     [
                         Ast {
                             node: Ident(
-                                Ident(
-                                    "c",
-                                ),
+                                u!("c"),
                             ),
                             span: LocatedSpan {
                                 offset: 49,

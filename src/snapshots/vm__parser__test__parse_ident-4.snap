@@ -12,9 +12,7 @@ Ok(
         },
         Ast {
             node: Ident(
-                Ident(
-                    "left",
-                ),
+                u!("left"),
             ),
             span: LocatedSpan {
                 offset: 0,

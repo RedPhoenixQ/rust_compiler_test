@@ -15,9 +15,7 @@ Ok(
                 Some(
                     Ast {
                         node: Ident(
-                            Ident(
-                                "a",
-                            ),
+                            u!("a"),
                         ),
                         span: LocatedSpan {
                             offset: 7,

@@ -12,16 +12,10 @@ Ok(
         },
         Ast {
             node: FunctionDeclaration {
-                ident: Ident(
-                    "test",
-                ),
+                ident: u!("test"),
                 arguments: [
-                    Ident(
-                        "a",
-                    ),
-                    Ident(
-                        "b",
-                    ),
+                    u!("a"),
+                    u!("b"),
                 ],
                 body: [
                     Ast {

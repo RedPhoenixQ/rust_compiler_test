@@ -15,9 +15,7 @@ Ok(
                 LogicalAnd,
                 Ast {
                     node: Ident(
-                        Ident(
-                            "a",
-                        ),
+                        u!("a"),
                     ),
                     span: LocatedSpan {
                         offset: 0,
@@ -33,9 +31,7 @@ Ok(
                                 LogicalOr,
                                 Ast {
                                     node: Ident(
-                                        Ident(
-                                            "b",
-                                        ),
+                                        u!("b"),
                                     ),
                                     span: LocatedSpan {
                                         offset: 6,
@@ -46,9 +42,7 @@ Ok(
                                 },
                                 Ast {
                                     node: Ident(
-                                        Ident(
-                                            "c",
-                                        ),
+                                        u!("c"),
                                     ),
                                     span: LocatedSpan {
                                         offset: 11,

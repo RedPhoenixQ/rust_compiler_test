@@ -19,9 +19,7 @@ Ok(
                                 Eq,
                                 Ast {
                                     node: Ident(
-                                        Ident(
-                                            "a",
-                                        ),
+                                        u!("a"),
                                     ),
                                     span: LocatedSpan {
                                         offset: 4,
@@ -54,9 +52,7 @@ Ok(
                         [
                             Ast {
                                 node: Ident(
-                                    Ident(
-                                        "a",
-                                    ),
+                                    u!("a"),
                                 ),
                                 span: LocatedSpan {
                                     offset: 14,
@@ -72,9 +68,7 @@ Ok(
                     [
                         Ast {
                             node: Ident(
-                                Ident(
-                                    "b",
-                                ),
+                                u!("b"),
                             ),
                             span: LocatedSpan {
                                 offset: 26,

@@ -12,9 +12,7 @@ Ok(
         },
         Ast {
             node: VariableDeclaration {
-                ident: Ident(
-                    "yeet",
-                ),
+                ident: u!("yeet"),
                 value: None,
             },
             span: LocatedSpan {

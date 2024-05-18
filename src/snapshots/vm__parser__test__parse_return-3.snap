@@ -18,9 +18,7 @@ Ok(
                             Add,
                             Ast {
                                 node: Ident(
-                                    Ident(
-                                        "a",
-                                    ),
+                                    u!("a"),
                                 ),
                                 span: LocatedSpan {
                                     offset: 7,
@@ -34,9 +32,7 @@ Ok(
                                     Sub,
                                     Ast {
                                         node: Ident(
-                                            Ident(
-                                                "b",
-                                            ),
+                                            u!("b"),
                                         ),
                                         span: LocatedSpan {
                                             offset: 11,
@@ -47,9 +43,7 @@ Ok(
                                     },
                                     Ast {
                                         node: Ident(
-                                            Ident(
-                                                "c",
-                                            ),
+                                            u!("c"),
                                         ),
                                         span: LocatedSpan {
                                             offset: 15,

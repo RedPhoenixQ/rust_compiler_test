@@ -12,17 +12,13 @@ Ok(
         },
         Ast {
             node: Assignment {
-                ident: Ident(
-                    "yeet",
-                ),
+                ident: u!("yeet"),
                 value: Ast {
                     node: BinaryOp(
                         Mod,
                         Ast {
                             node: Ident(
-                                Ident(
-                                    "yeet",
-                                ),
+                                u!("yeet"),
                             ),
                             span: LocatedSpan {
                                 offset: 0,

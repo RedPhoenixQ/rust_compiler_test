@@ -15,9 +15,7 @@ Ok(
                 LogicalNot,
                 Ast {
                     node: Ident(
-                        Ident(
-                            "a",
-                        ),
+                        u!("a"),
                     ),
                     span: LocatedSpan {
                         offset: 1,

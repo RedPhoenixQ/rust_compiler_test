@@ -15,9 +15,7 @@ Ok(
                 LogicalAnd,
                 Ast {
                     node: Ident(
-                        Ident(
-                            "b",
-                        ),
+                        u!("b"),
                     ),
                     span: LocatedSpan {
                         offset: 0,
@@ -31,9 +29,7 @@ Ok(
                         Gt,
                         Ast {
                             node: Ident(
-                                Ident(
-                                    "a",
-                                ),
+                                u!("a"),
                             ),
                             span: LocatedSpan {
                                 offset: 5,

@@ -12,9 +12,7 @@ Ok(
         },
         Ast {
             node: Ident(
-                Ident(
-                    "AS_23ds_s",
-                ),
+                u!("AS_23ds_s"),
             ),
             span: LocatedSpan {
                 offset: 0,
