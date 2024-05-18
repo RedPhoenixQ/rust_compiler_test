@@ -1,18 +1,18 @@
 ---
 source: src/parser.rs
-expression: "binary_operation_expr(\"a && b = c\".into())"
+expression: "binary_operation_expr(\"a + b;\".into())"
 ---
 Ok(
     (
         LocatedSpan {
-            offset: 6,
+            offset: 5,
             line: 1,
-            fragment: " = c",
+            fragment: ";",
             extra: (),
         },
         Ast {
             node: BinaryOp(
-                LogicalAnd,
+                Add,
                 Ast {
                     node: Ident(
                         Ident(
@@ -33,7 +33,7 @@ Ok(
                         ),
                     ),
                     span: LocatedSpan {
-                        offset: 5,
+                        offset: 4,
                         line: 1,
                         fragment: "b",
                         extra: (),
@@ -43,7 +43,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "a && b",
+                fragment: "a + b",
                 extra: (),
             },
         },

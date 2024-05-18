@@ -1,0 +1,45 @@
+---
+source: src/parser.rs
+expression: "binary_operation_expr(\"a = b\".into())"
+---
+Err(
+    Error(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 2,
+                        line: 1,
+                        fragment: "= b",
+                        extra: (),
+                    },
+                    Nom(
+                        Fail,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 2,
+                        line: 1,
+                        fragment: "= b",
+                        extra: (),
+                    },
+                    Nom(
+                        Alt,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 2,
+                        line: 1,
+                        fragment: "= b",
+                        extra: (),
+                    },
+                    Context(
+                        "Binary operator",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

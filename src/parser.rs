@@ -553,6 +553,8 @@ mod test {
         assert_debug_snapshot!(binary_operation_expr("a > b".into()));
         assert_debug_snapshot!(binary_operation_expr("a <= b".into()));
         assert_debug_snapshot!(binary_operation_expr("a >= b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a == b".into()));
+        assert_debug_snapshot!(binary_operation_expr("a != b".into()));
 
         // Operator priority
         assert_debug_snapshot!(binary_operation_expr("a * b + c".into()));

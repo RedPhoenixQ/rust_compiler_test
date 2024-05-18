@@ -1,21 +1,21 @@
 ---
 source: src/parser.rs
-expression: "binary_operation_expr(\"a > b && c\".into())"
+expression: "binary_operation_expr(\"a * b + c\".into())"
 ---
 Ok(
     (
         LocatedSpan {
-            offset: 10,
+            offset: 9,
             line: 1,
             fragment: "",
             extra: (),
         },
         Ast {
             node: BinaryOp(
-                LogicalAnd,
+                Add,
                 Ast {
                     node: BinaryOp(
-                        Gt,
+                        Mul,
                         Ast {
                             node: Ident(
                                 Ident(
@@ -46,7 +46,7 @@ Ok(
                     span: LocatedSpan {
                         offset: 4,
                         line: 1,
-                        fragment: "b && c",
+                        fragment: "b + c",
                         extra: (),
                     },
                 },
@@ -57,7 +57,7 @@ Ok(
                         ),
                     ),
                     span: LocatedSpan {
-                        offset: 9,
+                        offset: 8,
                         line: 1,
                         fragment: "c",
                         extra: (),
@@ -67,7 +67,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "a > b && c",
+                fragment: "a * b + c",
                 extra: (),
             },
         },
