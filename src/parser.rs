@@ -61,7 +61,7 @@ pub enum Literal<'a> {
 
 #[derive(Debug, Clone, Copy)]
 pub enum UniaryOp {
-    Not,
+    LogicalNot,
     BitwiseNot,
 }
 
@@ -254,7 +254,7 @@ fn uniary_operation_expr(input: Span) -> SResult<Ast> {
         "Uniary operation",
         consumed(pair(
             alt((
-                value(UniaryOp::Not, char('!')),
+                value(UniaryOp::LogicalNot, char('!')),
                 value(UniaryOp::BitwiseNot, char('~')),
                 fail,
             )),
