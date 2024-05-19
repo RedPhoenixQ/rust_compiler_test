@@ -7,6 +7,7 @@ use std::{
 use anyhow::{anyhow, bail, Result};
 
 mod ast;
+mod compiler;
 mod parser;
 mod tokenizer;
 mod value;
