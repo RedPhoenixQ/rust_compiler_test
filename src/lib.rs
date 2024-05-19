@@ -2,10 +2,8 @@ use std::{cell::RefCell, rc::Rc, usize};
 
 use anyhow::{bail, Result};
 
-mod ast;
 mod compiler;
 mod parser;
-mod tokenizer;
 mod value;
 
 use ustr::{Ustr, UstrMap};
