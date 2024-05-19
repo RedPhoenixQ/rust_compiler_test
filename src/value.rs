@@ -1,4 +1,7 @@
+use anyhow::{bail, Result};
 use ustr::Ustr;
+
+use crate::parser::{BinaryOp, UnaryOp};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum Value {
@@ -79,5 +82,154 @@ impl Value {
             Self::Boolean(false) => 0.into(),
             Self::Undefined => 0.into(),
         }
+    }
+
+    pub fn eval_unary_op(&self, operation: &UnaryOp) -> Result<Self> {
+        Ok(match operation {
+            UnaryOp::LogicalNot => Value::Boolean(!self.is_truthy()),
+
+            UnaryOp::BitwiseNot => {
+                if let Value::Int(value) = self {
+                    (!value).into()
+                } else {
+                    bail!("TypeError: {:?} is not applicable to {:?}", operation, self)
+                }
+            }
+
+            UnaryOp::Negative => match self.as_number() {
+                Value::Int(value) => (-value).into(),
+                Value::Float(value) => (-value).into(),
+                _ => unreachable!("Value::as_number() should always return a number"),
+            },
+
+            UnaryOp::Positive => self.as_number(),
+        })
+    }
+
+    pub fn eval_binary_op(self, other: Value, op: &BinaryOp) -> Result<Value> {
+        Ok(match (self, other) {
+            (Value::Int(lhs), Value::Int(rhs)) => match op {
+                BinaryOp::Add => Value::Int(lhs + rhs),
+                BinaryOp::Sub => Value::Int(lhs - rhs),
+                BinaryOp::Div => Value::Int(lhs / rhs),
+                BinaryOp::Mul => Value::Int(lhs * rhs),
+                BinaryOp::Mod => Value::Int(lhs % rhs),
+                BinaryOp::Eq => Value::Boolean(lhs == rhs),
+                BinaryOp::Neq => Value::Boolean(lhs != rhs),
+                BinaryOp::Lt => Value::Boolean(lhs < rhs),
+                BinaryOp::Gt => Value::Boolean(lhs > rhs),
+                BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
+                BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
+                BinaryOp::BitwiseAnd => Value::Int(lhs & rhs),
+                BinaryOp::BitwiseOr => Value::Int(lhs | rhs),
+                BinaryOp::LogicalOr | BinaryOp::LogicalAnd => {
+                    self.as_boolean().eval_binary_op(other.as_boolean(), op)?
+                }
+            },
+            (Value::Float(lhs), Value::Float(rhs)) => match op {
+                BinaryOp::Add => (lhs + rhs).into(),
+                BinaryOp::Sub => (lhs - rhs).into(),
+                BinaryOp::Div => (lhs / rhs).into(),
+                BinaryOp::Mul => (lhs * rhs).into(),
+                BinaryOp::Mod => (lhs % rhs).into(),
+                BinaryOp::Eq => Value::Boolean(lhs == rhs),
+                BinaryOp::Neq => Value::Boolean(lhs != rhs),
+                BinaryOp::Lt => Value::Boolean(lhs < rhs),
+                BinaryOp::Gt => Value::Boolean(lhs > rhs),
+                BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
+                BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
+                BinaryOp::LogicalOr | BinaryOp::LogicalAnd => {
+                    self.as_boolean().eval_binary_op(other.as_boolean(), op)?
+                }
+                BinaryOp::BitwiseOr | BinaryOp::BitwiseAnd => {
+                    bail!("TypeError: '{op:?}' cannot be used on {self:?} and {other:?}")
+                }
+            },
+            (Value::String(lhs), Value::String(rhs)) => match op {
+                BinaryOp::Add => {
+                    let mut string = lhs.to_string();
+                    string.push_str(&rhs);
+                    Value::String(string.into())
+                }
+                BinaryOp::Eq => Value::Boolean(lhs == rhs),
+                BinaryOp::Neq => Value::Boolean(lhs != rhs),
+                BinaryOp::Lt => Value::Boolean(lhs < rhs),
+                BinaryOp::Gt => Value::Boolean(lhs > rhs),
+                BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
+                BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
+                BinaryOp::LogicalOr | BinaryOp::LogicalAnd => {
+                    self.as_boolean().eval_binary_op(other.as_boolean(), op)?
+                }
+                BinaryOp::Sub
+                | BinaryOp::Div
+                | BinaryOp::Mul
+                | BinaryOp::Mod
+                | BinaryOp::BitwiseOr
+                | BinaryOp::BitwiseAnd => {
+                    bail!("TypeError: '{op:?}' cannot be used on {self:?} and {other:?}")
+                }
+            },
+            (lhs, rhs @ Value::Boolean(_)) | (lhs @ Value::Boolean(_), rhs) => {
+                let (Value::Boolean(lhs), Value::Boolean(rhs)) =
+                    (lhs.as_boolean(), rhs.as_boolean())
+                else {
+                    unreachable!("Value::as_boolean should always return booleans")
+                };
+                match op {
+                    BinaryOp::Eq => Value::Boolean(lhs == rhs),
+                    BinaryOp::Neq => Value::Boolean(lhs != rhs),
+                    BinaryOp::Lt => Value::Boolean(lhs < rhs),
+                    BinaryOp::Gt => Value::Boolean(lhs > rhs),
+                    BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
+                    BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
+                    BinaryOp::LogicalAnd => Value::Boolean(lhs && rhs),
+                    BinaryOp::LogicalOr => Value::Boolean(lhs || rhs),
+                    BinaryOp::Add
+                    | BinaryOp::Sub
+                    | BinaryOp::Div
+                    | BinaryOp::Mul
+                    | BinaryOp::Mod
+                    | BinaryOp::BitwiseOr
+                    | BinaryOp::BitwiseAnd => {
+                        bail!("TypeError: '{op:?}' cannot be used on {self:?} and {other:?}")
+                    }
+                }
+            }
+
+            (Value::Int(int), rhs @ Value::Float(_)) => {
+                Value::Float(int as f64).eval_binary_op(rhs, op)?
+            }
+            (lhs @ Value::Float(_), Value::Int(int)) => {
+                lhs.eval_binary_op(Value::Float(int as f64), op)?
+            }
+
+            (lhs @ Value::String(_), rhs) => lhs.eval_binary_op(rhs.as_string(), op)?,
+            (lhs, rhs @ Value::String(_)) => lhs.as_string().eval_binary_op(rhs, op)?,
+
+            (_lhs, _rhs) => bail!("TypeError: '{op:?}' cannot be used on {self:?} and {other:?}"),
+        })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn add() -> Result<()> {
+        let op = &BinaryOp::Add;
+        assert_eq!(
+            Value::Int(2).eval_binary_op(2.into(), op).unwrap(),
+            Value::Int(4)
+        );
+        assert_eq!(
+            Value::Float(2.).eval_binary_op(2.into(), op).unwrap(),
+            Value::Int(4)
+        );
+        assert_eq!(
+            Value::Float(2.).eval_binary_op(2.into(), op).unwrap(),
+            Value::Int(4)
+        );
+        Ok(())
     }
 }
