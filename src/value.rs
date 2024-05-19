@@ -18,7 +18,7 @@ impl From<i64> for Value {
 
 impl From<f64> for Value {
     fn from(value: f64) -> Self {
-        if value.floor() < f64::EPSILON {
+        if value.fract() < f64::EPSILON {
             Self::Int(value as i64)
         } else {
             Self::Float(value)
