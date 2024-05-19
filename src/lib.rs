@@ -61,29 +61,20 @@ impl VM {
 
                 Op::StoreOperand => self.reg_operand = self.reg_accumulator,
 
-                Op::Jump(skip_amount) => {
-                    if skip_amount.is_negative() {
-                        program_counter -= skip_amount.abs() as usize;
-                    } else {
-                        program_counter += *skip_amount as usize;
-                    }
+                Op::Jump(location) => {
+                    program_counter = *location;
+                    continue;
                 }
-                Op::JumpIfTrue(skip_amount) => {
+                Op::JumpIfTrue(location) => {
                     if self.reg_accumulator.is_truthy() {
-                        if skip_amount.is_negative() {
-                            program_counter -= skip_amount.abs() as usize;
-                        } else {
-                            program_counter += *skip_amount as usize;
-                        }
+                        program_counter = *location;
+                        continue;
                     }
                 }
-                Op::JumpIfFalse(skip_amount) => {
+                Op::JumpIfFalse(location) => {
                     if !self.reg_accumulator.is_truthy() {
-                        if skip_amount.is_negative() {
-                            program_counter -= skip_amount.abs() as usize;
-                        } else {
-                            program_counter += *skip_amount as usize;
-                        }
+                        program_counter = *location;
+                        continue;
                     }
                 }
 

@@ -21,11 +21,12 @@ pub enum Op {
     /// Store accumulator into the operand register
     StoreOperand,
 
-    /// Execute the block if accumulator is truthy
-    JumpIfTrue(isize),
-    /// Execute the block if accumulator is NOT truthy
-    JumpIfFalse(isize),
-    Jump(isize),
+    /// Move the programcounter if accumulator is truthy
+    JumpIfTrue(usize),
+    /// Move the programcounter if accumulator is NOT truthy
+    JumpIfFalse(usize),
+    /// Move the programcounter
+    Jump(usize),
 
     /// Performs the operation on the accumulator
     UnaryOperation(UnaryOp),
@@ -58,7 +59,7 @@ fn compile_node(mut block: &mut Vec<Op>, node: &Node) {
                 compile_node(&mut block, &predicate.node);
 
                 // If the predicate is false, jump over the body
-                // The jump length will be changed after body length is known
+                // The jump location will be changed after body length is known
                 let predicate_jump_index = block.len();
                 block.push(Op::JumpIfFalse(0));
 
@@ -70,29 +71,23 @@ fn compile_node(mut block: &mut Vec<Op>, node: &Node) {
 
                 let else_jump_index = block.len();
                 if should_handle_else_branch {
-                    // Jump over else body if we did not jump past it if the predicate was falsy
-                    // The jump length will be set after the else body is complied
+                    // Skip the else body if we did not jump past it when the predicate was falsy
+                    // The jump length will be set after the else body is compiled
                     block.push(Op::Jump(0));
                 }
 
-                let body_len = (block.len() as isize) - (start_of_body_index as isize);
-                assert_ne!(body_len, 0);
                 // Set the jump instruction before the body to skip the body if the predicate is falsy
-                block[predicate_jump_index] = Op::JumpIfFalse(body_len);
+                block[predicate_jump_index] = Op::JumpIfFalse(block.len());
 
                 if should_handle_else_branch {
                     if let Some(else_body) = else_block {
-                        let start_of_else_body_index = block.len();
                         for ast in else_body.iter() {
                             compile_node(&mut block, &ast.node);
                         }
 
-                        let else_and_then_body_len = body_len
-                            + ((block.len() as isize) - (start_of_else_body_index as isize));
-                        assert_ne!(else_and_then_body_len, 0);
-                        // Set the jump instruction before the body to skip the body,
-                        // unless we jumped past the jump inctruction if the predicate was falsy
-                        block[else_jump_index] = Op::Jump(else_and_then_body_len)
+                        // Point the jump instruction to after the body to skip the body if we fell through from the last predicate
+                        // The jump will be skipped by the predicate jump if it was false
+                        block[else_jump_index] = Op::Jump(block.len())
                     }
                 }
             }
