@@ -42,6 +42,10 @@ pub enum Node<'a> {
         arguments: Box<[Ustr]>,
         body: Box<[Ast<'a>]>,
     },
+    ClosureDeclaration {
+        arguments: Box<[Ustr]>,
+        body: Box<[Ast<'a>]>,
+    },
     FunctionCall {
         calling: Box<Ast<'a>>,
         arguments: Box<[Ast<'a>]>,
@@ -125,6 +129,7 @@ fn expr(input: Span) -> SResult<Ast> {
         binary_operation_expr,
         function_call_expr,
         value_expr,
+        closure_expr,
         fail,
     )))
     .parse(input)
@@ -412,6 +417,28 @@ fn function_call_expr(input: Span) -> SResult<Ast> {
     .parse(input)
 }
 
+fn closure_expr(input: Span) -> SResult<Ast> {
+    context(
+        "Closure",
+        consumed(pair(
+            delimited(
+                ws(char('|')),
+                separated_list0(ws(char(',')), ws(ident)),
+                ws(char('|')),
+            ),
+            delimited(ws(char('{')), many1(statement), ws(char('}'))),
+        )),
+    )
+    .map(|(span, (arguments, body))| Ast {
+        node: Node::ClosureDeclaration {
+            arguments: arguments.into(),
+            body: body.into(),
+        },
+        span,
+    })
+    .parse(input)
+}
+
 fn ident_expr(input: Span) -> SResult<Ast> {
     consumed(ident)
         .map(|(span, ident)| Ast {
@@ -664,6 +691,13 @@ mod test {
         assert_debug_snapshot!(function_call_expr("a()".into()));
         assert_debug_snapshot!(function_call_expr("a(123, b, c == 3)".into()));
         assert_debug_snapshot!(function_call_expr("(123)(123, b, c == 3)".into()));
+    }
+
+    #[test]
+    fn parse_closure() {
+        assert_debug_snapshot!(closure_expr("|| {return 123;}".into()));
+        assert_debug_snapshot!(closure_expr("|a| { a += 1; }".into()));
+        assert_debug_snapshot!(closure_expr("|a,b,c| { return a - b - c; }".into()));
     }
 
     #[test]
