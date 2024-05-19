@@ -42,6 +42,10 @@ pub enum Node<'a> {
         arguments: Box<[Ustr]>,
         body: Box<[Ast<'a>]>,
     },
+    FunctionCall {
+        calling: Box<Ast<'a>>,
+        arguments: Box<[Ast<'a>]>,
+    },
     Assignment {
         ident: Ustr,
         value: Box<Ast<'a>>,
@@ -119,6 +123,7 @@ fn expr(input: Span) -> SResult<Ast> {
     ws(alt((
         unary_operation_expr,
         binary_operation_expr,
+        function_call_expr,
         value_expr,
         fail,
     )))
@@ -385,6 +390,28 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
     Ok((input, Ast { node, span }))
 }
 
+fn function_call_expr(input: Span) -> SResult<Ast> {
+    context(
+        "Function call",
+        pair(
+            alt((delimited(char('('), ws(expr), ws(char(')'))), ident_expr)),
+            consumed(delimited(
+                ws(char('(')),
+                separated_list0(char(','), ws(expr)),
+                ws(char(')')),
+            )),
+        ),
+    )
+    .map(|(calling, (span, arguments))| Ast {
+        node: Node::FunctionCall {
+            calling: calling.into(),
+            arguments: arguments.into(),
+        },
+        span,
+    })
+    .parse(input)
+}
+
 fn ident_expr(input: Span) -> SResult<Ast> {
     consumed(ident)
         .map(|(span, ident)| Ast {
@@ -633,6 +660,13 @@ mod test {
     }
 
     #[test]
+    fn parse_function_call() {
+        assert_debug_snapshot!(function_call_expr("a()".into()));
+        assert_debug_snapshot!(function_call_expr("a(123, b, c == 3)".into()));
+        assert_debug_snapshot!(function_call_expr("(123)(123, b, c == 3)".into()));
+    }
+
+    #[test]
     fn parse() {
         assert_debug_snapshot!(parse_code(
             r#"
@@ -643,6 +677,15 @@ mod test {
             } else {
                 "b (" + b + ") is greater than a (" + a + ")";
             }
+            "#
+        ));
+        assert_debug_snapshot!(parse_code(
+            r#"
+            fn a(x) {
+                x += 1;
+                return x;
+            }
+            a(123);
             "#
         ));
     }

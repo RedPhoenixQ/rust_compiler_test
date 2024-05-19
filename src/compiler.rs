@@ -114,5 +114,6 @@ fn compile_node(mut block: &mut Vec<Op>, node: &Node) {
             compile_node(&mut block, &rhs.node);
             block.push(Op::BinaryOperation(*operation));
         }
+        Node::FunctionCall { calling, arguments } => todo!(),
     }
 }

@@ -1,0 +1,96 @@
+---
+source: src/parser.rs
+expression: "function_call_expr(\"a(123, b, c == 3)\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 17,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: FunctionCall {
+                calling: Ast {
+                    node: Ident(
+                        u!("a"),
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "a",
+                        extra: (),
+                    },
+                },
+                arguments: [
+                    Ast {
+                        node: Literal(
+                            Int(
+                                123,
+                            ),
+                        ),
+                        span: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "123",
+                            extra: (),
+                        },
+                    },
+                    Ast {
+                        node: Ident(
+                            u!("b"),
+                        ),
+                        span: LocatedSpan {
+                            offset: 7,
+                            line: 1,
+                            fragment: "b",
+                            extra: (),
+                        },
+                    },
+                    Ast {
+                        node: BinaryOp(
+                            Eq,
+                            Ast {
+                                node: Ident(
+                                    u!("c"),
+                                ),
+                                span: LocatedSpan {
+                                    offset: 10,
+                                    line: 1,
+                                    fragment: "c",
+                                    extra: (),
+                                },
+                            },
+                            Ast {
+                                node: Literal(
+                                    Int(
+                                        3,
+                                    ),
+                                ),
+                                span: LocatedSpan {
+                                    offset: 15,
+                                    line: 1,
+                                    fragment: "3",
+                                    extra: (),
+                                },
+                            },
+                        ),
+                        span: LocatedSpan {
+                            offset: 10,
+                            line: 1,
+                            fragment: "c == 3",
+                            extra: (),
+                        },
+                    },
+                ],
+            },
+            span: LocatedSpan {
+                offset: 1,
+                line: 1,
+                fragment: "(123, b, c == 3)",
+                extra: (),
+            },
+        },
+    ),
+)
