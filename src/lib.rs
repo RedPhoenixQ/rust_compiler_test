@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, usize};
+use std::{cell::Cell, rc::Rc};
 
 use anyhow::{bail, Result};
 
@@ -11,11 +11,19 @@ use value::Value;
 
 use crate::compiler::Op;
 
+pub type Scope = UstrMap<Rc<Cell<Value>>>;
+
+#[derive(Debug)]
+pub struct Closure {
+    scope: Scope,
+    ops: Box<[Op]>,
+}
+
 #[derive(Debug, Default)]
 pub struct VM {
     reg_accumulator: Value,
     reg_operand: Value,
-    global_scope: UstrMap<Rc<RefCell<Value>>>,
+    global_scope: Scope,
 }
 
 impl VM {
@@ -24,9 +32,7 @@ impl VM {
     }
 
     pub fn get_ident_value(&self, ident: &Ustr) -> Option<Value> {
-        self.global_scope
-            .get(ident)
-            .map(|val| val.as_ref().borrow().clone())
+        self.global_scope.get(ident).map(|val| val.as_ref().get())
     }
 
     pub fn compile_str(code: &str) -> Result<Box<[Op]>> {
@@ -43,10 +49,10 @@ impl VM {
                     let Some(var) = self.global_scope.get(ident) else {
                         bail!("Variable {} is not declared", ident)
                     };
-                    var.replace(self.reg_accumulator);
+                    var.as_ref().replace(self.reg_accumulator);
                 }
                 Op::DeclareVariable(ident) => {
-                    let var = Rc::new(RefCell::new(self.reg_accumulator));
+                    let var = Rc::new(Cell::new(self.reg_accumulator));
                     self.global_scope.insert(*ident, var);
                 }
                 Op::LoadVariable(ident) => {
