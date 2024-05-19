@@ -95,6 +95,10 @@ impl BinaryOp {
     }
 }
 
+pub fn parse_code<'a>(input: impl Into<Span<'a>>) -> SResult<'a, Vec<Ast<'a>>> {
+    all_consuming(terminated(many1(statement), multispace0)).parse(input.into())
+}
+
 fn statement(input: Span) -> SResult<Ast> {
     context(
         "Statement",
@@ -626,5 +630,20 @@ mod test {
         assert_debug_snapshot!(unary_operation_expr("!(a || b) + c".into()));
         assert_debug_snapshot!(unary_operation_expr("+a".into()));
         assert_debug_snapshot!(unary_operation_expr("-a".into()));
+    }
+
+    #[test]
+    fn parse() {
+        assert_debug_snapshot!(parse_code(
+            r#"
+            let a = 123;
+            let b = 321;
+            if (b < a) {
+                "b SHOULD NOT be less than a";
+            } else {
+                "b (" + b + ") is greater than a (" + a + ")";
+            }
+            "#
+        ));
     }
 }
