@@ -126,7 +126,7 @@ fn expr(input: Span) -> SResult<Ast> {
 }
 
 fn value_expr(input: Span) -> SResult<Ast> {
-    context("Value", alt((ident_expr, literal_expr, fail))).parse(input)
+    context("Value", alt((literal_expr, ident_expr, fail))).parse(input)
 }
 
 fn let_statement(input: Span) -> SResult<Ast> {
