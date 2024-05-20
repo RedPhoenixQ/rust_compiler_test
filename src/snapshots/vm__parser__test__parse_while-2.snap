@@ -1,0 +1,78 @@
+---
+source: src/parser.rs
+expression: "while_statement(\"while (a < 10) {}\".into())"
+---
+Err(
+    Error(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 16,
+                        line: 1,
+                        fragment: "}",
+                        extra: (),
+                    },
+                    Nom(
+                        Fail,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 16,
+                        line: 1,
+                        fragment: "}",
+                        extra: (),
+                    },
+                    Nom(
+                        Alt,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 16,
+                        line: 1,
+                        fragment: "}",
+                        extra: (),
+                    },
+                    Context(
+                        "Statement",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 16,
+                        line: 1,
+                        fragment: "}",
+                        extra: (),
+                    },
+                    Nom(
+                        Many1,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 14,
+                        line: 1,
+                        fragment: " {}",
+                        extra: (),
+                    },
+                    Context(
+                        "While body",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "while (a < 10) {}",
+                        extra: (),
+                    },
+                    Context(
+                        "While loop",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

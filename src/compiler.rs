@@ -92,6 +92,7 @@ fn compile_node(mut block: &mut Vec<Op>, node: &Node) {
                 }
             }
         }
+        Node::While { predicate, body } => todo!(),
         Node::VariableDeclaration { ident, value } => {
             if let Some(ast) = value {
                 compile_node(&mut block, &ast.node);

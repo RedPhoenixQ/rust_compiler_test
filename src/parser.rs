@@ -33,6 +33,10 @@ pub enum Node<'a> {
         branches: Box<[(Ast<'a>, Box<[Ast<'a>]>)]>,
         else_block: Option<Box<[Ast<'a>]>>,
     },
+    While {
+        predicate: Box<Ast<'a>>,
+        body: Box<[Ast<'a>]>,
+    },
     VariableDeclaration {
         ident: Ustr,
         value: Option<Box<Ast<'a>>>,
@@ -113,6 +117,7 @@ fn statement(input: Span) -> SResult<Ast> {
         ws(alt((
             let_statement,
             if_statement,
+            while_statement,
             fn_statement,
             assignment_statement,
             return_statement,
@@ -206,6 +211,37 @@ fn if_statement(input: Span) -> SResult<Ast> {
             },
             span,
         }
+    })
+    .parse(input)
+}
+
+fn while_statement(input: Span) -> SResult<Ast> {
+    context(
+        "While loop",
+        consumed(preceded(
+            keyword("while"),
+            pair(
+                context(
+                    "While predicate",
+                    delimited(ws(char('(')), expr, ws(char(')'))),
+                ),
+                context(
+                    "While body",
+                    delimited(
+                        ws(char('{')),
+                        many1(alt((statement, controlflow_statement))),
+                        ws(char('}')),
+                    ),
+                ),
+            ),
+        )),
+    )
+    .map(|(span, (predicate, body))| Ast {
+        node: Node::While {
+            predicate: predicate.into(),
+            body: body.into_boxed_slice(),
+        },
+        span,
     })
     .parse(input)
 }
@@ -614,6 +650,13 @@ mod test {
         assert_debug_snapshot!(if_statement(
             "if (a == 1) { a; } else if (a < 1) { b; } else { c; }".into()
         ));
+    }
+
+    #[test]
+    fn parse_while() {
+        assert_debug_snapshot!(while_statement("while (a < 10) { a += 1; }".into()));
+        assert_debug_snapshot!(while_statement("while (a < 10) {}".into()));
+        assert_debug_snapshot!(while_statement("while () { 123; }".into()));
     }
 
     #[test]
