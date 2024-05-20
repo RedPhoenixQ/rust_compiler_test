@@ -208,5 +208,43 @@ mod test {
         .unwrap();
         vm.eval_ops(&ops).unwrap();
         assert_eq!(Value::Int(8), vm.get_accumulator(), "while 2^3 == 8");
+
+        let ops = VM::compile_str(
+            r#"
+            let i = 0;
+            while (true) {
+                i += 1;
+                if (i > 5) {
+                    break;
+                }
+            }
+            i;
+            "#,
+        )
+        .unwrap();
+        vm.eval_ops(&ops).unwrap();
+        assert_eq!(Value::Int(6), vm.get_accumulator(), "while break i > 5");
+
+        let ops = VM::compile_str(
+            r#"
+            let s = "";
+            let i = 0;
+            while (i < 3) {
+                i += 1;
+                if (i == 1) {
+                    continue;
+                }
+                s += i;
+            }
+            s;
+            "#,
+        )
+        .unwrap();
+        vm.eval_ops(&ops).unwrap();
+        assert_eq!(
+            Value::String("23".into()),
+            vm.get_accumulator(),
+            "while continue to skip index 1"
+        );
     }
 }
