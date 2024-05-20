@@ -794,5 +794,13 @@ mod test {
             a(123);
             "#
         ));
+        assert_debug_snapshot!(parse_code(
+            r#"
+            let a = 0;
+            while (a < 10) {
+                a += 1;
+            }
+            "#
+        ));
     }
 }
