@@ -59,6 +59,8 @@ pub enum Node<'a> {
         value: Box<Ast<'a>>,
     },
     Return(Option<Box<Ast<'a>>>),
+    Break,
+    Continue,
     UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
 }
@@ -345,6 +347,26 @@ fn return_statement(input: Span) -> SResult<Ast> {
         node: Node::Return(value.map(Box::new)),
         span,
     })
+    .parse(input)
+}
+
+fn controlflow_statement(input: Span) -> SResult<Ast> {
+    context(
+        "Controlflow statement",
+        terminated(
+            alt((
+                keyword("continue").map(|span| Ast {
+                    node: Node::Continue,
+                    span,
+                }),
+                keyword("break").map(|span| Ast {
+                    node: Node::Break,
+                    span,
+                }),
+            )),
+            ws(terminator),
+        ),
+    )
     .parse(input)
 }
 
@@ -664,6 +686,13 @@ mod test {
         assert_debug_snapshot!(return_statement("return;".into()));
         assert_debug_snapshot!(return_statement("return a".into()));
         assert_debug_snapshot!(return_statement("return a + b - c".into()));
+    }
+    #[test]
+    fn parse_controlflow() {
+        assert_debug_snapshot!(controlflow_statement("continue;".into()));
+        assert_debug_snapshot!(controlflow_statement("continue 123;".into()));
+        assert_debug_snapshot!(controlflow_statement("break;".into()));
+        assert_debug_snapshot!(controlflow_statement("break 123;".into()));
     }
 
     #[test]

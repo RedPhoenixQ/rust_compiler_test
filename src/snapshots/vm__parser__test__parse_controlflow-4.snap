@@ -1,0 +1,56 @@
+---
+source: src/parser.rs
+expression: "controlflow_statement(\"break 123;\".into())"
+---
+Err(
+    Error(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 6,
+                        line: 1,
+                        fragment: "123;",
+                        extra: (),
+                    },
+                    Nom(
+                        Eof,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 6,
+                        line: 1,
+                        fragment: "123;",
+                        extra: (),
+                    },
+                    Nom(
+                        Alt,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 6,
+                        line: 1,
+                        fragment: "123;",
+                        extra: (),
+                    },
+                    Context(
+                        "Terminator",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "break 123;",
+                        extra: (),
+                    },
+                    Context(
+                        "Controlflow statement",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

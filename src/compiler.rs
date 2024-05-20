@@ -117,5 +117,7 @@ fn compile_node(mut block: &mut Vec<Op>, node: &Node) {
         }
         Node::FunctionCall { calling, arguments } => todo!(),
         Node::ClosureDeclaration { arguments, body } => todo!(),
+        Node::Break => todo!(),
+        Node::Continue => todo!(),
     }
 }

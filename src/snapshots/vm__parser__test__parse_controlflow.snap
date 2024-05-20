@@ -1,0 +1,23 @@
+---
+source: src/parser.rs
+expression: "controlflow_statement(\"continue;\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 9,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: Continue,
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "continue",
+                extra: (),
+            },
+        },
+    ),
+)
