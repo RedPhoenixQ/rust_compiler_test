@@ -43,7 +43,7 @@ impl VM {
     pub fn eval_ops(&mut self, ops: &[Op]) -> Result<()> {
         let mut program_counter = 0;
         while let Some(op) = ops.get(program_counter) {
-            dbg!(program_counter, op);
+            dbg!(program_counter, op, self.reg_accumulator);
             match op {
                 Op::StoreVariable(ident) => {
                     let Some(var) = self.global_scope.get(ident) else {
@@ -87,8 +87,8 @@ impl VM {
                 }
                 Op::BinaryOperation(operation) => {
                     self.reg_accumulator = self
-                        .reg_accumulator
-                        .eval_binary_op(self.reg_operand, operation)?;
+                        .reg_operand
+                        .eval_binary_op(self.reg_accumulator, operation)?;
                 }
             }
             program_counter += 1;
@@ -187,5 +187,25 @@ mod test {
             vm.get_accumulator(),
             "if_false_else"
         );
+    }
+
+    #[test]
+    fn basic_loops() {
+        let mut vm = VM::default();
+
+        let ops = VM::compile_str(
+            r#"
+            let b = 1;
+            let i = 0;
+            while (i < 3) {
+                i += 1;
+                b *= 2;
+            }
+            b;
+            "#,
+        )
+        .unwrap();
+        vm.eval_ops(&ops).unwrap();
+        assert_eq!(Value::Int(8), vm.get_accumulator(), "while 2^3 == 8");
     }
 }
