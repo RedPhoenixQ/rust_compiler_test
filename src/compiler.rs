@@ -92,7 +92,22 @@ fn compile_node(mut block: &mut Vec<Op>, node: &Node) {
                 }
             }
         }
-        Node::While { predicate, body } => todo!(),
+        Node::While { predicate, body } => {
+            let start_of_loop_index = block.len();
+            compile_node(&mut block, &predicate.node);
+
+            let predicate_jump_index = block.len();
+            block.push(Op::JumpIfFalse(0));
+
+            for ast in body.iter() {
+                compile_node(&mut block, &ast.node);
+            }
+
+            block.push(Op::Jump(start_of_loop_index));
+
+            // Set predicate jump to after the while loop
+            block[predicate_jump_index] = Op::JumpIfFalse(block.len());
+        }
         Node::VariableDeclaration { ident, value } => {
             if let Some(ast) = value {
                 compile_node(&mut block, &ast.node);
