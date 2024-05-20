@@ -6,6 +6,7 @@ mod compiler;
 mod parser;
 mod value;
 
+use compiler::{Block, Compiler};
 use ustr::{Ustr, UstrMap};
 use value::Value;
 
@@ -35,9 +36,9 @@ impl VM {
         self.global_scope.get(ident).map(|val| val.as_ref().get())
     }
 
-    pub fn compile_str(code: &str) -> Result<Box<[Op]>> {
+    pub fn compile_str(code: &str) -> Result<Block> {
         let (_, asts) = parser::parse_code(code).map_err(|err| anyhow::anyhow!(err.to_string()))?;
-        Ok(compiler::compile_program(&asts))
+        Compiler::compile_program(&asts)
     }
 
     pub fn eval_ops(&mut self, ops: &[Op]) -> Result<()> {
