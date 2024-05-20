@@ -123,6 +123,7 @@ fn statement(input: Span) -> SResult<Ast> {
             fn_statement,
             assignment_statement,
             return_statement,
+            controlflow_statement,
             terminated(expr, ws(terminator)),
             fail,
         ))),
@@ -229,11 +230,7 @@ fn while_statement(input: Span) -> SResult<Ast> {
                 ),
                 context(
                     "While body",
-                    delimited(
-                        ws(char('{')),
-                        many1(alt((statement, controlflow_statement))),
-                        ws(char('}')),
-                    ),
+                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
                 ),
             ),
         )),
@@ -679,6 +676,8 @@ mod test {
         assert_debug_snapshot!(while_statement("while (a < 10) { a += 1; }".into()));
         assert_debug_snapshot!(while_statement("while (a < 10) {}".into()));
         assert_debug_snapshot!(while_statement("while () { 123; }".into()));
+        assert_debug_snapshot!(while_statement("while (true) { break; }".into()));
+        assert_debug_snapshot!(while_statement("while (true) { continue; }".into()));
     }
 
     #[test]

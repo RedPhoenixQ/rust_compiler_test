@@ -14,18 +14,7 @@ Err(
                         extra: (),
                     },
                     Nom(
-                        Tag,
-                    ),
-                ),
-                (
-                    LocatedSpan {
-                        offset: 16,
-                        line: 1,
-                        fragment: "}",
-                        extra: (),
-                    },
-                    Context(
-                        "Keyword",
+                        Fail,
                     ),
                 ),
                 (
@@ -47,18 +36,7 @@ Err(
                         extra: (),
                     },
                     Context(
-                        "Controlflow statement",
-                    ),
-                ),
-                (
-                    LocatedSpan {
-                        offset: 16,
-                        line: 1,
-                        fragment: "}",
-                        extra: (),
-                    },
-                    Nom(
-                        Alt,
+                        "Statement",
                     ),
                 ),
                 (

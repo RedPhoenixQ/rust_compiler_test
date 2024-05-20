@@ -1,0 +1,48 @@
+---
+source: src/parser.rs
+expression: "while_statement(\"while (true) { break; }\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 23,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: While {
+                predicate: Ast {
+                    node: Literal(
+                        Boolean(
+                            true,
+                        ),
+                    ),
+                    span: LocatedSpan {
+                        offset: 7,
+                        line: 1,
+                        fragment: "true",
+                        extra: (),
+                    },
+                },
+                body: [
+                    Ast {
+                        node: Break,
+                        span: LocatedSpan {
+                            offset: 15,
+                            line: 1,
+                            fragment: "break",
+                            extra: (),
+                        },
+                    },
+                ],
+            },
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "while (true) { break; }",
+                extra: (),
+            },
+        },
+    ),
+)
