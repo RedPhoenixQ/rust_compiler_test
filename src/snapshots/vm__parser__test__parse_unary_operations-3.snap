@@ -1,0 +1,58 @@
+---
+source: src/parser.rs
+expression: "unary_operation_expr(\"!(a || b) + c\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 9,
+            line: 1,
+            fragment: " + c",
+            extra: (),
+        },
+        Ast {
+            node: UnaryOp(
+                LogicalNot,
+                Ast {
+                    node: BinaryOp(
+                        LogicalOr,
+                        Ast {
+                            node: Ident(
+                                u!("a"),
+                            ),
+                            span: LocatedSpan {
+                                offset: 2,
+                                line: 1,
+                                fragment: "a",
+                                extra: (),
+                            },
+                        },
+                        Ast {
+                            node: Ident(
+                                u!("b"),
+                            ),
+                            span: LocatedSpan {
+                                offset: 7,
+                                line: 1,
+                                fragment: "b",
+                                extra: (),
+                            },
+                        },
+                    ),
+                    span: LocatedSpan {
+                        offset: 2,
+                        line: 1,
+                        fragment: "a || b",
+                        extra: (),
+                    },
+                },
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "!(a || b)",
+                extra: (),
+            },
+        },
+    ),
+)

@@ -1,0 +1,44 @@
+---
+source: src/parser.rs
+expression: "fn_statement(\"fn test(a, b) { 123; }\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 22,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: FunctionDeclaration {
+                ident: u!("test"),
+                arguments: [
+                    u!("a"),
+                    u!("b"),
+                ],
+                body: [
+                    Ast {
+                        node: Literal(
+                            Int(
+                                123,
+                            ),
+                        ),
+                        span: LocatedSpan {
+                            offset: 16,
+                            line: 1,
+                            fragment: "123",
+                            extra: (),
+                        },
+                    },
+                ],
+            },
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "fn test(a, b) { 123; }",
+                extra: (),
+            },
+        },
+    ),
+)

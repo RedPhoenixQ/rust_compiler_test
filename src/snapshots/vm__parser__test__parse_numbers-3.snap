@@ -1,0 +1,17 @@
+---
+source: src/parser.rs
+expression: "number(\"12s3.123\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 2,
+            line: 1,
+            fragment: "s3.123",
+            extra: (),
+        },
+        Int(
+            12,
+        ),
+    ),
+)

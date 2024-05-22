@@ -1,0 +1,17 @@
+---
+source: src/parser.rs
+expression: "number(\"123.123\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 7,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Float(
+            123.123,
+        ),
+    ),
+)

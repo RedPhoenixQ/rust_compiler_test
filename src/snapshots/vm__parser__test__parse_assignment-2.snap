@@ -1,0 +1,60 @@
+---
+source: src/parser.rs
+expression: "assignment_statement(\"yeet += 123;\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 12,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: Assignment {
+                ident: u!("yeet"),
+                value: Ast {
+                    node: BinaryOp(
+                        Add,
+                        Ast {
+                            node: Ident(
+                                u!("yeet"),
+                            ),
+                            span: LocatedSpan {
+                                offset: 0,
+                                line: 1,
+                                fragment: "yeet",
+                                extra: (),
+                            },
+                        },
+                        Ast {
+                            node: Literal(
+                                Int(
+                                    123,
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 8,
+                                line: 1,
+                                fragment: "123",
+                                extra: (),
+                            },
+                        },
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "yeet += 123",
+                        extra: (),
+                    },
+                },
+            },
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "yeet += 123",
+                extra: (),
+            },
+        },
+    ),
+)

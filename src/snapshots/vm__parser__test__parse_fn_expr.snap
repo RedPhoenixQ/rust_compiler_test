@@ -1,0 +1,57 @@
+---
+source: src/parser.rs
+expression: "fn_statement(\"fn test(a, b) { let c = 123; }\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 30,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: FunctionDeclaration {
+                ident: u!("test"),
+                arguments: [
+                    u!("a"),
+                    u!("b"),
+                ],
+                body: [
+                    Ast {
+                        node: VariableDeclaration {
+                            ident: u!("c"),
+                            value: Some(
+                                Ast {
+                                    node: Literal(
+                                        Int(
+                                            123,
+                                        ),
+                                    ),
+                                    span: LocatedSpan {
+                                        offset: 24,
+                                        line: 1,
+                                        fragment: "123",
+                                        extra: (),
+                                    },
+                                },
+                            ),
+                        },
+                        span: LocatedSpan {
+                            offset: 16,
+                            line: 1,
+                            fragment: "let c = 123",
+                            extra: (),
+                        },
+                    },
+                ],
+            },
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "fn test(a, b) { let c = 123; }",
+                extra: (),
+            },
+        },
+    ),
+)

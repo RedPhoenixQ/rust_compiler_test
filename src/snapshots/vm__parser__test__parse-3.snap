@@ -1,0 +1,135 @@
+---
+source: src/parser.rs
+expression: "parse_code(r#\"\n            let a = 0;\n            while (a < 10) {\n                a += 1;\n            }\n            \"#)"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 103,
+            line: 6,
+            fragment: "",
+            extra: (),
+        },
+        [
+            Ast {
+                node: VariableDeclaration {
+                    ident: u!("a"),
+                    value: Some(
+                        Ast {
+                            node: Literal(
+                                Int(
+                                    0,
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 21,
+                                line: 2,
+                                fragment: "0",
+                                extra: (),
+                            },
+                        },
+                    ),
+                },
+                span: LocatedSpan {
+                    offset: 13,
+                    line: 2,
+                    fragment: "let a = 0",
+                    extra: (),
+                },
+            },
+            Ast {
+                node: While {
+                    predicate: Ast {
+                        node: BinaryOp(
+                            Lt,
+                            Ast {
+                                node: Ident(
+                                    u!("a"),
+                                ),
+                                span: LocatedSpan {
+                                    offset: 43,
+                                    line: 3,
+                                    fragment: "a",
+                                    extra: (),
+                                },
+                            },
+                            Ast {
+                                node: Literal(
+                                    Int(
+                                        10,
+                                    ),
+                                ),
+                                span: LocatedSpan {
+                                    offset: 47,
+                                    line: 3,
+                                    fragment: "10",
+                                    extra: (),
+                                },
+                            },
+                        ),
+                        span: LocatedSpan {
+                            offset: 43,
+                            line: 3,
+                            fragment: "a < 10",
+                            extra: (),
+                        },
+                    },
+                    body: [
+                        Ast {
+                            node: Assignment {
+                                ident: u!("a"),
+                                value: Ast {
+                                    node: BinaryOp(
+                                        Add,
+                                        Ast {
+                                            node: Ident(
+                                                u!("a"),
+                                            ),
+                                            span: LocatedSpan {
+                                                offset: 69,
+                                                line: 4,
+                                                fragment: "a",
+                                                extra: (),
+                                            },
+                                        },
+                                        Ast {
+                                            node: Literal(
+                                                Int(
+                                                    1,
+                                                ),
+                                            ),
+                                            span: LocatedSpan {
+                                                offset: 74,
+                                                line: 4,
+                                                fragment: "1",
+                                                extra: (),
+                                            },
+                                        },
+                                    ),
+                                    span: LocatedSpan {
+                                        offset: 69,
+                                        line: 4,
+                                        fragment: "a += 1",
+                                        extra: (),
+                                    },
+                                },
+                            },
+                            span: LocatedSpan {
+                                offset: 69,
+                                line: 4,
+                                fragment: "a += 1",
+                                extra: (),
+                            },
+                        },
+                    ],
+                },
+                span: LocatedSpan {
+                    offset: 36,
+                    line: 3,
+                    fragment: "while (a < 10) {\n                a += 1;\n            }",
+                    extra: (),
+                },
+            },
+        ],
+    ),
+)

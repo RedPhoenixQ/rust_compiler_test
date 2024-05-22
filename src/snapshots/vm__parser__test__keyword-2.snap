@@ -1,0 +1,45 @@
+---
+source: src/parser.rs
+expression: "keyword(\"let\").parse(\"leting test\".into())"
+---
+Err(
+    Error(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 3,
+                        line: 1,
+                        fragment: "ing test",
+                        extra: (),
+                    },
+                    Nom(
+                        Not,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 3,
+                        line: 1,
+                        fragment: "ing test",
+                        extra: (),
+                    },
+                    Context(
+                        "Is part of another word",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "leting test",
+                        extra: (),
+                    },
+                    Context(
+                        "Keyword",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

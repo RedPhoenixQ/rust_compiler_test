@@ -1,0 +1,47 @@
+---
+source: src/parser.rs
+expression: "binary_operation_expr(\"a + b;\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 5,
+            line: 1,
+            fragment: ";",
+            extra: (),
+        },
+        Ast {
+            node: BinaryOp(
+                Add,
+                Ast {
+                    node: Ident(
+                        u!("a"),
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "a",
+                        extra: (),
+                    },
+                },
+                Ast {
+                    node: Ident(
+                        u!("b"),
+                    ),
+                    span: LocatedSpan {
+                        offset: 4,
+                        line: 1,
+                        fragment: "b",
+                        extra: (),
+                    },
+                },
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "a + b",
+                extra: (),
+            },
+        },
+    ),
+)

@@ -1,0 +1,17 @@
+---
+source: src/parser.rs
+expression: "string(r#\"\"123\"\"#.into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 5,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        String(
+            u!("123"),
+        ),
+    ),
+)

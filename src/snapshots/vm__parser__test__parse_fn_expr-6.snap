@@ -1,0 +1,45 @@
+---
+source: src/parser.rs
+expression: "fn_statement(\"fn missing_block_start()  123; }\".into())"
+---
+Err(
+    Error(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 26,
+                        line: 1,
+                        fragment: "123; }",
+                        extra: (),
+                    },
+                    Char(
+                        '{',
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 26,
+                        line: 1,
+                        fragment: "123; }",
+                        extra: (),
+                    },
+                    Context(
+                        "Start of function block",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "fn missing_block_start()  123; }",
+                        extra: (),
+                    },
+                    Context(
+                        "Function declaration",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

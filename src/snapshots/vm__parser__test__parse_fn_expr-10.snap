@@ -1,0 +1,45 @@
+---
+source: src/parser.rs
+expression: "fn_statement(\"fn \".into())"
+---
+Err(
+    Error(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 3,
+                        line: 1,
+                        fragment: "",
+                        extra: (),
+                    },
+                    Nom(
+                        Alpha,
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 3,
+                        line: 1,
+                        fragment: "",
+                        extra: (),
+                    },
+                    Context(
+                        "Identifier",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "fn ",
+                        extra: (),
+                    },
+                    Context(
+                        "Function declaration",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

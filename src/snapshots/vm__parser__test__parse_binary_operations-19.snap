@@ -1,0 +1,71 @@
+---
+source: src/parser.rs
+expression: "binary_operation_expr(\"b && a > 0\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 10,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: BinaryOp(
+                LogicalAnd,
+                Ast {
+                    node: Ident(
+                        u!("b"),
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "b",
+                        extra: (),
+                    },
+                },
+                Ast {
+                    node: BinaryOp(
+                        Gt,
+                        Ast {
+                            node: Ident(
+                                u!("a"),
+                            ),
+                            span: LocatedSpan {
+                                offset: 5,
+                                line: 1,
+                                fragment: "a",
+                                extra: (),
+                            },
+                        },
+                        Ast {
+                            node: Literal(
+                                Int(
+                                    0,
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 9,
+                                line: 1,
+                                fragment: "0",
+                                extra: (),
+                            },
+                        },
+                    ),
+                    span: LocatedSpan {
+                        offset: 5,
+                        line: 1,
+                        fragment: "a > 0",
+                        extra: (),
+                    },
+                },
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "b && a > 0",
+                extra: (),
+            },
+        },
+    ),
+)

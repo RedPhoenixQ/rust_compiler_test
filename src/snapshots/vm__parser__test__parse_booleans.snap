@@ -1,0 +1,17 @@
+---
+source: src/parser.rs
+expression: "boolean(r#\"true\"#.into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 4,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Boolean(
+            true,
+        ),
+    ),
+)

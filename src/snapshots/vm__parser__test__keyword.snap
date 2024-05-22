@@ -1,0 +1,20 @@
+---
+source: src/parser.rs
+expression: "keyword::<VerboseError<Span>>(\"let\").parse(\"let test\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 3,
+            line: 1,
+            fragment: " test",
+            extra: (),
+        },
+        LocatedSpan {
+            offset: 0,
+            line: 1,
+            fragment: "let",
+            extra: (),
+        },
+    ),
+)

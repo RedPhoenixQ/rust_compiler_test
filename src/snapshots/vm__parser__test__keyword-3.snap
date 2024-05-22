@@ -1,0 +1,20 @@
+---
+source: src/parser.rs
+expression: "keyword(\"true\").parse(\"true)\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 4,
+            line: 1,
+            fragment: ")",
+            extra: (),
+        },
+        LocatedSpan {
+            offset: 0,
+            line: 1,
+            fragment: "true",
+            extra: (),
+        },
+    ),
+)

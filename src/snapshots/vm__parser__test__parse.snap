@@ -1,0 +1,239 @@
+---
+source: src/parser.rs
+expression: "parse_code(r#\"\n            let a = 123;\n            let b = 321;\n            if (b < a) {\n                \"b SHOULD NOT be less than a\";\n            } else {\n                \"b (\" + b + \") is greater than a (\" + a + \")\";\n            }\n            \"#)"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 233,
+            line: 9,
+            fragment: "",
+            extra: (),
+        },
+        [
+            Ast {
+                node: VariableDeclaration {
+                    ident: u!("a"),
+                    value: Some(
+                        Ast {
+                            node: Literal(
+                                Int(
+                                    123,
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 21,
+                                line: 2,
+                                fragment: "123",
+                                extra: (),
+                            },
+                        },
+                    ),
+                },
+                span: LocatedSpan {
+                    offset: 13,
+                    line: 2,
+                    fragment: "let a = 123",
+                    extra: (),
+                },
+            },
+            Ast {
+                node: VariableDeclaration {
+                    ident: u!("b"),
+                    value: Some(
+                        Ast {
+                            node: Literal(
+                                Int(
+                                    321,
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 46,
+                                line: 3,
+                                fragment: "321",
+                                extra: (),
+                            },
+                        },
+                    ),
+                },
+                span: LocatedSpan {
+                    offset: 38,
+                    line: 3,
+                    fragment: "let b = 321",
+                    extra: (),
+                },
+            },
+            Ast {
+                node: If {
+                    branches: [
+                        (
+                            Ast {
+                                node: BinaryOp(
+                                    Lt,
+                                    Ast {
+                                        node: Ident(
+                                            u!("b"),
+                                        ),
+                                        span: LocatedSpan {
+                                            offset: 67,
+                                            line: 4,
+                                            fragment: "b",
+                                            extra: (),
+                                        },
+                                    },
+                                    Ast {
+                                        node: Ident(
+                                            u!("a"),
+                                        ),
+                                        span: LocatedSpan {
+                                            offset: 71,
+                                            line: 4,
+                                            fragment: "a",
+                                            extra: (),
+                                        },
+                                    },
+                                ),
+                                span: LocatedSpan {
+                                    offset: 67,
+                                    line: 4,
+                                    fragment: "b < a",
+                                    extra: (),
+                                },
+                            },
+                            [
+                                Ast {
+                                    node: Literal(
+                                        String(
+                                            u!("b SHOULD NOT be less than a"),
+                                        ),
+                                    ),
+                                    span: LocatedSpan {
+                                        offset: 92,
+                                        line: 5,
+                                        fragment: "\"b SHOULD NOT be less than a\"",
+                                        extra: (),
+                                    },
+                                },
+                            ],
+                        ),
+                    ],
+                    else_block: Some(
+                        [
+                            Ast {
+                                node: BinaryOp(
+                                    Add,
+                                    Ast {
+                                        node: Literal(
+                                            String(
+                                                u!("b ("),
+                                            ),
+                                        ),
+                                        span: LocatedSpan {
+                                            offset: 160,
+                                            line: 7,
+                                            fragment: "\"b (\"",
+                                            extra: (),
+                                        },
+                                    },
+                                    Ast {
+                                        node: BinaryOp(
+                                            Add,
+                                            Ast {
+                                                node: Ident(
+                                                    u!("b"),
+                                                ),
+                                                span: LocatedSpan {
+                                                    offset: 168,
+                                                    line: 7,
+                                                    fragment: "b",
+                                                    extra: (),
+                                                },
+                                            },
+                                            Ast {
+                                                node: BinaryOp(
+                                                    Add,
+                                                    Ast {
+                                                        node: Literal(
+                                                            String(
+                                                                u!(") is greater than a ("),
+                                                            ),
+                                                        ),
+                                                        span: LocatedSpan {
+                                                            offset: 172,
+                                                            line: 7,
+                                                            fragment: "\") is greater than a (\"",
+                                                            extra: (),
+                                                        },
+                                                    },
+                                                    Ast {
+                                                        node: BinaryOp(
+                                                            Add,
+                                                            Ast {
+                                                                node: Ident(
+                                                                    u!("a"),
+                                                                ),
+                                                                span: LocatedSpan {
+                                                                    offset: 198,
+                                                                    line: 7,
+                                                                    fragment: "a",
+                                                                    extra: (),
+                                                                },
+                                                            },
+                                                            Ast {
+                                                                node: Literal(
+                                                                    String(
+                                                                        u!(")"),
+                                                                    ),
+                                                                ),
+                                                                span: LocatedSpan {
+                                                                    offset: 202,
+                                                                    line: 7,
+                                                                    fragment: "\")\"",
+                                                                    extra: (),
+                                                                },
+                                                            },
+                                                        ),
+                                                        span: LocatedSpan {
+                                                            offset: 198,
+                                                            line: 7,
+                                                            fragment: "a + \")\"",
+                                                            extra: (),
+                                                        },
+                                                    },
+                                                ),
+                                                span: LocatedSpan {
+                                                    offset: 172,
+                                                    line: 7,
+                                                    fragment: "\") is greater than a (\" + a + \")\"",
+                                                    extra: (),
+                                                },
+                                            },
+                                        ),
+                                        span: LocatedSpan {
+                                            offset: 168,
+                                            line: 7,
+                                            fragment: "b + \") is greater than a (\" + a + \")\"",
+                                            extra: (),
+                                        },
+                                    },
+                                ),
+                                span: LocatedSpan {
+                                    offset: 160,
+                                    line: 7,
+                                    fragment: "\"b (\" + b + \") is greater than a (\" + a + \")\"",
+                                    extra: (),
+                                },
+                            },
+                        ],
+                    ),
+                },
+                span: LocatedSpan {
+                    offset: 63,
+                    line: 4,
+                    fragment: "if (b < a) {\n                \"b SHOULD NOT be less than a\";\n            } else {\n                \"b (\" + b + \") is greater than a (\" + a + \")\";\n            }",
+                    extra: (),
+                },
+            },
+        ],
+    ),
+)
