@@ -30,12 +30,12 @@ pub enum Node<'a> {
         /// There should always be a root branch in this Vec
         ///
         /// branches.len() >= 1
-        branches: Box<[(Ast<'a>, Box<[Ast<'a>]>)]>,
-        else_block: Option<Box<[Ast<'a>]>>,
+        branches: Vec<(Ast<'a>, Vec<Ast<'a>>)>,
+        else_block: Option<Vec<Ast<'a>>>,
     },
     While {
         predicate: Box<Ast<'a>>,
-        body: Box<[Ast<'a>]>,
+        body: Vec<Ast<'a>>,
     },
     VariableDeclaration {
         ident: Ustr,
@@ -43,16 +43,16 @@ pub enum Node<'a> {
     },
     FunctionDeclaration {
         ident: Ustr,
-        arguments: Box<[Ustr]>,
-        body: Box<[Ast<'a>]>,
+        arguments: Vec<Ustr>,
+        body: Vec<Ast<'a>>,
     },
     ClosureDeclaration {
-        arguments: Box<[Ustr]>,
-        body: Box<[Ast<'a>]>,
+        arguments: Vec<Ustr>,
+        body: Vec<Ast<'a>>,
     },
     FunctionCall {
         calling: Box<Ast<'a>>,
-        arguments: Box<[Ast<'a>]>,
+        arguments: Vec<Ast<'a>>,
     },
     Assignment {
         ident: Ustr,
@@ -176,31 +176,19 @@ fn if_statement(input: Span) -> SResult<Ast> {
                 keyword("if"),
                 pair(
                     delimited(ws(char('(')), expr, ws(char(')'))),
-                    delimited(
-                        ws(char('{')),
-                        many1(statement).map(|body| body.into_boxed_slice()),
-                        ws(char('}')),
-                    ),
+                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
                 ),
             ),
             many0(preceded(
                 pair(ws(keyword("else")), ws(keyword("if"))),
                 pair(
                     delimited(ws(char('(')), expr, ws(char(')'))),
-                    delimited(
-                        ws(char('{')),
-                        many1(statement).map(|body| body.into_boxed_slice()),
-                        ws(char('}')),
-                    ),
+                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
                 ),
             )),
             opt(preceded(
                 ws(keyword("else")),
-                delimited(
-                    ws(char('{')),
-                    many1(statement).map(|body| body.into_boxed_slice()),
-                    ws(char('}')),
-                ),
+                delimited(ws(char('{')), many1(statement), ws(char('}'))),
             )),
         ))),
     )
@@ -209,7 +197,7 @@ fn if_statement(input: Span) -> SResult<Ast> {
         branches.insert(0, root_if);
         Ast {
             node: Node::If {
-                branches: branches.into_boxed_slice(),
+                branches,
                 else_block,
             },
             span,
@@ -238,7 +226,7 @@ fn while_statement(input: Span) -> SResult<Ast> {
     .map(|(span, (predicate, body))| Ast {
         node: Node::While {
             predicate: predicate.into(),
-            body: body.into_boxed_slice(),
+            body,
         },
         span,
     })
@@ -256,17 +244,13 @@ fn fn_statement(input: Span) -> SResult<Ast> {
                     "Function arguments",
                     ws(delimited(
                         char('('),
-                        separated_list0(ws(char(',')), ws(ident))
-                            .map(|args| args.into_boxed_slice()),
+                        separated_list0(ws(char(',')), ws(ident)),
                         char(')'),
                     )),
                 ),
                 delimited(
                     ws(context("Start of function block", char('{'))),
-                    context(
-                        "Function body",
-                        many1(statement).map(|body| body.into_boxed_slice()),
-                    ),
+                    context("Function body", many1(statement)),
                     ws(context("End of function block", char('}'))),
                 ),
             )),
