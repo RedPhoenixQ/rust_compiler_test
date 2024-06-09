@@ -113,6 +113,36 @@ impl VM {
                         }
                     };
                 }
+                Op::Jump(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    if jump.is_positive() {
+                        pc += *jump as usize
+                    } else {
+                        pc -= jump.abs() as usize
+                    }
+                }
+                Op::JumpIfTrue(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    let value = self.pop_eval_stack()?;
+                    if value.is_truthy() {
+                        if jump.is_positive() {
+                            pc += *jump as usize
+                        } else {
+                            pc -= jump.abs() as usize
+                        }
+                    }
+                }
+                Op::JumpIfFalse(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    let value = self.pop_eval_stack()?;
+                    if !value.is_truthy() {
+                        if jump.is_positive() {
+                            pc += *jump as usize
+                        } else {
+                            pc -= jump.abs() as usize
+                        }
+                    }
+                }
                 Op::BinaryOp(op) => {
                     let rhs = self.pop_eval_stack()?;
                     let lhs = self.pop_eval_stack()?;

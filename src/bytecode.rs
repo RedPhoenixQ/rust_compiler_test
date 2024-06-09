@@ -21,6 +21,13 @@ pub enum Op {
     /// Store variable to first scope that contains the name
     Store(Ustr),
 
+    /// Move the program counter relative to the current intruction
+    Jump(isize),
+    /// Move the program counter relative to the current intruction, but only if the topmost value in the stack is "truthy"
+    JumpIfTrue(isize),
+    /// Move the program counter relative to the current intruction, but only if the topmost value in the stack is "falsy"
+    JumpIfFalse(isize),
+
     /// Pops the first two items from the stack and performs the operation.
     /// lhs should be bellow rhs in the stack
     BinaryOp(BinaryOp),

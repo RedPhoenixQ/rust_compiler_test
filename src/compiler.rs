@@ -55,7 +55,40 @@ impl Compiler {
             Node::If {
                 branches,
                 else_block,
-            } => todo!(),
+            } => {
+                for (predicate, body) in branches {
+                    self.compile_node(&predicate.node);
+                    let start_of_body_index = self.code.len();
+                    self.code.push(Op::JumpIfFalse(0));
+
+                    for ast in body {
+                        self.compile_node(&ast.node);
+                    }
+                    let end_of_body_index = self.code.len();
+
+                    if let Some(Op::JumpIfFalse(ref mut jump)) =
+                        self.code.get_mut(start_of_body_index)
+                    {
+                        *jump = end_of_body_index as isize - start_of_body_index as isize;
+                    }
+                }
+
+                if let Some(else_block) = else_block {
+                    let start_of_else_block = self.code.len();
+                    self.code.push(Op::JumpIfTrue(0));
+
+                    for ast in else_block {
+                        self.compile_node(&ast.node);
+                    }
+                    let end_of_else_block = self.code.len();
+
+                    if let Some(Op::JumpIfTrue(ref mut jump)) =
+                        self.code.get_mut(start_of_else_block)
+                    {
+                        *jump = end_of_else_block as isize - start_of_else_block as isize;
+                    }
+                }
+            }
             Node::While { predicate, body } => todo!(),
             Node::FunctionDeclaration {
                 ident,
