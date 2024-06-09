@@ -287,7 +287,7 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
                 )),
                 expr,
             ))),
-            terminator,
+            ws(terminator),
         ),
     )
     .map(|(span, ((ident_span, ident), operation, value))| Ast {
