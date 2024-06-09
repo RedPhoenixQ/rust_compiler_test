@@ -1,9 +1,8 @@
-use anyhow::{Context, Result};
-use ustr::Ustr;
+use anyhow::Result;
 
 use crate::{
     bytecode::Op,
-    parser::{Ast, BinaryOp, Node, UnaryOp},
+    parser::{Ast, Node},
     value::Value,
 };
 

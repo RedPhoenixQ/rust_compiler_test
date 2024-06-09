@@ -1,6 +1,6 @@
-use std::{borrow::Borrow, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 mod bytecode;
 mod compiler;
@@ -10,7 +10,7 @@ mod value;
 use bytecode::Op;
 use compiler::Bundle;
 // use compiler::{Bundle, Compiler};
-use ustr::{Ustr, UstrMap};
+use ustr::UstrMap;
 use value::Value;
 
 type Scope = UstrMap<Rc<RefCell<Value>>>;
