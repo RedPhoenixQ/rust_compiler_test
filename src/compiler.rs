@@ -100,7 +100,30 @@ impl Compiler {
                     }
                 }
             }
-            Node::While { predicate, body } => todo!(),
+            Node::While { predicate, body } => {
+                let start_of_loop_index = self.code.len();
+                self.compile_node(&predicate.node)?;
+                let predicate_jump_index = self.code.len();
+                self.code.push(Op::JumpIfFalse(0));
+
+                for ast in body {
+                    self.compile_node(&ast.node)?;
+                }
+                let end_jump_index = self.code.len();
+                self.code.push(Op::Jump(0));
+                let end_of_loop_index = self.code.len();
+
+                let Some(Op::JumpIfFalse(ref mut jump)) = self.code.get_mut(predicate_jump_index)
+                else {
+                    bail!("Jump operation was not at the expected index")
+                };
+                *jump = end_of_loop_index as isize - predicate_jump_index as isize;
+
+                let Some(Op::Jump(ref mut jump)) = self.code.get_mut(end_jump_index) else {
+                    bail!("Jump operation was not at the expected index")
+                };
+                *jump = start_of_loop_index as isize - end_jump_index as isize;
+            }
             Node::FunctionDeclaration {
                 ident,
                 arguments,
