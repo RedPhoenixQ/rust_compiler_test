@@ -65,7 +65,10 @@ impl Compiler {
             } => todo!(),
             Node::ClosureDeclaration { arguments, body } => todo!(),
             Node::FunctionCall { calling, arguments } => todo!(),
-            Node::Assignment { ident, value } => todo!(),
+            Node::Assignment { ident, value } => {
+                self.compile_node(&value.node)?;
+                self.code.push(Op::Store(*ident))
+            }
             Node::Return(_) => todo!(),
             Node::Break => todo!(),
             Node::Continue => todo!(),
