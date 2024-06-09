@@ -123,7 +123,9 @@ impl VM {
                 }
                 Op::JumpIfTrue(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
-                    let value = self.pop_eval_stack()?;
+                    let value = self
+                        .peek_eval_stack()
+                        .ok_or(anyhow::anyhow!("Eval stack to have a predicate value"))?;
                     if value.is_truthy() {
                         if jump.is_positive() {
                             pc += *jump as usize
@@ -134,7 +136,9 @@ impl VM {
                 }
                 Op::JumpIfFalse(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
-                    let value = self.pop_eval_stack()?;
+                    let value = self
+                        .peek_eval_stack()
+                        .ok_or(anyhow::anyhow!("Eval stack to have a predicate value"))?;
                     if !value.is_truthy() {
                         if jump.is_positive() {
                             pc += *jump as usize
@@ -164,6 +168,14 @@ impl VM {
         Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
     }
 
+    fn peek_eval_stack(&mut self) -> Option<&Value> {
+        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
+            &mut frame.eval_stack
+        } else {
+            &mut self.global_eval
+        };
+        eval_stack.last()
+    }
     fn pop_eval_stack(&mut self) -> Result<Value> {
         let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
             &mut frame.eval_stack
