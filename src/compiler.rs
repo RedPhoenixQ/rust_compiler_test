@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use crate::{
     bytecode::Op,
@@ -6,6 +6,7 @@ use crate::{
     value::Value,
 };
 
+#[derive(Debug)]
 pub struct Bundle {
     pub consts: Vec<Value>,
     pub code: Vec<Op>,
@@ -56,36 +57,45 @@ impl Compiler {
                 branches,
                 else_block,
             } => {
-                for (predicate, body) in branches {
-                    self.compile_node(&predicate.node);
-                    let start_of_body_index = self.code.len();
+                for (i, (predicate, body)) in branches.iter().enumerate() {
+                    let is_final_predicate = i == branches.len() - 1;
+
+                    self.compile_node(&predicate.node)?;
                     self.code.push(Op::JumpIfFalse(0));
+                    let start_of_body_index = self.code.len();
 
                     for ast in body {
-                        self.compile_node(&ast.node);
+                        self.compile_node(&ast.node)?;
                     }
+
+                    if is_final_predicate {
+                        // Jump to skip final else block
+                        self.code.push(Op::Jump(0))
+                    }
+
                     let end_of_body_index = self.code.len();
 
-                    if let Some(Op::JumpIfFalse(ref mut jump)) =
-                        self.code.get_mut(start_of_body_index)
-                    {
-                        *jump = end_of_body_index as isize - start_of_body_index as isize;
-                    }
-                }
+                    let Some(Op::JumpIfFalse(ref mut jump)) =
+                        self.code.get_mut(start_of_body_index - 1)
+                    else {
+                        bail!("Jump operation was not at the expected index")
+                    };
+                    *jump = end_of_body_index as isize - start_of_body_index as isize;
 
-                if let Some(else_block) = else_block {
-                    let start_of_else_block = self.code.len();
-                    self.code.push(Op::JumpIfTrue(0));
+                    if is_final_predicate {
+                        if let Some(else_block) = else_block {
+                            for ast in else_block {
+                                self.compile_node(&ast.node)?;
+                            }
+                            let end_of_else_block = self.code.len();
 
-                    for ast in else_block {
-                        self.compile_node(&ast.node);
-                    }
-                    let end_of_else_block = self.code.len();
-
-                    if let Some(Op::JumpIfTrue(ref mut jump)) =
-                        self.code.get_mut(start_of_else_block)
-                    {
-                        *jump = end_of_else_block as isize - start_of_else_block as isize;
+                            let Some(Op::Jump(ref mut jump)) =
+                                self.code.get_mut(end_of_body_index - 1)
+                            else {
+                                bail!("Jump operation was not at the expected index")
+                            };
+                            *jump = end_of_else_block as isize - (end_of_body_index as isize);
+                        }
                     }
                 }
             }
