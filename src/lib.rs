@@ -120,31 +120,30 @@ impl VM {
                     } else {
                         pc -= jump.abs() as usize
                     }
+                    continue;
                 }
                 Op::JumpIfTrue(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
-                    let value = self
-                        .peek_eval_stack()
-                        .ok_or(anyhow::anyhow!("Eval stack to have a predicate value"))?;
+                    let value = self.pop_eval_stack()?;
                     if value.is_truthy() {
                         if jump.is_positive() {
                             pc += *jump as usize
                         } else {
                             pc -= jump.abs() as usize
                         }
+                        continue;
                     }
                 }
                 Op::JumpIfFalse(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
-                    let value = self
-                        .peek_eval_stack()
-                        .ok_or(anyhow::anyhow!("Eval stack to have a predicate value"))?;
+                    let value = self.pop_eval_stack()?;
                     if !value.is_truthy() {
                         if jump.is_positive() {
                             pc += *jump as usize
                         } else {
                             pc -= jump.abs() as usize
                         }
+                        continue;
                     }
                 }
                 Op::BinaryOp(op) => {

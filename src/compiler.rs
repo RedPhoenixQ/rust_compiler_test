@@ -61,8 +61,8 @@ impl Compiler {
                     let is_final_predicate = i == branches.len() - 1;
 
                     self.compile_node(&predicate.node)?;
-                    self.code.push(Op::JumpIfFalse(0));
                     let start_of_body_index = self.code.len();
+                    self.code.push(Op::JumpIfFalse(0));
 
                     for ast in body {
                         self.compile_node(&ast.node)?;
@@ -76,7 +76,7 @@ impl Compiler {
                     let end_of_body_index = self.code.len();
 
                     let Some(Op::JumpIfFalse(ref mut jump)) =
-                        self.code.get_mut(start_of_body_index - 1)
+                        self.code.get_mut(start_of_body_index)
                     else {
                         bail!("Jump operation was not at the expected index")
                     };
@@ -84,17 +84,18 @@ impl Compiler {
 
                     if is_final_predicate {
                         if let Some(else_block) = else_block {
+                            let start_of_else_index = end_of_body_index - 1;
                             for ast in else_block {
                                 self.compile_node(&ast.node)?;
                             }
                             let end_of_else_block = self.code.len();
 
                             let Some(Op::Jump(ref mut jump)) =
-                                self.code.get_mut(end_of_body_index - 1)
+                                self.code.get_mut(start_of_else_index)
                             else {
                                 bail!("Jump operation was not at the expected index")
                             };
-                            *jump = end_of_else_block as isize - (end_of_body_index as isize);
+                            *jump = end_of_else_block as isize - start_of_else_index as isize;
                         }
                     }
                 }
