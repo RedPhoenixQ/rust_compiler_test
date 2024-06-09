@@ -16,9 +16,9 @@ fn main() -> Result<()> {
 
     if let Some(file) = args.file {
         let code = read_to_string(file)?;
-        let ops = VM::compile_str(&code)?;
+        let bundle = VM::compile_str(&code)?;
         let mut vm = VM::default();
-        vm.eval_ops(&ops)?;
+        vm.eval(&bundle.code)?;
         stdin_eval(vm)?;
     } else {
         let vm = VM::default();
@@ -30,16 +30,17 @@ fn main() -> Result<()> {
 fn stdin_eval(mut vm: VM) -> Result<()> {
     let mut buf = String::new();
     while let Ok(_result) = stdin().read_line(&mut buf) {
-        let ops = match VM::compile_str(&buf) {
+        let bundle = match VM::compile_str(&buf) {
             Err(err) => {
                 eprintln!("{:?}", err);
+                buf.clear();
                 continue;
             }
-            Ok(ops) => ops,
+            Ok(bundle) => bundle,
         };
-        match vm.eval_ops(&ops) {
+        match vm.eval(&bundle.code) {
             Err(err) => eprintln!("{:?}", err),
-            Ok(_) => println!("> {:#?}", vm.get_accumulator()),
+            Ok(value) => println!("> {:#?}", value),
         };
         buf.clear();
     }

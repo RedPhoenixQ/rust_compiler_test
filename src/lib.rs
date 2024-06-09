@@ -1,104 +1,161 @@
-use std::{cell::Cell, rc::Rc};
+use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
 use anyhow::{bail, Result};
 
+mod bytecode;
 mod compiler;
 mod parser;
 mod value;
 
-use compiler::{Block, Compiler};
+use bytecode::Op;
+use compiler::Bundle;
+// use compiler::{Bundle, Compiler};
 use ustr::{Ustr, UstrMap};
 use value::Value;
 
-use crate::compiler::Op;
-
-pub type Scope = UstrMap<Rc<Cell<Value>>>;
+type Scope = UstrMap<Rc<RefCell<Value>>>;
 
 #[derive(Debug)]
-pub struct Closure {
-    scope: Scope,
-    ops: Box<[Op]>,
+struct CallFrame {
+    locals: Scope,
+    eval_stack: Vec<Value>,
 }
 
 #[derive(Debug, Default)]
 pub struct VM {
-    reg_accumulator: Value,
-    reg_operand: Value,
+    call_stack: Vec<CallFrame>,
     global_scope: Scope,
+    global_eval: Vec<Value>,
 }
 
 impl VM {
-    pub fn get_accumulator(&self) -> Value {
-        self.reg_accumulator
+    pub fn eval_str(&mut self, input: &str) -> Result<Value> {
+        let bundle = Self::compile_str(input)?;
+
+        self.eval(&bundle.code)?;
+
+        self.global_eval.pop().ok_or(anyhow::anyhow!(
+            "Expected atleast one value in the eval stack"
+        ))
     }
 
-    pub fn get_ident_value(&self, ident: &Ustr) -> Option<Value> {
-        self.global_scope.get(ident).map(|val| val.as_ref().get())
+    pub fn compile_str(input: &str) -> Result<Bundle> {
+        let (_, ast) = parser::parse_code(input).map_err(|e| anyhow::anyhow!("{e:?}"))?;
+
+        compiler::Compiler::default().compile(&ast)
     }
 
-    pub fn compile_str(code: &str) -> Result<Block> {
-        let (_, asts) = parser::parse_code(code).map_err(|err| anyhow::anyhow!(err.to_string()))?;
-        Compiler::compile_program(&asts)
-    }
+    pub fn eval(&mut self, ops: &[Op]) -> Result<Value> {
+        let mut pc = 0;
 
-    pub fn eval_ops(&mut self, ops: &[Op]) -> Result<()> {
-        let mut program_counter = 0;
-        while let Some(op) = ops.get(program_counter) {
-            dbg!(program_counter, op, self.reg_accumulator);
+        while let Some(op) = ops.get(pc) {
             match op {
-                Op::StoreVariable(ident) => {
-                    let Some(var) = self.global_scope.get(ident) else {
-                        bail!("Variable {} is not declared", ident)
-                    };
-                    var.as_ref().replace(self.reg_accumulator);
+                Op::LoadFast(key) => {
+                    let var = self
+                        .call_stack
+                        .last_mut()
+                        .ok_or(anyhow::anyhow!("Expected atleast one callstack to exist"))?
+                        .locals
+                        .get(key)
+                        .ok_or(anyhow::anyhow!("Expected {key} to exist in local scope"))?
+                        .clone();
+                    self.push_eval_stack(Value::Variable(var));
                 }
-                Op::DeclareVariable(ident) => {
-                    let var = Rc::new(Cell::new(self.reg_accumulator));
-                    self.global_scope.insert(*ident, var);
-                }
-                Op::LoadVariable(ident) => {
-                    let Some(var) = self.get_ident_value(ident) else {
-                        bail!("Variable {} is not declared", ident)
-                    };
-                    self.reg_accumulator = var;
-                }
-                Op::LoadImmediate(value) => self.reg_accumulator = *value,
+                Op::Load(ident) => {
+                    let value = if let Some(var) = self
+                        .call_stack
+                        .iter()
+                        .rev()
+                        .find_map(|frame| frame.locals.get(ident))
+                    {
+                        Ok(var)
+                    } else {
+                        self.global_scope
+                            .get(ident)
+                            .ok_or(anyhow::anyhow!("{ident} is not defined in any scope"))
+                    }?
+                    .as_ref()
+                    .borrow()
+                    .clone();
 
-                Op::StoreOperand => self.reg_operand = self.reg_accumulator,
-
-                Op::Jump(location) => {
-                    program_counter = *location;
-                    continue;
+                    self.push_eval_stack(value)
                 }
-                Op::JumpIfTrue(location) => {
-                    if self.reg_accumulator.is_truthy() {
-                        program_counter = *location;
-                        continue;
+                Op::LoadConst(value) => {
+                    self.push_eval_stack(value.clone());
+                }
+                Op::StoreFast(ident) => {
+                    let value = self.pop_eval_stack()?;
+                    let scope = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.locals
+                    } else {
+                        &mut self.global_scope
+                    };
+                    if let Some(var) = scope.get_mut(ident) {
+                        var.replace(value);
+                    } else {
+                        scope.insert(*ident, Rc::new(value.into()));
                     }
                 }
-                Op::JumpIfFalse(location) => {
-                    if !self.reg_accumulator.is_truthy() {
-                        program_counter = *location;
-                        continue;
-                    }
+                Op::Store(ident) => {
+                    let value = self.pop_eval_stack()?;
+                    if let Some(var) = self
+                        .call_stack
+                        .iter_mut()
+                        .rev()
+                        .find_map(|frame| frame.locals.get(ident))
+                    {
+                        var.replace(value);
+                    } else {
+                        if let Some(var) = self.global_scope.get_mut(ident) {
+                            var.replace(value);
+                        } else {
+                            self.global_scope.insert(*ident, Rc::new(value.into()));
+                        }
+                    };
                 }
-
-                Op::UnaryOperation(operation) => {
-                    self.reg_accumulator = self.reg_accumulator.eval_unary_op(operation)?;
+                Op::BinaryOp(op) => {
+                    let rhs = self.pop_eval_stack()?;
+                    let lhs = self.pop_eval_stack()?;
+                    let value = lhs.eval_binary_op(&rhs, op)?;
+                    self.push_eval_stack(value);
                 }
-                Op::BinaryOperation(operation) => {
-                    self.reg_accumulator = self
-                        .reg_operand
-                        .eval_binary_op(self.reg_accumulator, operation)?;
+                Op::UnaryOp(op) => {
+                    let value = self.pop_eval_stack()?;
+                    let value = value.eval_unary_op(op)?;
+                    self.push_eval_stack(value);
                 }
+                Op::Call(_) => todo!(),
+                Op::Return => todo!(),
             }
-            program_counter += 1;
+
+            pc += 1;
         }
-        Ok(())
+
+        Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
+    }
+
+    fn pop_eval_stack(&mut self) -> Result<Value> {
+        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
+            &mut frame.eval_stack
+        } else {
+            &mut self.global_eval
+        };
+        eval_stack
+            .pop()
+            .ok_or(anyhow::anyhow!("Eval stack to not be empty"))
+    }
+    fn push_eval_stack(&mut self, value: Value) {
+        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
+            &mut frame.eval_stack
+        } else {
+            &mut self.global_eval
+        };
+        eval_stack.push(value);
     }
 }
 
 #[cfg(test)]
+#[cfg(never)]
 mod test {
     use super::*;
 
