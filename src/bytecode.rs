@@ -6,6 +6,11 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub enum BlockType {
+    Loop { loop_length: usize },
+}
+
+#[derive(Debug)]
 pub enum Op {
     /// Load local variable from current call stack
     LoadFast(Ustr),
@@ -37,10 +42,18 @@ pub enum Op {
     /// Pops the first item from the stack, performas the operation and pushes the result back
     UnaryOp(UnaryOp),
 
+    PushBlock(BlockType),
+    PopBlock,
+
     /// Calls the function at the top of the stack with the specified number of arguments
     ///
     /// The first argument should be at the bottom of the stack (stack[-number_of_arguments])
     Call(usize),
     /// Pop the first item from the stack and return it
     Return,
+
+    /// Pop the first item from the stack and return it
+    Break,
+    /// Pop the first item from the stack and return it
+    Continue,
 }

@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 
 use crate::{
-    bytecode::Op,
+    bytecode::{BlockType, Op},
     parser::{Ast, Node},
     value::{Function, Value},
 };
@@ -103,6 +103,10 @@ impl Compiler {
                 }
             }
             Node::While { predicate, body } => {
+                let block_push_index = self.code.len();
+                self.code
+                    .push(Op::PushBlock(BlockType::Loop { loop_length: 0 }));
+
                 let start_of_loop_index = self.code.len();
                 self.compile_node(&predicate.node)?;
                 let predicate_jump_index = self.code.len();
@@ -115,6 +119,8 @@ impl Compiler {
                 self.code.push(Op::Jump(0));
                 let end_of_loop_index = self.code.len();
 
+                self.code.push(Op::PopBlock);
+
                 let Some(Op::JumpIfFalse(ref mut jump)) = self.code.get_mut(predicate_jump_index)
                 else {
                     bail!("Jump operation was not at the expected index")
@@ -125,6 +131,13 @@ impl Compiler {
                     bail!("Jump operation was not at the expected index")
                 };
                 *jump = start_of_loop_index as isize - end_jump_index as isize;
+
+                let Some(Op::PushBlock(ref mut block)) = self.code.get_mut(block_push_index) else {
+                    bail!("Block push was not at the expected index")
+                };
+                *block = BlockType::Loop {
+                    loop_length: end_of_loop_index - start_of_loop_index,
+                };
             }
             Node::FunctionDeclaration {
                 ident,
@@ -163,8 +176,12 @@ impl Compiler {
                 }
                 self.code.push(Op::Return);
             }
-            Node::Break => todo!(),
-            Node::Continue => todo!(),
+            Node::Break => {
+                self.code.push(Op::Break);
+            }
+            Node::Continue => {
+                self.code.push(Op::Continue);
+            }
             Node::UnaryOp(op, ast) => {
                 self.compile_node(&ast.node)?;
                 self.code.push(Op::UnaryOp(*op))

@@ -17,9 +17,18 @@ use value::Value;
 type Scope = UstrMap<Rc<RefCell<Value>>>;
 
 #[derive(Debug)]
+enum Block {
+    Loop {
+        start_index: usize,
+        end_index: usize,
+    },
+}
+
+#[derive(Debug)]
 struct CallFrame {
     locals: Scope,
     eval_stack: Vec<Value>,
+    block_stack: Vec<Block>,
 }
 
 #[derive(Debug)]
@@ -27,6 +36,7 @@ pub struct VM {
     call_stack: Vec<CallFrame>,
     global_scope: Scope,
     global_eval: Vec<Value>,
+    global_block_stack: Vec<Block>,
     pub debug: bool,
 }
 
@@ -35,6 +45,7 @@ impl VM {
         VM {
             call_stack: Vec::new(),
             global_eval: Vec::new(),
+            global_block_stack: Vec::new(),
             global_scope: builtins::get_builtins(),
             debug,
         }
@@ -171,6 +182,27 @@ impl VM {
                     let value = value.eval_unary_op(op)?;
                     self.push_eval_stack(value);
                 }
+                Op::PushBlock(block) => {
+                    let block_stack = match self.call_stack.last_mut() {
+                        Some(frame) => &mut frame.block_stack,
+                        None => &mut self.global_block_stack,
+                    };
+
+                    let block = match block {
+                        bytecode::BlockType::Loop { loop_length } => Block::Loop {
+                            start_index: pc,
+                            end_index: pc + loop_length,
+                        },
+                    };
+                    block_stack.push(block);
+                }
+                Op::PopBlock => {
+                    let block_stack = match self.call_stack.last_mut() {
+                        Some(frame) => &mut frame.block_stack,
+                        None => &mut self.global_block_stack,
+                    };
+                    block_stack.pop();
+                }
                 Op::Call(number_of_arguments) => {
                     match self.pop_eval_stack()? {
                         Value::BuiltInFunction(builtin) => {
@@ -193,6 +225,7 @@ impl VM {
                             self.call_stack.push(CallFrame {
                                 locals,
                                 eval_stack: Vec::new(),
+                                block_stack: Vec::new(),
                             });
                             let return_value = self.eval(&function.code)?;
                             self.call_stack.pop();
@@ -202,6 +235,32 @@ impl VM {
                     };
                 }
                 Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
+                Op::Break => {
+                    let block_stack = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.block_stack
+                    } else {
+                        &mut self.global_block_stack
+                    };
+                    match block_stack.last() {
+                        Some(Block::Loop { end_index, .. }) => {
+                            pc = *end_index;
+                        }
+                        None => bail!("Cannot break outside a loop"),
+                    }
+                }
+                Op::Continue => {
+                    let block_stack = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.block_stack
+                    } else {
+                        &mut self.global_block_stack
+                    };
+                    match block_stack.last() {
+                        Some(Block::Loop { start_index, .. }) => {
+                            pc = *start_index;
+                        }
+                        None => bail!("Cannot continue outside a loop"),
+                    }
+                }
             }
 
             pc += 1;
@@ -369,42 +428,42 @@ mod test {
         let value = vm.eval(&bundle.code).unwrap();
         assert_eq!(Value::Int(8), value, "while 2^3 == 8");
 
-        // let bundle = VM::compile_str(
-        //     r#"
-        //     let i = 0;
-        //     while (true) {
-        //         i += 1;
-        //         if (i > 5) {
-        //             break;
-        //         }
-        //     }
-        //     i;
-        //     "#,
-        // )
-        // .unwrap();
-        // let value = vm.eval(&bundle.code).unwrap();
-        // assert_eq!(Value::Int(6), value, "while break i > 5");
+        let bundle = VM::compile_str(
+            r#"
+            let i = 0;
+            while (true) {
+                i += 1;
+                if (i > 5) {
+                    break;
+                }
+            }
+            i;
+            "#,
+        )
+        .unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(Value::Int(6), value, "while break i > 5");
 
-        // let bundle = VM::compile_str(
-        //     r#"
-        //     let s = "";
-        //     let i = 0;
-        //     while (i < 3) {
-        //         i += 1;
-        //         if (i == 1) {
-        //             continue;
-        //         }
-        //         s += i;
-        //     }
-        //     s;
-        //     "#,
-        // )
-        // .unwrap();
-        // let value = vm.eval(&bundle.code).unwrap();
-        // assert_eq!(
-        //     Value::String("23".into()),
-        //     value,
-        //     "while continue to skip index 1"
-        // );
+        let bundle = VM::compile_str(
+            r#"
+            let s = "";
+            let i = 0;
+            while (i < 3) {
+                i += 1;
+                if (i == 1) {
+                    continue;
+                }
+                s += i;
+            }
+            s;
+            "#,
+        )
+        .unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(
+            Value::String("23".into()),
+            value,
+            "while continue to skip index 1"
+        );
     }
 }
