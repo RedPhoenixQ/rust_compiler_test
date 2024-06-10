@@ -1,21 +1,26 @@
 use anyhow::{bail, Result};
+use ustr::UstrSet;
 
 use crate::{
     bytecode::{BlockType, Op},
     parser::{Ast, Node},
     value::{Function, Value},
+    Scope,
 };
 
 #[derive(Debug)]
 pub struct Bundle {
     pub consts: Vec<Value>,
     pub code: Vec<Op>,
+    pub foreign_idents: UstrSet,
 }
 
 #[derive(Debug, Default)]
 pub struct Compiler {
     consts: Vec<Value>,
     code: Vec<Op>,
+    declared_idents: UstrSet,
+    foreign_idents: UstrSet,
 }
 
 impl Compiler {
@@ -26,6 +31,7 @@ impl Compiler {
         Ok(Bundle {
             code: self.code,
             consts: self.consts,
+            foreign_idents: self.foreign_idents,
         })
     }
 
@@ -37,24 +43,21 @@ impl Compiler {
                 } else {
                     self.code.push(Op::LoadConst(Value::Undefined))
                 }
+                self.declared_idents.insert(*ident);
                 self.code.push(Op::DeclareVar(*ident))
             }
-            Node::Ident(ident) => self.code.push(Op::Load(*ident)),
-            Node::Literal(value) => {
-                // let index = match self
-                //     .consts
-                //     .iter()
-                //     .enumerate()
-                //     .find_map(|(i, v)| (v == value).then_some(i))
-                // {
-                //     Some(i) => i,
-                //     None => {
-                //         self.consts.push(value.clone());
-                //         self.consts.len() - 1
-                //     }
-                // };
-                self.code.push(Op::LoadConst(value.clone()))
+            Node::Ident(ident) => {
+                if !self.declared_idents.contains(ident) {
+                    self.foreign_idents.insert(*ident);
+                }
+                // if self.declared_idents.contains(ident) {
+                //     self.code.push(Op::LoadFast(*ident));
+                // } else {
+                //     self.code.push(Op::Load(*ident));
+                // }
+                self.code.push(Op::Load(*ident));
             }
+            Node::Literal(value) => self.code.push(Op::LoadConst(value.clone())),
             Node::If {
                 branches,
                 else_block,
@@ -161,6 +164,7 @@ impl Compiler {
                     .into(),
                 )));
 
+                self.declared_idents.insert(*ident);
                 self.code.push(Op::DeclareVar(*ident))
             }
             Node::ClosureDeclaration { arguments, body } => todo!(),
