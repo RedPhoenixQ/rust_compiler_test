@@ -43,14 +43,15 @@ impl Builtin {
                 Ok(Value::Undefined)
             }
             Builtin::Dump => {
+                if number_of_arguments > 0 {
+                    bail!("Dump does not take any arguments");
+                }
                 dbg!(vm);
                 Ok(Value::Undefined)
             }
         }
     }
 }
-
-const BUILTINS: &[&str] = &["print", "dump"];
 
 pub fn get_builtins() -> Scope {
     Scope::from_iter(Builtin::VALUES.iter().map(|&builtin| {

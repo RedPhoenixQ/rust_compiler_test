@@ -12,7 +12,7 @@ use bytecode::Op;
 use compiler::Bundle;
 // use compiler::{Bundle, Compiler};
 use ustr::UstrMap;
-use value::{Function, Value};
+use value::Value;
 
 type Scope = UstrMap<Rc<RefCell<Value>>>;
 
@@ -22,7 +22,7 @@ struct CallFrame {
     eval_stack: Vec<Value>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct VM {
     call_stack: Vec<CallFrame>,
     global_scope: Scope,
@@ -31,6 +31,15 @@ pub struct VM {
 }
 
 impl VM {
+    pub fn new(debug: bool) -> Self {
+        VM {
+            call_stack: Vec::new(),
+            global_eval: Vec::new(),
+            global_scope: builtins::get_builtins(),
+            debug,
+        }
+    }
+
     pub fn eval_str(&mut self, input: &str) -> Result<Value> {
         let bundle = Self::compile_str(input)?;
 
@@ -52,7 +61,7 @@ impl VM {
 
         while let Some(op) = ops.get(pc) {
             if self.debug {
-                println!("Running {pc}: {op:?}");
+                println!("Running {}:{pc}: {op:?}", self.call_stack.len());
             }
             match op {
                 Op::LoadFast(key) => {
@@ -163,34 +172,38 @@ impl VM {
                     self.push_eval_stack(value);
                 }
                 Op::Call(number_of_arguments) => {
-                    let calling = self.pop_eval_stack()?;
-                    let Value::Function(function) = calling else {
-                        bail!("Attempting to call a non function, called {:?}", calling)
-                    };
-
-                    let mut locals = Scope::default();
-                    locals.reserve(function.arguments.len());
-
-                    for i in 0..*number_of_arguments {
-                        let argument = self.pop_eval_stack()?;
-                        let name = *function
-                            .arguments
-                            .get(i)
-                            .expect("Function arguments to exist");
-                        if let Value::Variable(var) = argument {
-                            locals.insert(name, var);
-                        } else {
-                            locals.insert(name, Rc::new(argument.into()));
+                    match self.pop_eval_stack()? {
+                        Value::BuiltInFunction(builtin) => {
+                            let return_value = builtin.call(self, *number_of_arguments)?;
+                            self.push_eval_stack(return_value);
                         }
-                    }
+                        Value::Function(function) => {
+                            let mut locals = Scope::default();
+                            locals.reserve(function.arguments.len());
 
-                    self.call_stack.push(CallFrame {
-                        locals,
-                        eval_stack: Vec::new(),
-                    });
-                    let return_value = self.eval(&function.code)?;
-                    self.call_stack.pop();
-                    self.push_eval_stack(return_value);
+                            for i in 0..*number_of_arguments {
+                                let argument = self.pop_eval_stack()?;
+                                let name = *function
+                                    .arguments
+                                    .get(i)
+                                    .expect("Function arguments to exist");
+                                if let Value::Variable(var) = argument {
+                                    locals.insert(name, var);
+                                } else {
+                                    locals.insert(name, Rc::new(argument.into()));
+                                }
+                            }
+
+                            self.call_stack.push(CallFrame {
+                                locals,
+                                eval_stack: Vec::new(),
+                            });
+                            let return_value = self.eval(&function.code)?;
+                            self.call_stack.pop();
+                            self.push_eval_stack(return_value);
+                        }
+                        calling => bail!("Attempting to call a non function, called {:?}", calling),
+                    };
                 }
                 Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
             }

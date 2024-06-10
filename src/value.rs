@@ -4,6 +4,7 @@ use anyhow::{bail, Result};
 use ustr::Ustr;
 
 use crate::{
+    builtins::Builtin,
     bytecode::Op,
     parser::{BinaryOp, UnaryOp},
 };
@@ -24,6 +25,7 @@ pub enum Value {
     String(Ustr),
     Boolean(bool),
     Function(Rc<Function>),
+    BuiltInFunction(Builtin),
     Variable(Variable),
     #[default]
     Undefined,
@@ -84,6 +86,7 @@ impl Value {
             Value::Float(value) => value.is_normal(),
             Value::Boolean(value) => *value,
             Value::Function(_) => true,
+            Value::BuiltInFunction(_) => true,
             Value::Variable(var) => var.borrow().is_truthy(),
             Value::Undefined => false,
         }
@@ -100,6 +103,7 @@ impl Value {
             Value::Float(value) => format!("{value}").into(),
             Value::Boolean(value) => format!("{value}").into(),
             Value::Function(_) => "function".into(),
+            Value::BuiltInFunction(_) => "function".into(),
             Value::Variable(var) => return var.borrow().as_string(),
             Value::Undefined => "undefined".into(),
         })
@@ -114,6 +118,7 @@ impl Value {
             Self::Boolean(true) => 1.into(),
             Self::Boolean(false) => 0.into(),
             Self::Function(_) => bail!("TypeError: Function can not be used as a number"),
+            Self::BuiltInFunction(_) => bail!("TypeError: Function can not be used as a number"),
             Value::Variable(var) => var.borrow().as_number()?,
             Self::Undefined => 0.into(),
         })

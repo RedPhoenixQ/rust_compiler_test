@@ -16,8 +16,7 @@ fn main() -> Result<()> {
     let args = Args::parse();
     dbg!(&args);
 
-    let mut vm = VM::default();
-    vm.debug = args.verbose;
+    let mut vm = VM::new(args.verbose);
     if let Some(file) = args.file {
         let code = read_to_string(file)?;
         let bundle = VM::compile_str(&code)?;
