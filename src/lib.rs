@@ -77,21 +77,8 @@ impl VM {
                     self.push_eval_stack(value);
                 }
                 Op::Load(ident) => {
-                    let value = if let Some(var) = self
-                        .call_stack
-                        .iter()
-                        .rev()
-                        .find_map(|frame| frame.locals.get(ident))
-                    {
-                        Ok(var)
-                    } else {
-                        self.global_scope
-                            .get(ident)
-                            .ok_or(anyhow::anyhow!("{ident} is not defined in any scope"))
-                    }?
-                    .borrow()
-                    .clone();
-                    self.push_eval_stack(value)
+                    let value = self.get_ident_value(ident)?;
+                    self.push_eval_stack(value);
                 }
                 Op::LoadConst(value) => {
                     self.push_eval_stack(value.clone());
@@ -250,6 +237,23 @@ impl VM {
         };
         eval_stack.push(value);
     }
+
+    fn get_ident_value(&self, ident: &ustr::Ustr) -> Result<Value> {
+        Ok(if let Some(var) = self
+            .call_stack
+            .iter()
+            .rev()
+            .find_map(|frame| frame.locals.get(ident))
+        {
+            Ok(var)
+        } else {
+            self.global_scope
+                .get(ident)
+                .ok_or(anyhow::anyhow!("{ident} is not defined in any scope"))
+        }?
+        .borrow()
+        .clone())
+    }
 }
 
 #[cfg(test)]
@@ -266,56 +270,57 @@ mod test {
         assert_eq!(Value::Int(3), value);
     }
 
-    #[cfg(never)]
     #[test]
     fn basic_variables() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             "let one = 1;
             let two = 2;
             let one_again = one;
             one = 3",
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
-        assert_eq!(Some(Value::Int(3)), vm.get_ident_value(&"one".into()));
-        assert_eq!(Some(Value::Int(2)), vm.get_ident_value(&"two".into()));
-        assert_eq!(Some(Value::Int(1)), vm.get_ident_value(&"one_again".into()));
+        let _value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(Some(Value::Int(3)), vm.get_ident_value(&"one".into()).ok());
+        assert_eq!(Some(Value::Int(2)), vm.get_ident_value(&"two".into()).ok());
+        assert_eq!(
+            Some(Value::Int(1)),
+            vm.get_ident_value(&"one_again".into()).ok()
+        );
     }
 
-    #[cfg(never)]
     #[test]
     fn basic_if() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (true) {
                 "then_branch";
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_true_no_else = vm.eval(&bundle.code).unwrap();
         assert_eq!(
             Value::String("then_branch".into()),
-            vm.get_accumulator(),
+            if_true_no_else,
             "if_true_no_else"
         );
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (false) {
                 "then_branch";
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_false_no_else = vm.eval(&bundle.code).unwrap();
         assert_ne!(
             Value::String("then_branch".into()),
-            vm.get_accumulator(),
+            if_false_no_else,
             "if_false_no_else"
         );
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (true) {
                 "then_branch";
             } else {
@@ -323,14 +328,14 @@ mod test {
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_false_else = vm.eval(&bundle.code).unwrap();
         assert_eq!(
             Value::String("then_branch".into()),
-            vm.get_accumulator(),
+            if_false_else,
             "if_false_else"
         );
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (false) {
                 "then_branch";
             } else {
@@ -338,20 +343,19 @@ mod test {
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_false_else = vm.eval(&bundle.code).unwrap();
         assert_eq!(
             Value::String("else_branch".into()),
-            vm.get_accumulator(),
+            if_false_else,
             "if_false_else"
         );
     }
 
-    #[cfg(never)]
     #[test]
     fn basic_loops() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"
             let b = 1;
             let i = 0;
@@ -363,45 +367,45 @@ mod test {
             "#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
-        assert_eq!(Value::Int(8), vm.get_accumulator(), "while 2^3 == 8");
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(Value::Int(8), value, "while 2^3 == 8");
 
-        let ops = VM::compile_str(
-            r#"
-            let i = 0;
-            while (true) {
-                i += 1;
-                if (i > 5) {
-                    break;
-                }
-            }
-            i;
-            "#,
-        )
-        .unwrap();
-        vm.eval_ops(&ops).unwrap();
-        assert_eq!(Value::Int(6), vm.get_accumulator(), "while break i > 5");
+        // let bundle = VM::compile_str(
+        //     r#"
+        //     let i = 0;
+        //     while (true) {
+        //         i += 1;
+        //         if (i > 5) {
+        //             break;
+        //         }
+        //     }
+        //     i;
+        //     "#,
+        // )
+        // .unwrap();
+        // let value = vm.eval(&bundle.code).unwrap();
+        // assert_eq!(Value::Int(6), value, "while break i > 5");
 
-        let ops = VM::compile_str(
-            r#"
-            let s = "";
-            let i = 0;
-            while (i < 3) {
-                i += 1;
-                if (i == 1) {
-                    continue;
-                }
-                s += i;
-            }
-            s;
-            "#,
-        )
-        .unwrap();
-        vm.eval_ops(&ops).unwrap();
-        assert_eq!(
-            Value::String("23".into()),
-            vm.get_accumulator(),
-            "while continue to skip index 1"
-        );
+        // let bundle = VM::compile_str(
+        //     r#"
+        //     let s = "";
+        //     let i = 0;
+        //     while (i < 3) {
+        //         i += 1;
+        //         if (i == 1) {
+        //             continue;
+        //         }
+        //         s += i;
+        //     }
+        //     s;
+        //     "#,
+        // )
+        // .unwrap();
+        // let value = vm.eval(&bundle.code).unwrap();
+        // assert_eq!(
+        //     Value::String("23".into()),
+        //     value,
+        //     "while continue to skip index 1"
+        // );
     }
 }

@@ -70,7 +70,7 @@ impl Compiler {
                         self.compile_node(&ast.node)?;
                     }
 
-                    if is_final_predicate {
+                    if is_final_predicate && else_block.is_some() {
                         // Jump to skip final else block
                         self.code.push(Op::Jump(0))
                     }
