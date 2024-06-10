@@ -10,9 +10,9 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Function {
-    arguments: Vec<Ustr>,
-    constants: Vec<Value>,
-    code: Vec<Op>,
+    pub arguments: Vec<Ustr>,
+    pub constants: Vec<Value>,
+    pub code: Vec<Op>,
 }
 
 pub type Variable = Rc<RefCell<Value>>;

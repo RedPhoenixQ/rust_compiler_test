@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 mod bytecode;
 mod compiler;
@@ -11,7 +11,7 @@ use bytecode::Op;
 use compiler::Bundle;
 // use compiler::{Bundle, Compiler};
 use ustr::UstrMap;
-use value::Value;
+use value::{Function, Value};
 
 type Scope = UstrMap<Rc<RefCell<Value>>>;
 
@@ -161,8 +161,37 @@ impl VM {
                     let value = value.eval_unary_op(op)?;
                     self.push_eval_stack(value);
                 }
-                Op::Call(_) => todo!(),
-                Op::Return => todo!(),
+                Op::Call(number_of_arguments) => {
+                    let calling = self.pop_eval_stack()?;
+                    let Value::Function(function) = calling else {
+                        bail!("Attempting to call a non function, called {:?}", calling)
+                    };
+
+                    let mut locals = Scope::default();
+                    locals.reserve(function.arguments.len());
+
+                    for i in 0..*number_of_arguments {
+                        let argument = self.pop_eval_stack()?;
+                        let name = *function
+                            .arguments
+                            .get(i)
+                            .expect("Function arguments to exist");
+                        if let Value::Variable(var) = argument {
+                            locals.insert(name, var);
+                        } else {
+                            locals.insert(name, Rc::new(argument.into()));
+                        }
+                    }
+
+                    self.call_stack.push(CallFrame {
+                        locals,
+                        eval_stack: Vec::new(),
+                    });
+                    let return_value = self.eval(&function.code)?;
+                    self.call_stack.pop();
+                    self.push_eval_stack(return_value);
+                }
+                Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
             }
 
             pc += 1;

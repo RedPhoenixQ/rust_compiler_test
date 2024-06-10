@@ -3,7 +3,7 @@ use anyhow::{bail, Result};
 use crate::{
     bytecode::Op,
     parser::{Ast, Node},
-    value::Value,
+    value::{Function, Value},
 };
 
 #[derive(Debug)]
@@ -128,14 +128,39 @@ impl Compiler {
                 ident,
                 arguments,
                 body,
-            } => todo!(),
+            } => {
+                let function_bundle = Self::default().compile(&body)?;
+                self.code.push(Op::LoadConst(Value::Function(
+                    Function {
+                        arguments: arguments.to_owned(),
+                        code: function_bundle.code,
+                        constants: function_bundle.consts,
+                    }
+                    .into(),
+                )));
+
+                self.code.push(Op::StoreFast(*ident))
+            }
             Node::ClosureDeclaration { arguments, body } => todo!(),
-            Node::FunctionCall { calling, arguments } => todo!(),
+            Node::FunctionCall { calling, arguments } => {
+                for ast in arguments {
+                    self.compile_node(&ast.node)?;
+                }
+                self.compile_node(&calling.node)?;
+                self.code.push(Op::Call(arguments.len()));
+            }
             Node::Assignment { ident, value } => {
                 self.compile_node(&value.node)?;
                 self.code.push(Op::Store(*ident))
             }
-            Node::Return(_) => todo!(),
+            Node::Return(return_value) => {
+                if let Some(value) = return_value {
+                    self.compile_node(&value.node)?;
+                } else {
+                    self.code.push(Op::LoadConst(Value::Undefined));
+                }
+                self.code.push(Op::Return);
+            }
             Node::Break => todo!(),
             Node::Continue => todo!(),
             Node::UnaryOp(op, ast) => {
