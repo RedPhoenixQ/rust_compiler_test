@@ -85,7 +85,6 @@ impl VM {
                 }
                 Op::DeclareVar(ident) => {
                     let value = self.pop_eval_stack()?;
-                    dbg!(&value);
                     let scope = if let Some(frame) = self.call_stack.last_mut() {
                         &mut frame.locals
                     } else {
