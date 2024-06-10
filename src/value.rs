@@ -26,7 +26,6 @@ pub enum Value {
     Boolean(bool),
     Function(Rc<Function>),
     BuiltInFunction(Builtin),
-    Variable(Variable),
     #[default]
     Undefined,
 }
@@ -87,7 +86,6 @@ impl Value {
             Value::Boolean(value) => *value,
             Value::Function(_) => true,
             Value::BuiltInFunction(_) => true,
-            Value::Variable(var) => var.borrow().is_truthy(),
             Value::Undefined => false,
         }
     }
@@ -104,7 +102,6 @@ impl Value {
             Value::Boolean(value) => format!("{value}").into(),
             Value::Function(_) => "function".into(),
             Value::BuiltInFunction(_) => "function".into(),
-            Value::Variable(var) => return var.borrow().as_string(),
             Value::Undefined => "undefined".into(),
         })
     }
@@ -119,7 +116,6 @@ impl Value {
             Self::Boolean(false) => 0.into(),
             Self::Function(_) => bail!("TypeError: Function can not be used as a number"),
             Self::BuiltInFunction(_) => bail!("TypeError: Function can not be used as a number"),
-            Value::Variable(var) => var.borrow().as_number()?,
             Self::Undefined => 0.into(),
         })
     }

@@ -65,15 +65,16 @@ impl VM {
             }
             match op {
                 Op::LoadFast(key) => {
-                    let var = self
+                    let value = self
                         .call_stack
                         .last_mut()
                         .ok_or(anyhow::anyhow!("Expected atleast one callstack to exist"))?
                         .locals
                         .get(key)
                         .ok_or(anyhow::anyhow!("Expected {key} to exist in local scope"))?
+                        .borrow()
                         .clone();
-                    self.push_eval_stack(Value::Variable(var));
+                    self.push_eval_stack(value);
                 }
                 Op::Load(ident) => {
                     let value = if let Some(var) = self
@@ -88,17 +89,16 @@ impl VM {
                             .get(ident)
                             .ok_or(anyhow::anyhow!("{ident} is not defined in any scope"))
                     }?
-                    .as_ref()
                     .borrow()
                     .clone();
-
                     self.push_eval_stack(value)
                 }
                 Op::LoadConst(value) => {
                     self.push_eval_stack(value.clone());
                 }
-                Op::StoreFast(ident) => {
+                Op::DeclareVar(ident) => {
                     let value = self.pop_eval_stack()?;
+                    dbg!(&value);
                     let scope = if let Some(frame) = self.call_stack.last_mut() {
                         &mut frame.locals
                     } else {
@@ -110,22 +110,36 @@ impl VM {
                         scope.insert(*ident, Rc::new(value.into()));
                     }
                 }
+                Op::StoreFast(ident) => {
+                    let value = self.pop_eval_stack()?;
+                    let scope = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.locals
+                    } else {
+                        &mut self.global_scope
+                    };
+                    let Some(var) = scope.get_mut(ident) else {
+                        bail!(
+                            "Cannot assign to an undeclared variable, tried to assign to {ident}",
+                        );
+                    };
+                    var.replace(value);
+                }
                 Op::Store(ident) => {
                     let value = self.pop_eval_stack()?;
-                    if let Some(var) = self
+                    let Some(var) = (match self
                         .call_stack
                         .iter_mut()
                         .rev()
                         .find_map(|frame| frame.locals.get(ident))
                     {
-                        var.replace(value);
-                    } else {
-                        if let Some(var) = self.global_scope.get_mut(ident) {
-                            var.replace(value);
-                        } else {
-                            self.global_scope.insert(*ident, Rc::new(value.into()));
-                        }
+                        Some(var) => Some(var),
+                        None => self.global_scope.get(ident),
+                    }) else {
+                        bail!(
+                            "Cannot assign to an undeclared variable, tried to assign to {ident}",
+                        );
                     };
+                    var.replace(value);
                 }
                 Op::Jump(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
@@ -187,11 +201,7 @@ impl VM {
                                     .arguments
                                     .get(i)
                                     .expect("Function arguments to exist");
-                                if let Value::Variable(var) = argument {
-                                    locals.insert(name, var);
-                                } else {
-                                    locals.insert(name, Rc::new(argument.into()));
-                                }
+                                locals.insert(name, Rc::new(argument.into()));
                             }
 
                             self.call_stack.push(CallFrame {
@@ -243,20 +253,20 @@ impl VM {
 }
 
 #[cfg(test)]
-#[cfg(never)]
 mod test {
     use super::*;
 
     #[test]
     fn binary_operation() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str("1 + 2").unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let bundle = VM::compile_str("1 + 2").unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
 
-        assert_eq!(Value::Int(3), vm.get_accumulator())
+        assert_eq!(Value::Int(3), value);
     }
 
+    #[cfg(never)]
     #[test]
     fn basic_variables() {
         let mut vm = VM::default();
@@ -274,6 +284,7 @@ mod test {
         assert_eq!(Some(Value::Int(1)), vm.get_ident_value(&"one_again".into()));
     }
 
+    #[cfg(never)]
     #[test]
     fn basic_if() {
         let mut vm = VM::default();
@@ -335,6 +346,7 @@ mod test {
         );
     }
 
+    #[cfg(never)]
     #[test]
     fn basic_loops() {
         let mut vm = VM::default();

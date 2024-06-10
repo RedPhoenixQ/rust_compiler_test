@@ -34,8 +34,10 @@ impl Compiler {
             Node::VariableDeclaration { ident, value } => {
                 if let Some(value) = value {
                     self.compile_node(&value.node)?;
-                    self.code.push(Op::StoreFast(*ident))
+                } else {
+                    self.code.push(Op::LoadConst(Value::Undefined))
                 }
+                self.code.push(Op::DeclareVar(*ident))
             }
             Node::Ident(ident) => self.code.push(Op::Load(*ident)),
             Node::Literal(value) => {
@@ -139,7 +141,7 @@ impl Compiler {
                     .into(),
                 )));
 
-                self.code.push(Op::StoreFast(*ident))
+                self.code.push(Op::DeclareVar(*ident))
             }
             Node::ClosureDeclaration { arguments, body } => todo!(),
             Node::FunctionCall { calling, arguments } => {

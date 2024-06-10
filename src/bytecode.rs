@@ -16,6 +16,9 @@ pub enum Op {
     // TODO: Crate a const array for each scope to make each Op smaller
     LoadConst(Value),
 
+    /// Declare a variable to the local scope and store the topmost value on the stack
+    DeclareVar(Ustr),
+
     /// Store local variable in the current call stack
     StoreFast(Ustr),
     /// Store variable to first scope that contains the name
