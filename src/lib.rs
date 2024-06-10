@@ -12,9 +12,9 @@ use bytecode::Op;
 use compiler::Bundle;
 // use compiler::{Bundle, Compiler};
 use ustr::{Ustr, UstrMap};
-use value::Value;
+use value::{Value, Variable};
 
-type Scope = UstrMap<Rc<RefCell<Value>>>;
+type Scope = UstrMap<Variable>;
 
 #[derive(Debug)]
 enum Block {
