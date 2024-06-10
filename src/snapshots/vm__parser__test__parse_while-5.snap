@@ -12,6 +12,7 @@ Ok(
         },
         Ast {
             node: While {
+                label: None,
                 predicate: Ast {
                     node: Literal(
                         Boolean(
@@ -27,7 +28,9 @@ Ok(
                 },
                 body: [
                     Ast {
-                        node: Continue,
+                        node: Continue {
+                            label: None,
+                        },
                         span: LocatedSpan {
                             offset: 15,
                             line: 1,

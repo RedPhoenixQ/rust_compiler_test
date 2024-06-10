@@ -34,6 +34,7 @@ pub enum Node<'a> {
         else_block: Option<Vec<Ast<'a>>>,
     },
     While {
+        label: Option<Ustr>,
         predicate: Box<Ast<'a>>,
         body: Vec<Ast<'a>>,
     },
@@ -59,8 +60,12 @@ pub enum Node<'a> {
         value: Box<Ast<'a>>,
     },
     Return(Option<Box<Ast<'a>>>),
-    Break,
-    Continue,
+    Break {
+        label: Option<Ustr>,
+    },
+    Continue {
+        label: Option<Ustr>,
+    },
     UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
 }
@@ -209,22 +214,21 @@ fn if_statement(input: Span) -> SResult<Ast> {
 fn while_statement(input: Span) -> SResult<Ast> {
     context(
         "While loop",
-        consumed(preceded(
-            keyword("while"),
-            pair(
-                context(
-                    "While predicate",
-                    delimited(ws(char('(')), expr, ws(char(')'))),
-                ),
-                context(
-                    "While body",
-                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
-                ),
+        consumed(tuple((
+            terminated(opt(terminated(ident, char(':'))), ws(keyword("while"))),
+            context(
+                "While predicate",
+                delimited(ws(char('(')), expr, ws(char(')'))),
             ),
-        )),
+            context(
+                "While body",
+                delimited(ws(char('{')), many1(statement), ws(char('}'))),
+            ),
+        ))),
     )
-    .map(|(span, (predicate, body))| Ast {
+    .map(|(span, (label, predicate, body))| Ast {
         node: Node::While {
+            label,
             predicate: predicate.into(),
             body,
         },
@@ -336,12 +340,20 @@ fn controlflow_statement(input: Span) -> SResult<Ast> {
         "Controlflow statement",
         terminated(
             alt((
-                keyword("continue").map(|span| Ast {
-                    node: Node::Continue,
+                consumed(preceded(
+                    keyword("continue"),
+                    ws(opt(preceded(char(':'), ident))),
+                ))
+                .map(|(span, label)| Ast {
+                    node: Node::Continue { label },
                     span,
                 }),
-                keyword("break").map(|span| Ast {
-                    node: Node::Break,
+                consumed(preceded(
+                    keyword("break"),
+                    ws(opt(preceded(char(':'), ident))),
+                ))
+                .map(|(span, label)| Ast {
+                    node: Node::Break { label },
                     span,
                 }),
             )),
@@ -662,6 +674,12 @@ mod test {
         assert_debug_snapshot!(while_statement("while () { 123; }".into()));
         assert_debug_snapshot!(while_statement("while (true) { break; }".into()));
         assert_debug_snapshot!(while_statement("while (true) { continue; }".into()));
+        assert_debug_snapshot!(while_statement(
+            "outer: while (true) { break :outer; }".into()
+        ));
+        assert_debug_snapshot!(while_statement(
+            "outer: while (true) { continue :outer; }".into()
+        ));
     }
 
     #[test]
