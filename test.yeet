@@ -1,7 +1,7 @@
 fn a(b, c) {
   let result = b + c;
   print(result);
-  result
+  return result;
 }
 let else;
 a(2, 3);
