@@ -102,10 +102,16 @@ impl Compiler {
                     }
                 }
             }
-            Node::While { predicate, body } => {
+            Node::While {
+                label,
+                predicate,
+                body,
+            } => {
                 let block_push_index = self.code.len();
-                self.code
-                    .push(Op::PushBlock(BlockType::Loop { loop_length: 0 }));
+                self.code.push(Op::PushBlock(BlockType::Loop {
+                    label: *label,
+                    loop_length: 0,
+                }));
 
                 let start_of_loop_index = self.code.len();
                 self.compile_node(&predicate.node)?;
@@ -136,6 +142,7 @@ impl Compiler {
                     bail!("Block push was not at the expected index")
                 };
                 *block = BlockType::Loop {
+                    label: *label,
                     loop_length: end_of_loop_index - start_of_loop_index,
                 };
             }
@@ -176,11 +183,11 @@ impl Compiler {
                 }
                 self.code.push(Op::Return);
             }
-            Node::Break => {
-                self.code.push(Op::Break);
+            Node::Break { label } => {
+                self.code.push(Op::Break(*label));
             }
-            Node::Continue => {
-                self.code.push(Op::Continue);
+            Node::Continue { label } => {
+                self.code.push(Op::Continue(*label));
             }
             Node::UnaryOp(op, ast) => {
                 self.compile_node(&ast.node)?;

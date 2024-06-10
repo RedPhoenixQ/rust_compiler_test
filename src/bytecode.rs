@@ -7,7 +7,10 @@ use crate::{
 
 #[derive(Debug)]
 pub enum BlockType {
-    Loop { loop_length: usize },
+    Loop {
+        label: Option<Ustr>,
+        loop_length: usize,
+    },
 }
 
 #[derive(Debug)]
@@ -53,7 +56,7 @@ pub enum Op {
     Return,
 
     /// Pop the first item from the stack and return it
-    Break,
+    Break(Option<Ustr>),
     /// Pop the first item from the stack and return it
-    Continue,
+    Continue(Option<Ustr>),
 }

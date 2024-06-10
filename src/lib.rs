@@ -11,7 +11,7 @@ mod value;
 use bytecode::Op;
 use compiler::Bundle;
 // use compiler::{Bundle, Compiler};
-use ustr::UstrMap;
+use ustr::{Ustr, UstrMap};
 use value::Value;
 
 type Scope = UstrMap<Rc<RefCell<Value>>>;
@@ -19,6 +19,7 @@ type Scope = UstrMap<Rc<RefCell<Value>>>;
 #[derive(Debug)]
 enum Block {
     Loop {
+        label: Option<Ustr>,
         start_index: usize,
         end_index: usize,
     },
@@ -189,7 +190,8 @@ impl VM {
                     };
 
                     let block = match block {
-                        bytecode::BlockType::Loop { loop_length } => Block::Loop {
+                        bytecode::BlockType::Loop { label, loop_length } => Block::Loop {
+                            label: *label,
                             start_index: pc,
                             end_index: pc + loop_length,
                         },
@@ -235,31 +237,47 @@ impl VM {
                     };
                 }
                 Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
-                Op::Break => {
+                Op::Break(break_label) => {
                     let block_stack = if let Some(frame) = self.call_stack.last_mut() {
                         &mut frame.block_stack
                     } else {
                         &mut self.global_block_stack
                     };
-                    match block_stack.last() {
-                        Some(Block::Loop { end_index, .. }) => {
-                            pc = *end_index;
+                    let Some(end_index) = block_stack.iter().rev().find_map(|block| match block {
+                        Block::Loop {
+                            label, end_index, ..
+                        } if break_label.is_none()
+                            || matches!(label, Some(label) if label == &break_label.unwrap()) =>
+                        {
+                            Some(*end_index)
                         }
-                        None => bail!("Cannot break outside a loop"),
-                    }
+                        _ => None,
+                    }) else {
+                        bail!("Cannot break outside a loop")
+                    };
+                    pc = end_index;
                 }
-                Op::Continue => {
+                Op::Continue(continue_label) => {
                     let block_stack = if let Some(frame) = self.call_stack.last_mut() {
                         &mut frame.block_stack
                     } else {
                         &mut self.global_block_stack
                     };
-                    match block_stack.last() {
-                        Some(Block::Loop { start_index, .. }) => {
-                            pc = *start_index;
-                        }
-                        None => bail!("Cannot continue outside a loop"),
-                    }
+                    let Some(start_index) =
+                        block_stack.iter().rev().find_map(|block| match block {
+                            Block::Loop {
+                                label, start_index, ..
+                            } if continue_label.is_none()
+                                || matches!(label, Some(label) if label == &continue_label.unwrap()) =>
+                            {
+                                Some(*start_index)
+                            }
+                            _ => None,
+                        })
+                    else {
+                        bail!("Cannot continue outside a loop")
+                    };
+                    pc = start_index;
                 }
             }
 
@@ -464,6 +482,58 @@ mod test {
             Value::String("23".into()),
             value,
             "while continue to skip index 1"
+        );
+
+        let bundle = VM::compile_str(
+            r#"
+            let s = "";
+            let i = 0;
+            outer: while (i < 3) {
+                i += 1;
+                let x = 0;
+                while (x < 3) {
+                    x += 1;
+                    s += x;
+                    if (i == 2 && x == 2) {
+                        break :outer;
+                    }
+                }
+            }
+            s;
+            "#,
+        )
+        .unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(
+            Value::String("12312".into()),
+            value,
+            "while break outer at inner index 2"
+        );
+
+        let bundle = VM::compile_str(
+            r#"
+            let s = "";
+            let i = 0;
+            outer: while (i < 3) {
+                i += 1;
+                let x = 0;
+                while (x < 3) {
+                    x += 1;
+                    s += x;
+                    if (i == 2 && x == 2) {
+                        continue :outer;
+                    }
+                }
+            }
+            s;
+            "#,
+        )
+        .unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(
+            Value::String("12312123".into()),
+            value,
+            "while continue outer at inner index 2"
         );
     }
 }
