@@ -2,6 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use anyhow::{bail, Result};
 
+mod builtins;
 mod bytecode;
 mod compiler;
 mod parser;
