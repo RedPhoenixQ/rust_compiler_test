@@ -16,18 +16,14 @@ fn main() -> Result<()> {
     let args = Args::parse();
     dbg!(&args);
 
+    let mut vm = VM::default();
+    vm.debug = args.verbose;
     if let Some(file) = args.file {
         let code = read_to_string(file)?;
         let bundle = VM::compile_str(&code)?;
-        let mut vm = VM::default();
-        vm.debug = args.verbose;
         vm.eval(&bundle.code)?;
-        stdin_eval(vm)?;
-    } else {
-        let mut vm = VM::default();
-        vm.debug = args.verbose;
-        stdin_eval(vm)?;
     }
+    stdin_eval(vm)?;
     Ok(())
 }
 
