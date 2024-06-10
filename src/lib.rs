@@ -26,6 +26,7 @@ pub struct VM {
     call_stack: Vec<CallFrame>,
     global_scope: Scope,
     global_eval: Vec<Value>,
+    pub debug: bool,
 }
 
 impl VM {
@@ -49,6 +50,9 @@ impl VM {
         let mut pc = 0;
 
         while let Some(op) = ops.get(pc) {
+            if self.debug {
+                println!("Running {pc}: {op:?}");
+            }
             match op {
                 Op::LoadFast(key) => {
                     let var = self

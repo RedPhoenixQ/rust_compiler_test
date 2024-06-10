@@ -8,6 +8,8 @@ use vm::VM;
 #[command(version, about, long_about = None)]
 struct Args {
     file: Option<PathBuf>,
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 fn main() -> Result<()> {
@@ -18,10 +20,12 @@ fn main() -> Result<()> {
         let code = read_to_string(file)?;
         let bundle = VM::compile_str(&code)?;
         let mut vm = VM::default();
+        vm.debug = args.verbose;
         vm.eval(&bundle.code)?;
         stdin_eval(vm)?;
     } else {
-        let vm = VM::default();
+        let mut vm = VM::default();
+        vm.debug = args.verbose;
         stdin_eval(vm)?;
     }
     Ok(())
@@ -38,6 +42,9 @@ fn stdin_eval(mut vm: VM) -> Result<()> {
             }
             Ok(bundle) => bundle,
         };
+        if vm.debug {
+            println!("{:?}", &bundle);
+        }
         match vm.eval(&bundle.code) {
             Err(err) => eprintln!("{:?}", err),
             Ok(value) => println!("> {:#?}", value),
