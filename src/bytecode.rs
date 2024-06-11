@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use ustr::Ustr;
 
 use crate::{
     parser::{BinaryOp, UnaryOp},
-    value::Value,
+    value::{Function, Value},
 };
 
 #[derive(Debug)]
@@ -47,6 +49,11 @@ pub enum Op {
 
     PushBlock(BlockType),
     PopBlock,
+
+    /// This will grab a reference to all the foreign_idents within the function and push the close to the stack.
+    ///
+    /// If the function does not reference any foreign_ident, a normal function will be pushed
+    MakeClosure(Rc<Function>),
 
     /// Calls the function at the top of the stack with the specified number of arguments
     ///

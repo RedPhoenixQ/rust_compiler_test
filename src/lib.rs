@@ -8,11 +8,12 @@ mod compiler;
 mod parser;
 mod value;
 
+use builtins::Builtin;
 use bytecode::Op;
 use compiler::Bundle;
 // use compiler::{Bundle, Compiler};
 use ustr::{Ustr, UstrMap};
-use value::{Value, Variable};
+use value::{Closure, Function, Value, Variable};
 
 type Scope = UstrMap<Variable>;
 
@@ -25,7 +26,7 @@ enum Block {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct CallFrame {
     locals: Scope,
     eval_stack: Vec<Value>,
@@ -205,14 +206,56 @@ impl VM {
                     };
                     block_stack.pop();
                 }
+                Op::MakeClosure(function) => {
+                    let function = function.clone();
+                    if function.foreign_idents.len() > 0 {
+                        let mut scope = Scope::default();
+                        for ident in function.foreign_idents.iter() {
+                            if let Some(var) = match self
+                                .call_stack
+                                .iter()
+                                .rev()
+                                .find_map(|frame| frame.locals.get(ident).cloned())
+                            {
+                                Some(var) => Some(var),
+                                None => self.global_scope.get(ident).cloned(),
+                            } {
+                                scope.insert(*ident, var);
+                            };
+                        }
+                        self.push_eval_stack(Value::Closure(Closure { function, scope }.into()));
+                    } else {
+                        self.push_eval_stack(Value::Function(function));
+                    }
+                }
                 Op::Call(number_of_arguments) => {
-                    match self.pop_eval_stack()? {
-                        Value::BuiltInFunction(builtin) => {
+                    enum Call {
+                        Builtin(Builtin),
+                        Function {
+                            function: Rc<Function>,
+                            locals: Scope,
+                        },
+                    }
+                    match match self.pop_eval_stack()? {
+                        Value::BuiltInFunction(builtin) => Call::Builtin(builtin),
+                        Value::Closure(closure) => Call::Function {
+                            function: closure.function.clone(),
+                            locals: closure.scope.clone(),
+                        },
+                        Value::Function(function) => Call::Function {
+                            function,
+                            locals: Scope::default(),
+                        },
+                        calling => bail!("Attempting to call a non function, called {:?}", calling),
+                    } {
+                        Call::Builtin(builtin) => {
                             let return_value = builtin.call(self, *number_of_arguments)?;
                             self.push_eval_stack(return_value);
                         }
-                        Value::Function(function) => {
-                            let mut locals = Scope::default();
+                        Call::Function {
+                            function,
+                            mut locals,
+                        } => {
                             locals.reserve(function.arguments.len());
 
                             for i in 0..*number_of_arguments {
@@ -226,14 +269,12 @@ impl VM {
 
                             self.call_stack.push(CallFrame {
                                 locals,
-                                eval_stack: Vec::new(),
-                                block_stack: Vec::new(),
+                                ..Default::default()
                             });
                             let return_value = self.eval(&function.code)?;
                             self.call_stack.pop();
                             self.push_eval_stack(return_value);
                         }
-                        calling => bail!("Attempting to call a non function, called {:?}", calling),
                     };
                 }
                 Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),

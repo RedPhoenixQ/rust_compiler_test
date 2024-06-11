@@ -1,3 +1,5 @@
+use std::default;
+
 use anyhow::{bail, Result};
 use ustr::UstrSet;
 
@@ -16,7 +18,15 @@ pub struct Bundle {
 }
 
 #[derive(Debug, Default)]
+enum CompileContext {
+    #[default]
+    Global,
+    Function,
+}
+
+#[derive(Debug, Default)]
 pub struct Compiler {
+    context: CompileContext,
     consts: Vec<Value>,
     code: Vec<Op>,
     declared_idents: UstrSet,
@@ -154,12 +164,16 @@ impl Compiler {
                 arguments,
                 body,
             } => {
-                let function_bundle = Self::default().compile(&body)?;
+                let mut compiler = Self::default();
+                compiler.context = CompileContext::Function;
+                compiler.declared_idents.extend(arguments);
+                let function_bundle = compiler.compile(&body)?;
                 self.code.push(Op::LoadConst(Value::Function(
                     Function {
                         arguments: arguments.to_owned(),
                         code: function_bundle.code,
                         constants: function_bundle.consts,
+                        foreign_idents: function_bundle.foreign_idents,
                     }
                     .into(),
                 )));
@@ -167,7 +181,22 @@ impl Compiler {
                 self.declared_idents.insert(*ident);
                 self.code.push(Op::DeclareVar(*ident))
             }
-            Node::ClosureDeclaration { arguments, body } => todo!(),
+            Node::ClosureDeclaration { arguments, body } => {
+                let mut compiler = Self::default();
+                compiler.context = CompileContext::Function;
+                compiler.declared_idents.extend(arguments);
+                let function_bundle = compiler.compile(&body)?;
+
+                self.code.push(Op::MakeClosure(
+                    Function {
+                        arguments: arguments.to_owned(),
+                        code: function_bundle.code,
+                        constants: function_bundle.consts,
+                        foreign_idents: function_bundle.foreign_idents,
+                    }
+                    .into(),
+                ));
+            }
             Node::FunctionCall { calling, arguments } => {
                 for ast in arguments {
                     self.compile_node(&ast.node)?;

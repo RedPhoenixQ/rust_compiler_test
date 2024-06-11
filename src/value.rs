@@ -1,12 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
 
 use anyhow::{bail, Result};
-use ustr::Ustr;
+use ustr::{Ustr, UstrSet};
 
 use crate::{
     builtins::Builtin,
     bytecode::Op,
     parser::{BinaryOp, UnaryOp},
+    Scope,
 };
 
 #[derive(Debug)]
@@ -14,6 +15,13 @@ pub struct Function {
     pub arguments: Vec<Ustr>,
     pub constants: Vec<Value>,
     pub code: Vec<Op>,
+    pub foreign_idents: UstrSet,
+}
+
+#[derive(Debug)]
+pub struct Closure {
+    pub function: Rc<Function>,
+    pub scope: Scope,
 }
 
 pub type Variable = Rc<RefCell<Value>>;
@@ -25,6 +33,7 @@ pub enum Value {
     String(Ustr),
     Boolean(bool),
     Function(Rc<Function>),
+    Closure(Rc<Closure>),
     BuiltInFunction(Builtin),
     #[default]
     Undefined,
@@ -85,6 +94,7 @@ impl Value {
             Value::Float(value) => value.is_normal(),
             Value::Boolean(value) => *value,
             Value::Function(_) => true,
+            Value::Closure(_) => true,
             Value::BuiltInFunction(_) => true,
             Value::Undefined => false,
         }
@@ -101,6 +111,7 @@ impl Value {
             Value::Float(value) => format!("{value}").into(),
             Value::Boolean(value) => format!("{value}").into(),
             Value::Function(_) => "function".into(),
+            Value::Closure(_) => "function".into(),
             Value::BuiltInFunction(_) => "function".into(),
             Value::Undefined => "undefined".into(),
         })
@@ -115,6 +126,7 @@ impl Value {
             Self::Boolean(true) => 1.into(),
             Self::Boolean(false) => 0.into(),
             Self::Function(_) => bail!("TypeError: Function can not be used as a number"),
+            Self::Closure(_) => bail!("TypeError: Function can not be used as a number"),
             Self::BuiltInFunction(_) => bail!("TypeError: Function can not be used as a number"),
             Self::Undefined => 0.into(),
         })
