@@ -248,13 +248,18 @@ impl VM {
                         } => {
                             locals.reserve(function.arguments.len());
 
-                            for i in 0..*number_of_arguments {
-                                let argument = self.pop_eval_stack()?;
-                                let name = *function
+                            for i in 0..function.arguments.len() {
+                                let (name, default) = function
                                     .arguments
                                     .get(i)
                                     .expect("Function arguments to exist");
-                                locals.insert(name, Rc::new(argument.into()));
+
+                                let argument = if i < *number_of_arguments {
+                                    self.pop_eval_stack()?
+                                } else {
+                                    default.clone()
+                                };
+                                locals.insert(*name, Rc::new(argument.into()));
                             }
 
                             self.call_stack.push(CallFrame {

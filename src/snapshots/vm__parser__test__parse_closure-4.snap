@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-expression: "closure_expr(\"|a,b,c| { return a - b - c; }\".into())"
+expression: "closure_expr(\"|a,b = 123| { return a - b; }\".into())"
 ---
 Ok(
     (
@@ -19,11 +19,11 @@ Ok(
                     ),
                     (
                         u!("b"),
-                        None,
-                    ),
-                    (
-                        u!("c"),
-                        None,
+                        Some(
+                            Int(
+                                123,
+                            ),
+                        ),
                     ),
                 ],
                 body: [
@@ -38,59 +38,37 @@ Ok(
                                                 u!("a"),
                                             ),
                                             span: LocatedSpan {
-                                                offset: 17,
+                                                offset: 21,
                                                 line: 1,
                                                 fragment: "a",
                                                 extra: (),
                                             },
                                         },
                                         Ast {
-                                            node: BinaryOp(
-                                                Sub,
-                                                Ast {
-                                                    node: Ident(
-                                                        u!("b"),
-                                                    ),
-                                                    span: LocatedSpan {
-                                                        offset: 21,
-                                                        line: 1,
-                                                        fragment: "b",
-                                                        extra: (),
-                                                    },
-                                                },
-                                                Ast {
-                                                    node: Ident(
-                                                        u!("c"),
-                                                    ),
-                                                    span: LocatedSpan {
-                                                        offset: 25,
-                                                        line: 1,
-                                                        fragment: "c",
-                                                        extra: (),
-                                                    },
-                                                },
+                                            node: Ident(
+                                                u!("b"),
                                             ),
                                             span: LocatedSpan {
-                                                offset: 21,
+                                                offset: 25,
                                                 line: 1,
-                                                fragment: "b - c",
+                                                fragment: "b",
                                                 extra: (),
                                             },
                                         },
                                     ),
                                     span: LocatedSpan {
-                                        offset: 17,
+                                        offset: 21,
                                         line: 1,
-                                        fragment: "a - b - c",
+                                        fragment: "a - b",
                                         extra: (),
                                     },
                                 },
                             ),
                         ),
                         span: LocatedSpan {
-                            offset: 10,
+                            offset: 14,
                             line: 1,
-                            fragment: "return a - b - c",
+                            fragment: "return a - b",
                             extra: (),
                         },
                     },
@@ -99,7 +77,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "|a,b,c| { return a - b - c; }",
+                fragment: "|a,b = 123| { return a - b; }",
                 extra: (),
             },
         },

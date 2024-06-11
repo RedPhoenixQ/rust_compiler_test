@@ -13,7 +13,10 @@ Ok(
         Ast {
             node: ClosureDeclaration {
                 arguments: [
-                    u!("a"),
+                    (
+                        u!("a"),
+                        None,
+                    ),
                 ],
                 body: [
                     Ast {

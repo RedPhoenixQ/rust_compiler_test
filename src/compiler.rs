@@ -1,3 +1,5 @@
+use std::default;
+
 use anyhow::{bail, Result};
 use ustr::UstrSet;
 
@@ -164,11 +166,18 @@ impl Compiler {
             } => {
                 let mut compiler = Self::default();
                 compiler.context = CompileContext::Function;
-                compiler.declared_idents.extend(arguments);
+                compiler
+                    .declared_idents
+                    .extend(arguments.iter().map(|(arg, _)| arg));
                 let function_bundle = compiler.compile(&body)?;
                 self.code.push(Op::LoadConst(Value::Function(
                     Function {
-                        arguments: arguments.to_owned(),
+                        arguments: arguments
+                            .iter()
+                            .map(|(arg, default)| {
+                                (*arg, default.as_ref().cloned().unwrap_or_default())
+                            })
+                            .collect(),
                         code: function_bundle.code,
                         constants: function_bundle.consts,
                         foreign_idents: function_bundle.foreign_idents,
@@ -182,12 +191,19 @@ impl Compiler {
             Node::ClosureDeclaration { arguments, body } => {
                 let mut compiler = Self::default();
                 compiler.context = CompileContext::Function;
-                compiler.declared_idents.extend(arguments);
+                compiler
+                    .declared_idents
+                    .extend(arguments.iter().map(|(arg, _)| arg));
                 let function_bundle = compiler.compile(&body)?;
 
                 self.code.push(Op::MakeClosure(
                     Function {
-                        arguments: arguments.to_owned(),
+                        arguments: arguments
+                            .iter()
+                            .map(|(arg, default)| {
+                                (*arg, default.as_ref().cloned().unwrap_or_default())
+                            })
+                            .collect(),
                         code: function_bundle.code,
                         constants: function_bundle.consts,
                         foreign_idents: function_bundle.foreign_idents,

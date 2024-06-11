@@ -44,11 +44,11 @@ pub enum Node<'a> {
     },
     FunctionDeclaration {
         ident: Ustr,
-        arguments: Vec<Ustr>,
+        arguments: Vec<(Ustr, Option<Value>)>,
         body: Vec<Ast<'a>>,
     },
     ClosureDeclaration {
-        arguments: Vec<Ustr>,
+        arguments: Vec<(Ustr, Option<Value>)>,
         body: Vec<Ast<'a>>,
     },
     FunctionCall {
@@ -261,11 +261,7 @@ fn fn_statement(input: Span) -> SResult<Ast> {
                 cut(ws(ident)),
                 context(
                     "Function arguments",
-                    cut(delimited(
-                        ws(char('(')),
-                        separated_list0(ws(char(',')), ws(ident)),
-                        ws(char(')')),
-                    )),
+                    cut(delimited(ws(char('(')), arguments, ws(char(')')))),
                 ),
                 context(
                     "Function body",
@@ -488,11 +484,7 @@ fn closure_expr(input: Span) -> SResult<Ast> {
         consumed(pair(
             context(
                 "Closure arguments",
-                delimited(
-                    ws(char('|')),
-                    separated_list0(ws(char(',')), ws(ident)),
-                    cut(ws(char('|'))),
-                ),
+                delimited(ws(char('|')), cut(arguments), cut(ws(char('|')))),
             ),
             context(
                 "Closure body",
@@ -526,6 +518,45 @@ fn literal_expr(input: Span) -> SResult<Ast> {
             span,
         })
         .parse(input)
+}
+
+fn arguments(input: Span) -> SResult<Vec<(Ustr, Option<Value>)>> {
+    let (input, mut arguments) = separated_list0(
+        char(','),
+        terminated(ws(ident), ws(not(char('=')))).map(|ident| (ident, None)),
+    )
+    .parse(input)?;
+
+    let (input, default_args) = context(
+        "Arguments with defults",
+        opt(preceded(
+            cond(!arguments.is_empty(), char(',')),
+            separated_list0(
+                char(','),
+                separated_pair(
+                    ws(ident),
+                    cut(ws(char('='))),
+                    cut(ws(literal_expr)).map(|ast| {
+                        let Ast {
+                            node: Node::Literal(literal),
+                            ..
+                        } = ast
+                        else {
+                            unreachable!("literal_expr should always return Node::Literal");
+                        };
+                        Some(literal)
+                    }),
+                ),
+            ),
+        )),
+    )
+    .parse(input)?;
+
+    if let Some(args) = default_args {
+        arguments.extend(args);
+    }
+
+    return Ok((input, arguments));
 }
 
 fn ident(input: Span) -> SResult<Ustr> {
@@ -670,6 +701,9 @@ mod test {
         assert_debug_snapshot!(fn_statement("fn missing_block_end() { 123; ".into()));
         assert_debug_snapshot!(fn_statement("fn only_ident".into()));
         assert_debug_snapshot!(fn_statement("fn ".into()));
+        assert_debug_snapshot!(fn_statement("fn test(a, b = 123) { 123; }".into()));
+        assert_debug_snapshot!(fn_statement("fn test(a = 321, b = 123) { 123; }".into()));
+        assert_debug_snapshot!(fn_statement("fn test(a = 123, b) { 123; }".into()));
         // assert_debug_snapshot!(fn_statement(
         //     "fn nesting(a, b) { fn nested() { let c = 123 } }".into()
         // ));
@@ -791,6 +825,8 @@ mod test {
         assert_debug_snapshot!(closure_expr("|| {return 123;}".into()));
         assert_debug_snapshot!(closure_expr("|a| { a += 1; }".into()));
         assert_debug_snapshot!(closure_expr("|a,b,c| { return a - b - c; }".into()));
+        assert_debug_snapshot!(closure_expr("|a,b = 123| { return a - b; }".into()));
+        assert_debug_snapshot!(closure_expr("|a = 123,b| { return a - b; }".into()));
     }
 
     #[test]

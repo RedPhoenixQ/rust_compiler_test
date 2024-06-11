@@ -1,0 +1,56 @@
+---
+source: src/parser.rs
+expression: "closure_expr(\"|a = 123,b| { return a - b; }\".into())"
+---
+Err(
+    Failure(
+        VerboseError {
+            errors: [
+                (
+                    LocatedSpan {
+                        offset: 10,
+                        line: 1,
+                        fragment: "| { return a - b; }",
+                        extra: (),
+                    },
+                    Char(
+                        '=',
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 1,
+                        line: 1,
+                        fragment: "a = 123,b| { return a - b; }",
+                        extra: (),
+                    },
+                    Context(
+                        "Arguments with defults",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "|a = 123,b| { return a - b; }",
+                        extra: (),
+                    },
+                    Context(
+                        "Closure arguments",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "|a = 123,b| { return a - b; }",
+                        extra: (),
+                    },
+                    Context(
+                        "Closure",
+                    ),
+                ),
+            ],
+        },
+    ),
+)

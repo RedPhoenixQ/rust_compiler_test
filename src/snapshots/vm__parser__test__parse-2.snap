@@ -15,7 +15,10 @@ Ok(
                 node: FunctionDeclaration {
                     ident: u!("a"),
                     arguments: [
-                        u!("x"),
+                        (
+                            u!("x"),
+                            None,
+                        ),
                     ],
                     body: [
                         Ast {
