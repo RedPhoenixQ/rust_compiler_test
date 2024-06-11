@@ -1,0 +1,20 @@
+fn counter() {
+  let num = 0;
+  return |op| {
+    if (!op) {
+      num += 1;
+      return num;
+    } else {
+      return num;
+    }
+  };
+}
+
+let a = counter();
+
+let b = counter();
+
+a(false);
+a(false);
+print("a: " + a(true));
+print("b: " + b(true));

@@ -11,7 +11,9 @@ Ok(
             extra: (),
         },
         Ast {
-            node: Continue,
+            node: Continue {
+                label: None,
+            },
             span: LocatedSpan {
                 offset: 0,
                 line: 1,

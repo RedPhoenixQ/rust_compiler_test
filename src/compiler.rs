@@ -1,178 +1,238 @@
-use anyhow::{Context, Result};
-use ustr::Ustr;
+use std::default;
+
+use anyhow::{bail, Result};
+use ustr::UstrSet;
 
 use crate::{
-    parser::{Ast, BinaryOp, Node, UnaryOp},
-    value::Value,
+    bytecode::{BlockType, Op},
+    parser::{Ast, Node},
+    value::{Function, Value},
+    Scope,
 };
 
-pub type Block = Vec<Op>;
-
 #[derive(Debug)]
-pub enum Op {
-    /// Store accumulator into already existing identifier
-    StoreVariable(Ustr),
-    /// Declare a new variable and store accumulator into it
-    DeclareVariable(Ustr),
-    /// Store identifier into accumulator
-    LoadVariable(Ustr),
-    /// Load value into accumulator
-    LoadImmediate(Value),
+pub struct Bundle {
+    pub consts: Vec<Value>,
+    pub code: Vec<Op>,
+    pub foreign_idents: UstrSet,
+}
 
-    /// Store accumulator into the operand register
-    StoreOperand,
-
-    /// Move the programcounter if accumulator is truthy
-    JumpIfTrue(usize),
-    /// Move the programcounter if accumulator is NOT truthy
-    JumpIfFalse(usize),
-    /// Move the programcounter
-    Jump(usize),
-
-    /// Performs the operation on the accumulator
-    UnaryOperation(UnaryOp),
-    /// Performs the operation between the operand register and the accumulator
-    BinaryOperation(BinaryOp),
+#[derive(Debug, Default)]
+enum CompileContext {
+    #[default]
+    Global,
+    Function,
 }
 
 #[derive(Debug, Default)]
 pub struct Compiler {
-    /// A stack of indicies for where to insert continue and break jump indicies
-    controlflow: Vec<Vec<(Controlflow, usize)>>,
-
-    block: Vec<Op>,
-}
-
-#[derive(Debug)]
-enum Controlflow {
-    Continue,
-    Break,
+    context: CompileContext,
+    consts: Vec<Value>,
+    code: Vec<Op>,
+    declared_idents: UstrSet,
+    foreign_idents: UstrSet,
 }
 
 impl Compiler {
-    pub fn compile_program(asts: &[Ast]) -> Result<Block> {
-        let mut compiler = Self::default();
-        for Ast { node, .. } in asts {
-            compiler.compile_node(node)?;
+    pub fn compile(mut self, asts: &[Ast]) -> Result<Bundle> {
+        for ast in asts {
+            self.compile_node(&ast.node)?;
         }
-        Ok(compiler.block)
+        Ok(Bundle {
+            code: self.code,
+            consts: self.consts,
+            foreign_idents: self.foreign_idents,
+        })
     }
 
     fn compile_node(&mut self, node: &Node) -> Result<()> {
         match node {
-            Node::Ident(ident) => self.block.push(Op::LoadVariable(*ident)),
-            Node::Literal(literal) => self.block.push(Op::LoadImmediate(*literal)),
+            Node::VariableDeclaration { ident, value } => {
+                if let Some(value) = value {
+                    self.compile_node(&value.node)?;
+                } else {
+                    self.code.push(Op::LoadConst(Value::Undefined))
+                }
+                self.declared_idents.insert(*ident);
+                self.code.push(Op::DeclareVar(*ident))
+            }
+            Node::Ident(ident) => {
+                if !self.declared_idents.contains(ident) {
+                    self.foreign_idents.insert(*ident);
+                }
+                // if self.declared_idents.contains(ident) {
+                //     self.code.push(Op::LoadFast(*ident));
+                // } else {
+                //     self.code.push(Op::Load(*ident));
+                // }
+                self.code.push(Op::Load(*ident));
+            }
+            Node::Literal(value) => self.code.push(Op::LoadConst(value.clone())),
             Node::If {
                 branches,
                 else_block,
             } => {
-                for (branch_index, (predicate, body)) in branches.iter().enumerate() {
-                    let should_handle_else_branch =
-                        else_block.is_some() && branch_index == branches.len() - 1;
+                for (i, (predicate, body)) in branches.iter().enumerate() {
+                    let is_final_predicate = i == branches.len() - 1;
 
                     self.compile_node(&predicate.node)?;
+                    let start_of_body_index = self.code.len();
+                    self.code.push(Op::JumpIfFalse(0));
 
-                    // If the predicate is false, jump over the body
-                    // The jump location will be changed after body length is known
-                    let predicate_jump_index = self.block.len();
-                    self.block.push(Op::JumpIfFalse(0));
-
-                    // Compile the body of the predicate
-                    let start_of_body_index = self.block.len();
-                    for ast in body.iter() {
+                    for ast in body {
                         self.compile_node(&ast.node)?;
                     }
 
-                    let else_jump_index = self.block.len();
-                    if should_handle_else_branch {
-                        // Skip the else body if we did not jump past it when the predicate was falsy
-                        // The jump length will be set after the else body is compiled
-                        self.block.push(Op::Jump(0));
+                    if is_final_predicate && else_block.is_some() {
+                        // Jump to skip final else block
+                        self.code.push(Op::Jump(0))
                     }
 
-                    // Set the jump instruction before the body to skip the body if the predicate is falsy
-                    self.block[predicate_jump_index] = Op::JumpIfFalse(self.block.len());
+                    let end_of_body_index = self.code.len();
 
-                    if should_handle_else_branch {
-                        if let Some(else_body) = else_block {
-                            for ast in else_body.iter() {
+                    let Some(Op::JumpIfFalse(ref mut jump)) =
+                        self.code.get_mut(start_of_body_index)
+                    else {
+                        bail!("Jump operation was not at the expected index")
+                    };
+                    *jump = end_of_body_index as isize - start_of_body_index as isize;
+
+                    if is_final_predicate {
+                        if let Some(else_block) = else_block {
+                            let start_of_else_index = end_of_body_index - 1;
+                            for ast in else_block {
                                 self.compile_node(&ast.node)?;
                             }
+                            let end_of_else_block = self.code.len();
 
-                            // Point the jump instruction to after the body to skip the body if we fell through from the last predicate
-                            // The jump will be skipped by the predicate jump if it was false
-                            self.block[else_jump_index] = Op::Jump(self.block.len())
+                            let Some(Op::Jump(ref mut jump)) =
+                                self.code.get_mut(start_of_else_index)
+                            else {
+                                bail!("Jump operation was not at the expected index")
+                            };
+                            *jump = end_of_else_block as isize - start_of_else_index as isize;
                         }
                     }
                 }
             }
-            Node::While { predicate, body } => {
-                let start_of_loop_index = self.block.len();
+            Node::While {
+                label,
+                predicate,
+                body,
+            } => {
+                let block_push_index = self.code.len();
+                self.code.push(Op::PushBlock(BlockType::Loop {
+                    label: *label,
+                    loop_length: 0,
+                }));
+
+                let start_of_loop_index = self.code.len();
                 self.compile_node(&predicate.node)?;
+                let predicate_jump_index = self.code.len();
+                self.code.push(Op::JumpIfFalse(0));
 
-                let predicate_jump_index = self.block.len();
-                self.block.push(Op::JumpIfFalse(0));
-
-                self.controlflow.push(Vec::new());
-                for ast in body.iter() {
+                for ast in body {
                     self.compile_node(&ast.node)?;
                 }
+                let end_jump_index = self.code.len();
+                self.code.push(Op::Jump(0));
+                let end_of_loop_index = self.code.len();
 
-                self.block.push(Op::Jump(start_of_loop_index));
+                self.code.push(Op::PopBlock);
 
-                // Set predicate jump to after the while loop
-                self.block[predicate_jump_index] = Op::JumpIfFalse(self.block.len());
+                let Some(Op::JumpIfFalse(ref mut jump)) = self.code.get_mut(predicate_jump_index)
+                else {
+                    bail!("Jump operation was not at the expected index")
+                };
+                *jump = end_of_loop_index as isize - predicate_jump_index as isize;
 
-                for (control, index) in self
-                    .controlflow
-                    .pop()
-                    .expect("Scope for this loop to exist")
-                {
-                    self.block[index] = match control {
-                        Controlflow::Break => Op::Jump(self.block.len()),
-                        Controlflow::Continue => Op::Jump(start_of_loop_index),
-                    };
-                }
+                let Some(Op::Jump(ref mut jump)) = self.code.get_mut(end_jump_index) else {
+                    bail!("Jump operation was not at the expected index")
+                };
+                *jump = start_of_loop_index as isize - end_jump_index as isize;
+
+                let Some(Op::PushBlock(ref mut block)) = self.code.get_mut(block_push_index) else {
+                    bail!("Block push was not at the expected index")
+                };
+                *block = BlockType::Loop {
+                    label: *label,
+                    loop_length: end_of_loop_index - start_of_loop_index,
+                };
             }
-            Node::Break => {
-                self.controlflow
-                    .first_mut()
-                    .context("Controlflow stack to be created by loop for break node")?
-                    .push((Controlflow::Break, self.block.len()));
-                self.block.push(Op::Jump(0));
+            Node::FunctionDeclaration {
+                ident,
+                arguments,
+                body,
+            } => {
+                let mut compiler = Self::default();
+                compiler.context = CompileContext::Function;
+                compiler.declared_idents.extend(arguments);
+                let function_bundle = compiler.compile(&body)?;
+                self.code.push(Op::LoadConst(Value::Function(
+                    Function {
+                        arguments: arguments.to_owned(),
+                        code: function_bundle.code,
+                        constants: function_bundle.consts,
+                        foreign_idents: function_bundle.foreign_idents,
+                    }
+                    .into(),
+                )));
+
+                self.declared_idents.insert(*ident);
+                self.code.push(Op::DeclareVar(*ident))
             }
-            Node::Continue => {
-                self.controlflow
-                    .first_mut()
-                    .context("Controlflow stack to be created by loop for continue node")?
-                    .push((Controlflow::Continue, self.block.len()));
-                self.block.push(Op::Jump(0));
+            Node::ClosureDeclaration { arguments, body } => {
+                let mut compiler = Self::default();
+                compiler.context = CompileContext::Function;
+                compiler.declared_idents.extend(arguments);
+                let function_bundle = compiler.compile(&body)?;
+
+                self.code.push(Op::MakeClosure(
+                    Function {
+                        arguments: arguments.to_owned(),
+                        code: function_bundle.code,
+                        constants: function_bundle.consts,
+                        foreign_idents: function_bundle.foreign_idents,
+                    }
+                    .into(),
+                ));
             }
-            Node::VariableDeclaration { ident, value } => {
-                if let Some(ast) = value {
+            Node::FunctionCall { calling, arguments } => {
+                for ast in arguments {
                     self.compile_node(&ast.node)?;
                 }
-                self.block.push(Op::DeclareVariable(*ident));
+                self.compile_node(&calling.node)?;
+                self.code.push(Op::Call(arguments.len()));
             }
-            Node::FunctionDeclaration { .. } => todo!("FunctionDeclaration"),
             Node::Assignment { ident, value } => {
                 self.compile_node(&value.node)?;
-                self.block.push(Op::StoreVariable(*ident));
+                self.code.push(Op::Store(*ident))
             }
-            Node::Return(_) => todo!("Return"),
-            Node::UnaryOp(operation, value) => {
-                self.compile_node(&value.node)?;
-                self.block.push(Op::UnaryOperation(*operation));
+            Node::Return(return_value) => {
+                if let Some(value) = return_value {
+                    self.compile_node(&value.node)?;
+                } else {
+                    self.code.push(Op::LoadConst(Value::Undefined));
+                }
+                self.code.push(Op::Return);
             }
-            Node::BinaryOp(operation, lhs, rhs) => {
+            Node::Break { label } => {
+                self.code.push(Op::Break(*label));
+            }
+            Node::Continue { label } => {
+                self.code.push(Op::Continue(*label));
+            }
+            Node::UnaryOp(op, ast) => {
+                self.compile_node(&ast.node)?;
+                self.code.push(Op::UnaryOp(*op))
+            }
+            Node::BinaryOp(op, lhs, rhs) => {
                 self.compile_node(&lhs.node)?;
-                self.block.push(Op::StoreOperand);
                 self.compile_node(&rhs.node)?;
-                self.block.push(Op::BinaryOperation(*operation));
+                self.code.push(Op::BinaryOp(*op))
             }
-            Node::FunctionCall { calling, arguments } => todo!(),
-            Node::ClosureDeclaration { arguments, body } => todo!(),
         }
+
         Ok(())
     }
 }

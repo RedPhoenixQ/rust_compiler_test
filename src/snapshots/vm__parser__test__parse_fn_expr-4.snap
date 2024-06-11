@@ -3,14 +3,14 @@ source: src/parser.rs
 expression: "fn_statement(\"fn incomplete_args(a { 123; }\".into())"
 ---
 Err(
-    Error(
+    Failure(
         VerboseError {
             errors: [
                 (
                     LocatedSpan {
-                        offset: 20,
+                        offset: 21,
                         line: 1,
-                        fragment: " { 123; }",
+                        fragment: "{ 123; }",
                         extra: (),
                     },
                     Char(

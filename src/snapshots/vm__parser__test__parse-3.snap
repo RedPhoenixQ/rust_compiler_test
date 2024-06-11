@@ -39,6 +39,7 @@ Ok(
             },
             Ast {
                 node: While {
+                    label: None,
                     predicate: Ast {
                         node: BinaryOp(
                             Lt,

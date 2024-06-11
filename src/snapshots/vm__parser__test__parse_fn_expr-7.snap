@@ -3,7 +3,7 @@ source: src/parser.rs
 expression: "fn_statement(\"fn missing_block_end() { 123; \".into())"
 ---
 Err(
-    Error(
+    Failure(
         VerboseError {
             errors: [
                 (
@@ -19,13 +19,13 @@ Err(
                 ),
                 (
                     LocatedSpan {
-                        offset: 30,
+                        offset: 22,
                         line: 1,
-                        fragment: "",
+                        fragment: " { 123; ",
                         extra: (),
                     },
                     Context(
-                        "End of function block",
+                        "Function body",
                     ),
                 ),
                 (

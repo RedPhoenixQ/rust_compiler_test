@@ -1,100 +1,375 @@
-use std::{cell::Cell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use anyhow::{bail, Result};
 
+mod builtins;
+mod bytecode;
 mod compiler;
 mod parser;
 mod value;
 
-use compiler::{Block, Compiler};
+use builtins::Builtin;
+use bytecode::Op;
+use compiler::Bundle;
+// use compiler::{Bundle, Compiler};
 use ustr::{Ustr, UstrMap};
-use value::Value;
+use value::{Closure, Function, Value, Variable};
 
-use crate::compiler::Op;
-
-pub type Scope = UstrMap<Rc<Cell<Value>>>;
+type Scope = UstrMap<Variable>;
 
 #[derive(Debug)]
-pub struct Closure {
-    scope: Scope,
-    ops: Box<[Op]>,
+enum Block {
+    Loop {
+        label: Option<Ustr>,
+        start_index: usize,
+        end_index: usize,
+    },
 }
 
 #[derive(Debug, Default)]
+struct CallFrame {
+    locals: Scope,
+    eval_stack: Vec<Value>,
+    block_stack: Vec<Block>,
+}
+
+#[derive(Debug)]
 pub struct VM {
-    reg_accumulator: Value,
-    reg_operand: Value,
+    call_stack: Vec<CallFrame>,
     global_scope: Scope,
+    global_eval: Vec<Value>,
+    global_block_stack: Vec<Block>,
+    pub debug: bool,
 }
 
 impl VM {
-    pub fn get_accumulator(&self) -> Value {
-        self.reg_accumulator
+    pub fn new(debug: bool) -> Self {
+        VM {
+            call_stack: Vec::new(),
+            global_eval: Vec::new(),
+            global_block_stack: Vec::new(),
+            global_scope: builtins::get_builtins(),
+            debug,
+        }
     }
 
-    pub fn get_ident_value(&self, ident: &Ustr) -> Option<Value> {
-        self.global_scope.get(ident).map(|val| val.as_ref().get())
+    pub fn eval_str(&mut self, input: &str) -> Result<Value> {
+        let bundle = Self::compile_str(input)?;
+
+        self.eval(&bundle.code)?;
+
+        self.global_eval.pop().ok_or(anyhow::anyhow!(
+            "Expected atleast one value in the eval stack"
+        ))
     }
 
-    pub fn compile_str(code: &str) -> Result<Block> {
-        let (_, asts) = parser::parse_code(code).map_err(|err| anyhow::anyhow!(err.to_string()))?;
-        Compiler::compile_program(&asts)
+    pub fn compile_str(input: &str) -> Result<Bundle> {
+        let (_, ast) = parser::parse_code(input).map_err(|e| anyhow::anyhow!("{e:?}"))?;
+
+        compiler::Compiler::default().compile(&ast)
     }
 
-    pub fn eval_ops(&mut self, ops: &[Op]) -> Result<()> {
-        let mut program_counter = 0;
-        while let Some(op) = ops.get(program_counter) {
-            dbg!(program_counter, op, self.reg_accumulator);
+    pub fn eval(&mut self, ops: &[Op]) -> Result<Value> {
+        let mut pc = 0;
+
+        while let Some(op) = ops.get(pc) {
+            if self.debug {
+                println!("Running {}:{pc}: {op:?}", self.call_stack.len());
+            }
             match op {
-                Op::StoreVariable(ident) => {
-                    let Some(var) = self.global_scope.get(ident) else {
-                        bail!("Variable {} is not declared", ident)
+                Op::LoadFast(key) => {
+                    let value = self
+                        .call_stack
+                        .last_mut()
+                        .ok_or(anyhow::anyhow!("Expected atleast one callstack to exist"))?
+                        .locals
+                        .get(key)
+                        .ok_or(anyhow::anyhow!("Expected {key} to exist in local scope"))?
+                        .borrow()
+                        .clone();
+                    self.push_eval_stack(value);
+                }
+                Op::Load(ident) => {
+                    let value = self.get_ident_value(ident)?;
+                    self.push_eval_stack(value);
+                }
+                Op::LoadConst(value) => {
+                    self.push_eval_stack(value.clone());
+                }
+                Op::DeclareVar(ident) => {
+                    let value = self.pop_eval_stack()?;
+                    let scope = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.locals
+                    } else {
+                        &mut self.global_scope
                     };
-                    var.as_ref().replace(self.reg_accumulator);
+                    if let Some(var) = scope.get_mut(ident) {
+                        var.replace(value);
+                    } else {
+                        scope.insert(*ident, Rc::new(value.into()));
+                    }
                 }
-                Op::DeclareVariable(ident) => {
-                    let var = Rc::new(Cell::new(self.reg_accumulator));
-                    self.global_scope.insert(*ident, var);
-                }
-                Op::LoadVariable(ident) => {
-                    let Some(var) = self.get_ident_value(ident) else {
-                        bail!("Variable {} is not declared", ident)
+                Op::StoreFast(ident) => {
+                    let value = self.pop_eval_stack()?;
+                    let scope = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.locals
+                    } else {
+                        &mut self.global_scope
                     };
-                    self.reg_accumulator = var;
+                    let Some(var) = scope.get_mut(ident) else {
+                        bail!(
+                            "Cannot assign to an undeclared variable, tried to assign to {ident}",
+                        );
+                    };
+                    var.replace(value);
                 }
-                Op::LoadImmediate(value) => self.reg_accumulator = *value,
-
-                Op::StoreOperand => self.reg_operand = self.reg_accumulator,
-
-                Op::Jump(location) => {
-                    program_counter = *location;
+                Op::Store(ident) => {
+                    let value = self.pop_eval_stack()?;
+                    let Some(var) = (match self
+                        .call_stack
+                        .iter_mut()
+                        .rev()
+                        .find_map(|frame| frame.locals.get(ident))
+                    {
+                        Some(var) => Some(var),
+                        None => self.global_scope.get(ident),
+                    }) else {
+                        bail!(
+                            "Cannot assign to an undeclared variable, tried to assign to {ident}",
+                        );
+                    };
+                    var.replace(value);
+                }
+                Op::Jump(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    if jump.is_positive() {
+                        pc += *jump as usize
+                    } else {
+                        pc -= jump.abs() as usize
+                    }
                     continue;
                 }
-                Op::JumpIfTrue(location) => {
-                    if self.reg_accumulator.is_truthy() {
-                        program_counter = *location;
+                Op::JumpIfTrue(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    let value = self.pop_eval_stack()?;
+                    if value.is_truthy() {
+                        if jump.is_positive() {
+                            pc += *jump as usize
+                        } else {
+                            pc -= jump.abs() as usize
+                        }
                         continue;
                     }
                 }
-                Op::JumpIfFalse(location) => {
-                    if !self.reg_accumulator.is_truthy() {
-                        program_counter = *location;
+                Op::JumpIfFalse(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    let value = self.pop_eval_stack()?;
+                    if !value.is_truthy() {
+                        if jump.is_positive() {
+                            pc += *jump as usize
+                        } else {
+                            pc -= jump.abs() as usize
+                        }
                         continue;
                     }
                 }
+                Op::BinaryOp(op) => {
+                    let rhs = self.pop_eval_stack()?;
+                    let lhs = self.pop_eval_stack()?;
+                    let value = lhs.eval_binary_op(&rhs, op)?;
+                    self.push_eval_stack(value);
+                }
+                Op::UnaryOp(op) => {
+                    let value = self.pop_eval_stack()?;
+                    let value = value.eval_unary_op(op)?;
+                    self.push_eval_stack(value);
+                }
+                Op::PushBlock(block) => {
+                    let block_stack = match self.call_stack.last_mut() {
+                        Some(frame) => &mut frame.block_stack,
+                        None => &mut self.global_block_stack,
+                    };
 
-                Op::UnaryOperation(operation) => {
-                    self.reg_accumulator = self.reg_accumulator.eval_unary_op(operation)?;
+                    let block = match block {
+                        bytecode::BlockType::Loop { label, loop_length } => Block::Loop {
+                            label: *label,
+                            start_index: pc,
+                            end_index: pc + loop_length,
+                        },
+                    };
+                    block_stack.push(block);
                 }
-                Op::BinaryOperation(operation) => {
-                    self.reg_accumulator = self
-                        .reg_operand
-                        .eval_binary_op(self.reg_accumulator, operation)?;
+                Op::PopBlock => {
+                    let block_stack = match self.call_stack.last_mut() {
+                        Some(frame) => &mut frame.block_stack,
+                        None => &mut self.global_block_stack,
+                    };
+                    block_stack.pop();
+                }
+                Op::MakeClosure(function) => {
+                    let function = function.clone();
+                    if function.foreign_idents.len() > 0 {
+                        let mut scope = Scope::default();
+                        for ident in function.foreign_idents.iter() {
+                            if let Some(var) = match self
+                                .call_stack
+                                .iter()
+                                .rev()
+                                .find_map(|frame| frame.locals.get(ident).cloned())
+                            {
+                                Some(var) => Some(var),
+                                None => self.global_scope.get(ident).cloned(),
+                            } {
+                                scope.insert(*ident, var);
+                            };
+                        }
+                        self.push_eval_stack(Value::Closure(Closure { function, scope }.into()));
+                    } else {
+                        self.push_eval_stack(Value::Function(function));
+                    }
+                }
+                Op::Call(number_of_arguments) => {
+                    enum Call {
+                        Builtin(Builtin),
+                        Function {
+                            function: Rc<Function>,
+                            locals: Scope,
+                        },
+                    }
+                    match match self.pop_eval_stack()? {
+                        Value::BuiltInFunction(builtin) => Call::Builtin(builtin),
+                        Value::Closure(closure) => Call::Function {
+                            function: closure.function.clone(),
+                            locals: closure.scope.clone(),
+                        },
+                        Value::Function(function) => Call::Function {
+                            function,
+                            locals: Scope::default(),
+                        },
+                        calling => bail!("Attempting to call a non function, called {:?}", calling),
+                    } {
+                        Call::Builtin(builtin) => {
+                            let return_value = builtin.call(self, *number_of_arguments)?;
+                            self.push_eval_stack(return_value);
+                        }
+                        Call::Function {
+                            function,
+                            mut locals,
+                        } => {
+                            locals.reserve(function.arguments.len());
+
+                            for i in 0..*number_of_arguments {
+                                let argument = self.pop_eval_stack()?;
+                                let name = *function
+                                    .arguments
+                                    .get(i)
+                                    .expect("Function arguments to exist");
+                                locals.insert(name, Rc::new(argument.into()));
+                            }
+
+                            self.call_stack.push(CallFrame {
+                                locals,
+                                ..Default::default()
+                            });
+                            let return_value = self.eval(&function.code)?;
+                            self.call_stack.pop();
+                            self.push_eval_stack(return_value);
+                        }
+                    };
+                }
+                Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
+                Op::Break(break_label) => {
+                    let block_stack = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.block_stack
+                    } else {
+                        &mut self.global_block_stack
+                    };
+                    let Some(end_index) = block_stack.iter().rev().find_map(|block| match block {
+                        Block::Loop {
+                            label, end_index, ..
+                        } if break_label.is_none()
+                            || matches!(label, Some(label) if label == &break_label.unwrap()) =>
+                        {
+                            Some(*end_index)
+                        }
+                        _ => None,
+                    }) else {
+                        bail!("Cannot break outside a loop")
+                    };
+                    pc = end_index;
+                }
+                Op::Continue(continue_label) => {
+                    let block_stack = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.block_stack
+                    } else {
+                        &mut self.global_block_stack
+                    };
+                    let Some(start_index) =
+                        block_stack.iter().rev().find_map(|block| match block {
+                            Block::Loop {
+                                label, start_index, ..
+                            } if continue_label.is_none()
+                                || matches!(label, Some(label) if label == &continue_label.unwrap()) =>
+                            {
+                                Some(*start_index)
+                            }
+                            _ => None,
+                        })
+                    else {
+                        bail!("Cannot continue outside a loop")
+                    };
+                    pc = start_index;
                 }
             }
-            program_counter += 1;
+
+            pc += 1;
         }
-        Ok(())
+
+        Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
+    }
+
+    fn peek_eval_stack(&mut self) -> Option<&Value> {
+        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
+            &mut frame.eval_stack
+        } else {
+            &mut self.global_eval
+        };
+        eval_stack.last()
+    }
+    fn pop_eval_stack(&mut self) -> Result<Value> {
+        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
+            &mut frame.eval_stack
+        } else {
+            &mut self.global_eval
+        };
+        eval_stack
+            .pop()
+            .ok_or(anyhow::anyhow!("Eval stack to not be empty"))
+    }
+    fn push_eval_stack(&mut self, value: Value) {
+        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
+            &mut frame.eval_stack
+        } else {
+            &mut self.global_eval
+        };
+        eval_stack.push(value);
+    }
+
+    fn get_ident_value(&self, ident: &ustr::Ustr) -> Result<Value> {
+        Ok(if let Some(var) = self
+            .call_stack
+            .iter()
+            .rev()
+            .find_map(|frame| frame.locals.get(ident))
+        {
+            Ok(var)
+        } else {
+            self.global_scope
+                .get(ident)
+                .ok_or(anyhow::anyhow!("{ident} is not defined in any scope"))
+        }?
+        .borrow()
+        .clone())
     }
 }
 
@@ -104,62 +379,65 @@ mod test {
 
     #[test]
     fn binary_operation() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str("1 + 2").unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let bundle = VM::compile_str("1 + 2").unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
 
-        assert_eq!(Value::Int(3), vm.get_accumulator())
+        assert_eq!(Value::Int(3), value);
     }
 
     #[test]
     fn basic_variables() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             "let one = 1;
             let two = 2;
             let one_again = one;
             one = 3",
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
-        assert_eq!(Some(Value::Int(3)), vm.get_ident_value(&"one".into()));
-        assert_eq!(Some(Value::Int(2)), vm.get_ident_value(&"two".into()));
-        assert_eq!(Some(Value::Int(1)), vm.get_ident_value(&"one_again".into()));
+        let _value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(Some(Value::Int(3)), vm.get_ident_value(&"one".into()).ok());
+        assert_eq!(Some(Value::Int(2)), vm.get_ident_value(&"two".into()).ok());
+        assert_eq!(
+            Some(Value::Int(1)),
+            vm.get_ident_value(&"one_again".into()).ok()
+        );
     }
 
     #[test]
     fn basic_if() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (true) {
                 "then_branch";
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_true_no_else = vm.eval(&bundle.code).unwrap();
         assert_eq!(
             Value::String("then_branch".into()),
-            vm.get_accumulator(),
+            if_true_no_else,
             "if_true_no_else"
         );
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (false) {
                 "then_branch";
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_false_no_else = vm.eval(&bundle.code).unwrap();
         assert_ne!(
             Value::String("then_branch".into()),
-            vm.get_accumulator(),
+            if_false_no_else,
             "if_false_no_else"
         );
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (true) {
                 "then_branch";
             } else {
@@ -167,14 +445,14 @@ mod test {
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_false_else = vm.eval(&bundle.code).unwrap();
         assert_eq!(
             Value::String("then_branch".into()),
-            vm.get_accumulator(),
+            if_false_else,
             "if_false_else"
         );
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"if (false) {
                 "then_branch";
             } else {
@@ -182,19 +460,19 @@ mod test {
             }"#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let if_false_else = vm.eval(&bundle.code).unwrap();
         assert_eq!(
             Value::String("else_branch".into()),
-            vm.get_accumulator(),
+            if_false_else,
             "if_false_else"
         );
     }
 
     #[test]
     fn basic_loops() {
-        let mut vm = VM::default();
+        let mut vm = VM::new(true);
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"
             let b = 1;
             let i = 0;
@@ -206,10 +484,10 @@ mod test {
             "#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
-        assert_eq!(Value::Int(8), vm.get_accumulator(), "while 2^3 == 8");
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(Value::Int(8), value, "while 2^3 == 8");
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"
             let i = 0;
             while (true) {
@@ -222,10 +500,10 @@ mod test {
             "#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
-        assert_eq!(Value::Int(6), vm.get_accumulator(), "while break i > 5");
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(Value::Int(6), value, "while break i > 5");
 
-        let ops = VM::compile_str(
+        let bundle = VM::compile_str(
             r#"
             let s = "";
             let i = 0;
@@ -240,11 +518,63 @@ mod test {
             "#,
         )
         .unwrap();
-        vm.eval_ops(&ops).unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
         assert_eq!(
             Value::String("23".into()),
-            vm.get_accumulator(),
+            value,
             "while continue to skip index 1"
+        );
+
+        let bundle = VM::compile_str(
+            r#"
+            let s = "";
+            let i = 0;
+            outer: while (i < 3) {
+                i += 1;
+                let x = 0;
+                while (x < 3) {
+                    x += 1;
+                    s += x;
+                    if (i == 2 && x == 2) {
+                        break :outer;
+                    }
+                }
+            }
+            s;
+            "#,
+        )
+        .unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(
+            Value::String("12312".into()),
+            value,
+            "while break outer at inner index 2"
+        );
+
+        let bundle = VM::compile_str(
+            r#"
+            let s = "";
+            let i = 0;
+            outer: while (i < 3) {
+                i += 1;
+                let x = 0;
+                while (x < 3) {
+                    x += 1;
+                    s += x;
+                    if (i == 2 && x == 2) {
+                        continue :outer;
+                    }
+                }
+            }
+            s;
+            "#,
+        )
+        .unwrap();
+        let value = vm.eval(&bundle.code).unwrap();
+        assert_eq!(
+            Value::String("12312123".into()),
+            value,
+            "while continue outer at inner index 2"
         );
     }
 }

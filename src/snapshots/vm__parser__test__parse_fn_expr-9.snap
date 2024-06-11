@@ -3,7 +3,7 @@ source: src/parser.rs
 expression: "fn_statement(\"fn \".into())"
 ---
 Err(
-    Error(
+    Failure(
         VerboseError {
             errors: [
                 (

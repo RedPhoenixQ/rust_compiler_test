@@ -3,7 +3,7 @@ source: src/parser.rs
 expression: "while_statement(\"while () { 123; }\".into())"
 ---
 Err(
-    Error(
+    Failure(
         VerboseError {
             errors: [
                 (

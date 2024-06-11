@@ -1,18 +1,20 @@
 ---
 source: src/parser.rs
-expression: "while_statement(\"while (true) { break; }\".into())"
+expression: "while_statement(\"outer: while (true) { break :outer; }\".into())"
 ---
 Ok(
     (
         LocatedSpan {
-            offset: 23,
+            offset: 37,
             line: 1,
             fragment: "",
             extra: (),
         },
         Ast {
             node: While {
-                label: None,
+                label: Some(
+                    u!("outer"),
+                ),
                 predicate: Ast {
                     node: Literal(
                         Boolean(
@@ -20,7 +22,7 @@ Ok(
                         ),
                     ),
                     span: LocatedSpan {
-                        offset: 7,
+                        offset: 14,
                         line: 1,
                         fragment: "true",
                         extra: (),
@@ -29,12 +31,14 @@ Ok(
                 body: [
                     Ast {
                         node: Break {
-                            label: None,
+                            label: Some(
+                                u!("outer"),
+                            ),
                         },
                         span: LocatedSpan {
-                            offset: 15,
+                            offset: 22,
                             line: 1,
-                            fragment: "break",
+                            fragment: "break :outer",
                             extra: (),
                         },
                     },
@@ -43,7 +47,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "while (true) { break; }",
+                fragment: "outer: while (true) { break :outer; }",
                 extra: (),
             },
         },
