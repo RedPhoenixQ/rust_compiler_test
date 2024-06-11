@@ -11,7 +11,6 @@ mod value;
 use builtins::Builtin;
 use bytecode::Op;
 use compiler::Bundle;
-// use compiler::{Bundle, Compiler};
 use ustr::{Ustr, UstrMap};
 use value::{Closure, Function, Value, Variable};
 
@@ -64,7 +63,37 @@ impl VM {
     }
 
     pub fn compile_str(input: &str) -> Result<Bundle> {
-        let (_, ast) = parser::parse_code(input).map_err(|e| anyhow::anyhow!("{e:?}"))?;
+        let ast = parser::parse_code(input).map_err(|e| {
+            anyhow::anyhow!(
+                "{}",
+                e.map_locations(|span| {
+                    let line_skip = span.location_line().saturating_sub(3);
+                    let mut lines = input.lines().skip(line_skip as usize);
+
+                    let mut string = String::new();
+                    string.push('"');
+                    for _ in 0..(span.location_line() - line_skip) {
+                        if let Some(line) = lines.next() {
+                            string.push('\n');
+                            string.push_str(line);
+                        }
+                    }
+
+                    string.push('\n');
+                    string.extend([' '].iter().cycle().take(span.get_utf8_column() - 1));
+                    string.push('^');
+
+                    for line in lines.take(2) {
+                        string.push('\n');
+                        string.push_str(line);
+                    }
+                    string.push('\n');
+                    string.push('"');
+
+                    string
+                })
+            )
+        })?;
 
         compiler::Compiler::default().compile(&ast)
     }
@@ -321,6 +350,7 @@ impl VM {
         Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
     }
 
+    #[allow(unused)]
     fn peek_eval_stack(&mut self) -> Option<&Value> {
         let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
             &mut frame.eval_stack
