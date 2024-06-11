@@ -223,7 +223,7 @@ Ok(
             span: LocatedSpan {
                 offset: 63,
                 line: 4,
-                fragment: "if (b < a) {\n                \"b SHOULD NOT be less than a\";\n            } else {\n                \"b (\" + b + \") is greater than a (\" + a + \")\";\n            }\n            ",
+                fragment: "if (b < a) {\n                \"b SHOULD NOT be less than a\";\n            } else {\n                \"b (\" + b + \") is greater than a (\" + a + \")\";\n            }",
                 extra: (),
             },
         },

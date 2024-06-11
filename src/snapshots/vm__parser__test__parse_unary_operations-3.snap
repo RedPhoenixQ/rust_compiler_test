@@ -5,9 +5,9 @@ expression: "unary_operation_expr(\"!(a || b) + c\".into())"
 Ok(
     (
         LocatedSpan {
-            offset: 10,
+            offset: 9,
             line: 1,
-            fragment: "+ c",
+            fragment: " + c",
             extra: (),
         },
         Ast {

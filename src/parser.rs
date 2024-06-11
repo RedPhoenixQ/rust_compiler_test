@@ -110,7 +110,7 @@ impl BinaryOp {
 }
 
 pub fn parse_code<'a>(input: impl Into<Span<'a>>) -> Result<Vec<Ast<'a>>, ErrorTree<Span<'a>>> {
-    final_parser(preceded(multispace0, many1(statement)))(input.into())
+    final_parser(preceded(multispace0, many1(ws(statement))))(input.into())
 }
 
 fn statement(input: Span) -> SResult<Ast> {
@@ -122,7 +122,7 @@ fn statement(input: Span) -> SResult<Ast> {
         assignment_statement,
         return_statement,
         controlflow_statement,
-        terminated(ws(expr), ws(terminator)),
+        terminated(ws(expr), terminator.cut()),
     ))
     .context("Statement")
     .parse(input)
@@ -146,13 +146,11 @@ fn value_expr(input: Span) -> SResult<Ast> {
 }
 
 fn let_statement(input: Span) -> SResult<Ast> {
-    terminated(
-        consumed(preceded(
-            ws(tag("let")),
-            pair(ws(ident), preceded(ws(tag("=")), expr).map(Box::new).opt()).cut(),
-        )),
-        ws(terminator).cut(),
-    )
+    ws(consumed(preceded(
+        ws(tag("let")),
+        pair(ws(ident), preceded(ws(tag("=")), expr).map(Box::new).opt()).cut(),
+    )))
+    .terminated(terminator.cut())
     .context("Variable declaration")
     .map(|(span, (ident, value))| Ast {
         node: Node::VariableDeclaration { ident, value },
@@ -166,22 +164,22 @@ fn if_statement(input: Span) -> SResult<Ast> {
         preceded(
             ws(keyword("if")),
             pair(
-                delimited(ws(char('(')), expr, ws(char(')'))).context("If predicate"),
-                delimited(ws(char('{')), many1(statement), ws(char('}'))).context("If body"),
+                delimited(ws(char('(')), ws(expr), ws(char(')'))).context("If predicate"),
+                delimited(ws(char('{')), many1(ws(statement)), ws(char('}'))).context("If body"),
             )
             .cut(),
         ),
         many0(preceded(
-            pair(ws(keyword("else")), ws(keyword("if"))),
+            pair(ws(keyword("else")), ws(keyword("if"))).preceded_by(multispace0),
             pair(
-                delimited(ws(char('(')), expr, ws(char(')'))).context("Else if predicate"),
-                delimited(ws(char('{')), many1(statement), ws(char('}'))).context("Else if body"),
+                delimited(ws(char('(')), ws(expr), ws(char(')'))).context("Else if predicate"),
+                delimited(ws(char('{')), many1(ws(statement)), char('}')).context("Else if body"),
             )
             .cut(),
         )),
         preceded(
-            ws(keyword("else")),
-            delimited(ws(char('{')), many1(statement), ws(char('}')))
+            ws(keyword("else")).preceded_by(multispace0),
+            delimited(ws(char('{')), many1(ws(statement)), char('}'))
                 .context("Else block")
                 .cut(),
         )
@@ -203,15 +201,15 @@ fn if_statement(input: Span) -> SResult<Ast> {
 }
 
 fn while_statement(input: Span) -> SResult<Ast> {
-    ws(consumed(tuple((
-        terminated(ws(terminated(ident, char(':'))).opt(), ws(keyword("while"))),
-        delimited(ws(char('(')), expr, ws(char(')')))
+    consumed(tuple((
+        ws(ident.terminated(char(':')).opt()).terminated(ws(keyword("while"))),
+        delimited(ws(char('(')), ws(expr), ws(char(')')))
             .context("While predicate")
             .cut(),
-        delimited(ws(char('{')), many1(statement), char('}'))
+        delimited(ws(char('{')), many1(ws(statement)), char('}'))
             .context("While body")
             .cut(),
-    ))))
+    )))
     .context("While loop")
     .map(|(span, (label, predicate, body))| Ast {
         node: Node::While {
@@ -225,18 +223,18 @@ fn while_statement(input: Span) -> SResult<Ast> {
 }
 
 fn fn_statement(input: Span) -> SResult<Ast> {
-    ws(consumed(preceded(
+    consumed(preceded(
         ws(keyword("fn")),
         tuple((
             ws(ident).cut(),
             delimited(ws(char('(')), arguments, ws(char(')')))
                 .context("Function arguments")
                 .cut(),
-            delimited(ws(char('{')), many1(statement), char('}'))
+            delimited(ws(char('{')), many1(ws(statement)), char('}'))
                 .context("Function body")
                 .cut(),
         )),
-    )))
+    ))
     .context("Function declaration")
     .map(|(span, (ident, arguments, body))| Ast {
         node: Node::FunctionDeclaration {
@@ -250,26 +248,22 @@ fn fn_statement(input: Span) -> SResult<Ast> {
 }
 
 fn assignment_statement(input: Span) -> SResult<Ast> {
-    terminated(
-        consumed(tuple((
-            ws(consumed(ident)),
-            ws(terminated(
-                alt((
-                    value(BinaryOp::Add, char('+')),
-                    value(BinaryOp::Sub, char('-')),
-                    value(BinaryOp::Div, char('/')),
-                    value(BinaryOp::Mul, char('*')),
-                    value(BinaryOp::Mod, char('%')),
-                    value(BinaryOp::BitwiseAnd, char('&')),
-                    value(BinaryOp::BitwiseOr, char('|')),
-                ))
-                .opt(),
-                char('='),
-            )),
-            expr.cut(),
-        ))),
-        ws(terminator).cut(),
-    )
+    ws(consumed(tuple((
+        ws(consumed(ident)),
+        ws(alt((
+            value(BinaryOp::Add, char('+')),
+            value(BinaryOp::Sub, char('-')),
+            value(BinaryOp::Div, char('/')),
+            value(BinaryOp::Mul, char('*')),
+            value(BinaryOp::Mod, char('%')),
+            value(BinaryOp::BitwiseAnd, char('&')),
+            value(BinaryOp::BitwiseOr, char('|')),
+        ))
+        .opt()
+        .terminated(char('='))),
+        expr.cut(),
+    ))))
+    .terminated(terminator.cut())
     .context("Variable assignment")
     .map(|(span, ((ident_span, ident), operation, value))| Ast {
         node: Node::Assignment {
@@ -298,54 +292,50 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
 }
 
 fn return_statement(input: Span) -> SResult<Ast> {
-    terminated(
-        consumed(preceded(ws(keyword("return")), ws(expr.opt()))),
-        ws(terminator).cut(),
-    )
-    .context("Return statement")
-    .map(|(span, value)| Ast {
-        node: Node::Return(value.map(Box::new)),
-        span,
-    })
-    .parse(input)
+    ws(consumed(preceded(ws(keyword("return")), expr.opt())))
+        .terminated(terminator.cut())
+        .context("Return statement")
+        .map(|(span, value)| Ast {
+            node: Node::Return(value.map(Box::new)),
+            span,
+        })
+        .parse(input)
 }
 
 fn controlflow_statement(input: Span) -> SResult<Ast> {
-    terminated(
-        alt((
-            consumed(preceded(
-                ws(keyword("continue")),
-                ws(preceded(char(':'), ident).opt()),
-            ))
-            .map(|(span, label)| Ast {
-                node: Node::Continue { label },
-                span,
-            }),
-            consumed(preceded(
-                ws(keyword("break")),
-                ws(preceded(char(':'), ident).opt()),
-            ))
-            .map(|(span, label)| Ast {
-                node: Node::Break { label },
-                span,
-            }),
-        )),
-        ws(terminator).cut(),
-    )
+    ws(alt((
+        consumed(preceded(
+            ws(keyword("continue")),
+            ws(preceded(char(':'), ident).opt()),
+        ))
+        .map(|(span, label)| Ast {
+            node: Node::Continue { label },
+            span,
+        }),
+        consumed(preceded(
+            ws(keyword("break")),
+            ws(preceded(char(':'), ident).opt()),
+        ))
+        .map(|(span, label)| Ast {
+            node: Node::Break { label },
+            span,
+        }),
+    )))
+    .terminated(terminator.cut())
     .context("Controlflow statement")
     .parse(input)
 }
 
 fn unary_operation_expr(input: Span) -> SResult<Ast> {
-    ws(consumed(pair(
+    consumed(pair(
         ws(alt((
             value(UnaryOp::LogicalNot, char('!')),
             value(UnaryOp::BitwiseNot, char('~')),
             value(UnaryOp::Negative, char('-')),
             value(UnaryOp::Positive, char('+')),
         ))),
-        alt((delimited(char('('), expr, char(')')), value_expr)).cut(),
-    )))
+        alt((delimited(ws(char('(')), ws(expr), char(')')), value_expr)).cut(),
+    ))
     .context("Unary operation")
     .map(|(span, (operation, value))| Ast {
         node: Node::UnaryOp(operation, Box::new(value)),
@@ -356,10 +346,10 @@ fn unary_operation_expr(input: Span) -> SResult<Ast> {
 
 fn binary_operation_expr(input: Span) -> SResult<Ast> {
     let (input, (span, ((lhs_grouped, lhs), first_operator, (rhs_grouped, rhs)))) =
-        ws(consumed(tuple((
+        consumed(tuple((
             alt((
-                delimited(ws(char('(')), expr, ws(char(')'))).map(|e| (true, e)),
-                value_expr.map(|e| (false, e)),
+                delimited(ws(char('(')), ws(expr), ws(char(')'))).map(|e| (true, e)),
+                ws(value_expr).map(|e| (false, e)),
             )),
             ws(alt((
                 value(BinaryOp::LogicalAnd, tag("&&")),
@@ -380,12 +370,12 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
             )))
             .context("Binary operator"),
             alt((
-                delimited(ws(char('(')), expr, ws(char(')'))).map(|e| (true, e)),
+                delimited(ws(char('(')), ws(expr), char(')')).map(|e| (true, e)),
                 expr.map(|e| (false, e)),
             ))
             .context("Right hand side")
             .cut(),
-        ))))
+        )))
         .parse(input)?;
 
     let node = match rhs {
@@ -417,12 +407,15 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
 
 fn function_call_expr(input: Span) -> SResult<Ast> {
     pair(
-        alt((delimited(ws(char('(')), expr, ws(char(')'))), ident_expr)),
-        ws(consumed(delimited(
+        alt((
+            delimited(ws(char('(')), ws(expr), ws(char(')'))),
+            ws(ident_expr),
+        )),
+        consumed(delimited(
             ws(char('(')),
-            separated_list0(ws(char(',')), expr),
+            separated_list0(ws(char(',')), ws(expr)),
             char(')').cut(),
-        ))),
+        )),
     )
     .context("Function call")
     .map(|(calling, (span, arguments))| Ast {
@@ -436,12 +429,12 @@ fn function_call_expr(input: Span) -> SResult<Ast> {
 }
 
 fn closure_expr(input: Span) -> SResult<Ast> {
-    ws(consumed(pair(
+    consumed(pair(
         delimited(ws(char('|')), arguments.cut(), ws(char('|')).cut()).context("Closure arguments"),
-        delimited(ws(char('{')), many1(statement), char('}'))
+        delimited(ws(char('{')), many1(ws(statement)), char('}'))
             .context("Closure body")
             .cut(),
-    )))
+    ))
     .context("Closure")
     .map(|(span, (arguments, body))| Ast {
         node: Node::ClosureDeclaration {
@@ -454,7 +447,7 @@ fn closure_expr(input: Span) -> SResult<Ast> {
 }
 
 fn ident_expr(input: Span) -> SResult<Ast> {
-    ws(consumed(ident))
+    consumed(ident)
         .map(|(span, ident)| Ast {
             node: Node::Ident(ident),
             span,
@@ -463,7 +456,7 @@ fn ident_expr(input: Span) -> SResult<Ast> {
 }
 
 fn literal_expr(input: Span) -> SResult<Ast> {
-    ws(consumed(alt((string, number, boolean))))
+    consumed(alt((string, number, boolean)))
         .map(|(span, literal)| Ast {
             node: Node::Literal(literal),
             span,
