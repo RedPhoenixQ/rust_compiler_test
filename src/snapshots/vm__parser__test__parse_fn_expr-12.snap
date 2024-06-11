@@ -1,29 +1,40 @@
 ---
 source: src/parser.rs
-expression: "fn_statement(\"fn invalid_argument(123, b) { let c = 123; }\".into())"
+expression: "fn_statement(\"fn test(a = 123, b) { 123; }\".into())"
 ---
 Err(
     Failure(
         Stack {
             base: Base {
                 location: LocatedSpan {
-                    offset: 20,
+                    offset: 18,
                     line: 1,
-                    fragment: "123, b) { let c = 123; }",
+                    fragment: ") { 123; }",
                     extra: (),
                 },
                 kind: Expected(
                     Char(
-                        ')',
+                        '=',
                     ),
                 ),
             },
             contexts: [
                 (
                     LocatedSpan {
-                        offset: 19,
+                        offset: 8,
                         line: 1,
-                        fragment: "(123, b) { let c = 123; }",
+                        fragment: "a = 123, b) { 123; }",
+                        extra: (),
+                    },
+                    Context(
+                        "Arguments with defults",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 7,
+                        line: 1,
+                        fragment: "(a = 123, b) { 123; }",
                         extra: (),
                     },
                     Context(
@@ -34,7 +45,7 @@ Err(
                     LocatedSpan {
                         offset: 0,
                         line: 1,
-                        fragment: "fn invalid_argument(123, b) { let c = 123; }",
+                        fragment: "fn test(a = 123, b) { 123; }",
                         extra: (),
                     },
                     Context(

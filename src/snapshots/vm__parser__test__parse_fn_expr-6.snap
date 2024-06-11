@@ -4,24 +4,26 @@ expression: "fn_statement(\"fn missing_block_start()  123; }\".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 26,
+                    line: 1,
+                    fragment: "123; }",
+                    extra: (),
+                },
+                kind: Expected(
+                    Char(
+                        '{',
+                    ),
+                ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 26,
                         line: 1,
                         fragment: "123; }",
-                        extra: (),
-                    },
-                    Char(
-                        '{',
-                    ),
-                ),
-                (
-                    LocatedSpan {
-                        offset: 24,
-                        line: 1,
-                        fragment: "  123; }",
                         extra: (),
                     },
                     Context(

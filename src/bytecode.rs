@@ -35,11 +35,13 @@ pub enum Op {
     Store(Ustr),
 
     /// Move the program counter relative to the current intruction
-    Jump(isize),
+    Jump(usize),
+    /// Move the program counter backwards relative to the current intruction
+    JumpBack(usize),
     /// Move the program counter relative to the current intruction, but only if the topmost value in the stack is "truthy"
-    JumpIfTrue(isize),
+    JumpIfTrue(usize),
     /// Move the program counter relative to the current intruction, but only if the topmost value in the stack is "falsy"
-    JumpIfFalse(isize),
+    JumpIfFalse(usize),
 
     /// Pops the first two items from the stack and performs the operation.
     /// lhs should be bellow rhs in the stack

@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Function {
-    pub arguments: Vec<Ustr>,
+    pub arguments: Vec<(Ustr, Value)>,
     pub constants: Vec<Value>,
     pub code: Vec<Op>,
     pub foreign_idents: UstrSet,

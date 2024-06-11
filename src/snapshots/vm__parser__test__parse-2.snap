@@ -3,135 +3,130 @@ source: src/parser.rs
 expression: "parse_code(r#\"\n            fn a(x) {\n                x += 1;\n                return x;\n            }\n            a(123);\n            \"#)"
 ---
 Ok(
-    (
-        LocatedSpan {
-            offset: 119,
-            line: 7,
-            fragment: "",
-            extra: (),
-        },
-        [
-            Ast {
-                node: FunctionDeclaration {
-                    ident: u!("a"),
-                    arguments: [
+    [
+        Ast {
+            node: FunctionDeclaration {
+                ident: u!("a"),
+                arguments: [
+                    (
                         u!("x"),
-                    ],
-                    body: [
-                        Ast {
-                            node: Assignment {
-                                ident: u!("x"),
-                                value: Ast {
-                                    node: BinaryOp(
-                                        Add,
-                                        Ast {
-                                            node: Ident(
-                                                u!("x"),
-                                            ),
-                                            span: LocatedSpan {
-                                                offset: 39,
-                                                line: 3,
-                                                fragment: "x",
-                                                extra: (),
-                                            },
-                                        },
-                                        Ast {
-                                            node: Literal(
-                                                Int(
-                                                    1,
-                                                ),
-                                            ),
-                                            span: LocatedSpan {
-                                                offset: 44,
-                                                line: 3,
-                                                fragment: "1",
-                                                extra: (),
-                                            },
-                                        },
-                                    ),
-                                    span: LocatedSpan {
-                                        offset: 39,
-                                        line: 3,
-                                        fragment: "x += 1",
-                                        extra: (),
-                                    },
-                                },
-                            },
-                            span: LocatedSpan {
-                                offset: 39,
-                                line: 3,
-                                fragment: "x += 1",
-                                extra: (),
-                            },
-                        },
-                        Ast {
-                            node: Return(
-                                Some(
+                        None,
+                    ),
+                ],
+                body: [
+                    Ast {
+                        node: Assignment {
+                            ident: u!("x"),
+                            value: Ast {
+                                node: BinaryOp(
+                                    Add,
                                     Ast {
                                         node: Ident(
                                             u!("x"),
                                         ),
                                         span: LocatedSpan {
-                                            offset: 70,
-                                            line: 4,
+                                            offset: 39,
+                                            line: 3,
                                             fragment: "x",
                                             extra: (),
                                         },
                                     },
+                                    Ast {
+                                        node: Literal(
+                                            Int(
+                                                1,
+                                            ),
+                                        ),
+                                        span: LocatedSpan {
+                                            offset: 44,
+                                            line: 3,
+                                            fragment: "1",
+                                            extra: (),
+                                        },
+                                    },
                                 ),
-                            ),
-                            span: LocatedSpan {
-                                offset: 63,
-                                line: 4,
-                                fragment: "return x",
-                                extra: (),
+                                span: LocatedSpan {
+                                    offset: 39,
+                                    line: 3,
+                                    fragment: "x += 1",
+                                    extra: (),
+                                },
                             },
                         },
-                    ],
-                },
-                span: LocatedSpan {
-                    offset: 13,
-                    line: 2,
-                    fragment: "fn a(x) {\n                x += 1;\n                return x;\n            }",
-                    extra: (),
-                },
-            },
-            Ast {
-                node: FunctionCall {
-                    calling: Ast {
-                        node: Ident(
-                            u!("a"),
-                        ),
                         span: LocatedSpan {
-                            offset: 99,
-                            line: 6,
-                            fragment: "a",
+                            offset: 39,
+                            line: 3,
+                            fragment: "x += 1",
                             extra: (),
                         },
                     },
-                    arguments: [
-                        Ast {
-                            node: Literal(
-                                Int(
-                                    123,
-                                ),
+                    Ast {
+                        node: Return(
+                            Some(
+                                Ast {
+                                    node: Ident(
+                                        u!("x"),
+                                    ),
+                                    span: LocatedSpan {
+                                        offset: 70,
+                                        line: 4,
+                                        fragment: "x",
+                                        extra: (),
+                                    },
+                                },
                             ),
-                            span: LocatedSpan {
-                                offset: 101,
-                                line: 6,
-                                fragment: "123",
-                                extra: (),
-                            },
+                        ),
+                        span: LocatedSpan {
+                            offset: 63,
+                            line: 4,
+                            fragment: "return x",
+                            extra: (),
                         },
-                    ],
-                },
-                span: LocatedSpan {
-                    offset: 100,
-                    line: 6,
-                    fragment: "(123)",
-                    extra: (),
-                },
+                    },
+                ],
             },
-        ],
-    ),
+            span: LocatedSpan {
+                offset: 13,
+                line: 2,
+                fragment: "fn a(x) {\n                x += 1;\n                return x;\n            }",
+                extra: (),
+            },
+        },
+        Ast {
+            node: FunctionCall {
+                calling: Ast {
+                    node: Ident(
+                        u!("a"),
+                    ),
+                    span: LocatedSpan {
+                        offset: 99,
+                        line: 6,
+                        fragment: "a",
+                        extra: (),
+                    },
+                },
+                arguments: [
+                    Ast {
+                        node: Literal(
+                            Int(
+                                123,
+                            ),
+                        ),
+                        span: LocatedSpan {
+                            offset: 101,
+                            line: 6,
+                            fragment: "123",
+                            extra: (),
+                        },
+                    },
+                ],
+            },
+            span: LocatedSpan {
+                offset: 100,
+                line: 6,
+                fragment: "(123)",
+                extra: (),
+            },
+        },
+    ],
 )

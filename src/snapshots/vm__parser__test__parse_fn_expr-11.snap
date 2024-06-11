@@ -1,11 +1,11 @@
 ---
 source: src/parser.rs
-expression: "fn_statement(\"fn test(a, b = 123) { 123; }\".into())"
+expression: "fn_statement(\"fn test(a = 321, b = 123) { 123; }\".into())"
 ---
 Ok(
     (
         LocatedSpan {
-            offset: 28,
+            offset: 34,
             line: 1,
             fragment: "",
             extra: (),
@@ -16,7 +16,11 @@ Ok(
                 arguments: [
                     (
                         u!("a"),
-                        None,
+                        Some(
+                            Int(
+                                321,
+                            ),
+                        ),
                     ),
                     (
                         u!("b"),
@@ -35,7 +39,7 @@ Ok(
                             ),
                         ),
                         span: LocatedSpan {
-                            offset: 22,
+                            offset: 28,
                             line: 1,
                             fragment: "123",
                             extra: (),
@@ -46,7 +50,7 @@ Ok(
             span: LocatedSpan {
                 offset: 0,
                 line: 1,
-                fragment: "fn test(a, b = 123) { 123; }",
+                fragment: "fn test(a = 321, b = 123) { 123; }",
                 extra: (),
             },
         },

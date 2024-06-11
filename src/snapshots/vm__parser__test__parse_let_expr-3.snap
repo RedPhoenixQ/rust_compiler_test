@@ -4,30 +4,36 @@ expression: "let_statement(\"let yeet = ;\".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 9,
-                        line: 1,
-                        fragment: "= ;",
-                        extra: (),
+        Stack {
+            base: Alt(
+                [
+                    Base {
+                        location: LocatedSpan {
+                            offset: 9,
+                            line: 1,
+                            fragment: "= ;",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                ";",
+                            ),
+                        ),
                     },
-                    Nom(
-                        Fail,
-                    ),
-                ),
-                (
-                    LocatedSpan {
-                        offset: 9,
-                        line: 1,
-                        fragment: "= ;",
-                        extra: (),
+                    Base {
+                        location: LocatedSpan {
+                            offset: 9,
+                            line: 1,
+                            fragment: "= ;",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Eof,
+                        ),
                     },
-                    Nom(
-                        Alt,
-                    ),
-                ),
+                ],
+            ),
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 9,

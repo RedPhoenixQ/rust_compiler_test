@@ -4,30 +4,207 @@ expression: "binary_operation_expr(\"a = b\".into())"
 ---
 Err(
     Error(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 2,
-                        line: 1,
-                        fragment: "= b",
-                        extra: (),
+        Stack {
+            base: Alt(
+                [
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                "&&",
+                            ),
+                        ),
                     },
-                    Nom(
-                        Fail,
-                    ),
-                ),
-                (
-                    LocatedSpan {
-                        offset: 2,
-                        line: 1,
-                        fragment: "= b",
-                        extra: (),
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                "||",
+                            ),
+                        ),
                     },
-                    Nom(
-                        Alt,
-                    ),
-                ),
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                "==",
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                "!=",
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                "<=",
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                ">=",
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '<',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '>',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '+',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '-',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '/',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '*',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '%',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '&',
+                            ),
+                        ),
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "= b",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '|',
+                            ),
+                        ),
+                    },
+                ],
+            ),
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 2,

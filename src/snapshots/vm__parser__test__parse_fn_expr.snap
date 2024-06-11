@@ -14,8 +14,14 @@ Ok(
             node: FunctionDeclaration {
                 ident: u!("test"),
                 arguments: [
-                    u!("a"),
-                    u!("b"),
+                    (
+                        u!("a"),
+                        None,
+                    ),
+                    (
+                        u!("b"),
+                        None,
+                    ),
                 ],
                 body: [
                     Ast {

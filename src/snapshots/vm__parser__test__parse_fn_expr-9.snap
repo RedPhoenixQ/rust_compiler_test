@@ -4,19 +4,19 @@ expression: "fn_statement(\"fn \".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 3,
-                        line: 1,
-                        fragment: "",
-                        extra: (),
-                    },
-                    Nom(
-                        Alpha,
-                    ),
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 3,
+                    line: 1,
+                    fragment: "",
+                    extra: (),
+                },
+                kind: Expected(
+                    Alpha,
                 ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 3,

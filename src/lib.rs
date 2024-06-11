@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use anyhow::{bail, Result};
 
@@ -11,7 +11,6 @@ mod value;
 use builtins::Builtin;
 use bytecode::Op;
 use compiler::Bundle;
-// use compiler::{Bundle, Compiler};
 use ustr::{Ustr, UstrMap};
 use value::{Closure, Function, Value, Variable};
 
@@ -64,7 +63,45 @@ impl VM {
     }
 
     pub fn compile_str(input: &str) -> Result<Bundle> {
-        let (_, ast) = parser::parse_code(input).map_err(|e| anyhow::anyhow!("{e:?}"))?;
+        let ast = parser::parse_code(input).map_err(|e| {
+            anyhow::anyhow!(
+                "{}",
+                e.map_locations(|span| {
+                    let line_skip = span.location_line().saturating_sub(3);
+                    let mut lines = input.lines().skip(line_skip as usize);
+
+                    let mut string = String::new();
+                    string.push('"');
+                    let mut last_line_len = 0;
+                    for _ in 0..(span.location_line() - line_skip) {
+                        if let Some(line) = lines.next() {
+                            string.push('\n');
+                            string.push_str(line);
+                            last_line_len = line.len();
+                        }
+                    }
+
+                    let error_is_at_eof = span.location_offset() == input.len();
+
+                    string.push('\n');
+                    string.extend([' '].iter().cycle().take(if error_is_at_eof {
+                        last_line_len
+                    } else {
+                        span.get_utf8_column() - 1
+                    }));
+                    string.push('^');
+
+                    for line in lines.take(2) {
+                        string.push('\n');
+                        string.push_str(line);
+                    }
+                    string.push('\n');
+                    string.push('"');
+
+                    string
+                })
+            )
+        })?;
 
         compiler::Compiler::default().compile(&ast)
     }
@@ -76,6 +113,7 @@ impl VM {
             if self.debug {
                 println!("Running {}:{pc}: {op:?}", self.call_stack.len());
             }
+            pc += 1;
             match op {
                 Op::LoadFast(key) => {
                     let value = self
@@ -142,35 +180,24 @@ impl VM {
                 }
                 Op::Jump(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
-                    if jump.is_positive() {
-                        pc += *jump as usize
-                    } else {
-                        pc -= jump.abs() as usize
-                    }
-                    continue;
+                    pc += *jump;
+                }
+                Op::JumpBack(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    pc -= jump;
                 }
                 Op::JumpIfTrue(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
                     let value = self.pop_eval_stack()?;
                     if value.is_truthy() {
-                        if jump.is_positive() {
-                            pc += *jump as usize
-                        } else {
-                            pc -= jump.abs() as usize
-                        }
-                        continue;
+                        pc += *jump;
                     }
                 }
                 Op::JumpIfFalse(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
                     let value = self.pop_eval_stack()?;
                     if !value.is_truthy() {
-                        if jump.is_positive() {
-                            pc += *jump as usize
-                        } else {
-                            pc -= jump.abs() as usize
-                        }
-                        continue;
+                        pc += *jump
                     }
                 }
                 Op::BinaryOp(op) => {
@@ -258,13 +285,18 @@ impl VM {
                         } => {
                             locals.reserve(function.arguments.len());
 
-                            for i in 0..*number_of_arguments {
-                                let argument = self.pop_eval_stack()?;
-                                let name = *function
+                            for i in 0..function.arguments.len() {
+                                let (name, default) = function
                                     .arguments
                                     .get(i)
                                     .expect("Function arguments to exist");
-                                locals.insert(name, Rc::new(argument.into()));
+
+                                let argument = if i < *number_of_arguments {
+                                    self.pop_eval_stack()?
+                                } else {
+                                    default.clone()
+                                };
+                                locals.insert(*name, Rc::new(argument.into()));
                             }
 
                             self.call_stack.push(CallFrame {
@@ -321,13 +353,12 @@ impl VM {
                     pc = start_index;
                 }
             }
-
-            pc += 1;
         }
 
         Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
     }
 
+    #[allow(unused)]
     fn peek_eval_stack(&mut self) -> Option<&Value> {
         let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
             &mut frame.eval_stack

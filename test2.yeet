@@ -1,6 +1,6 @@
 fn counter() {
   let num = 0;
-  return |op| {
+  return |op = false| {
     if (!op) {
       num += 1;
       return num;
@@ -14,7 +14,7 @@ let a = counter();
 
 let b = counter();
 
-a(false);
-a(false);
+a();
+a();
 print("a: " + a(true));
 print("b: " + b(true));

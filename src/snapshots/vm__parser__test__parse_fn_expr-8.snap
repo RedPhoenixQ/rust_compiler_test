@@ -4,19 +4,21 @@ expression: "fn_statement(\"fn only_ident\".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 13,
-                        line: 1,
-                        fragment: "",
-                        extra: (),
-                    },
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 13,
+                    line: 1,
+                    fragment: "",
+                    extra: (),
+                },
+                kind: Expected(
                     Char(
                         '(',
                     ),
                 ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 13,

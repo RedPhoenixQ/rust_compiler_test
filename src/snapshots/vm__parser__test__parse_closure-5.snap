@@ -1,44 +1,55 @@
 ---
 source: src/parser.rs
-expression: "fn_statement(\"fn invalid_argument(123, b) { let c = 123; }\".into())"
+expression: "closure_expr(\"|a = 123,b| { return a - b; }\".into())"
 ---
 Err(
     Failure(
         Stack {
             base: Base {
                 location: LocatedSpan {
-                    offset: 20,
+                    offset: 10,
                     line: 1,
-                    fragment: "123, b) { let c = 123; }",
+                    fragment: "| { return a - b; }",
                     extra: (),
                 },
                 kind: Expected(
                     Char(
-                        ')',
+                        '=',
                     ),
                 ),
             },
             contexts: [
                 (
                     LocatedSpan {
-                        offset: 19,
+                        offset: 1,
                         line: 1,
-                        fragment: "(123, b) { let c = 123; }",
+                        fragment: "a = 123,b| { return a - b; }",
                         extra: (),
                     },
                     Context(
-                        "Function arguments",
+                        "Arguments with defults",
                     ),
                 ),
                 (
                     LocatedSpan {
                         offset: 0,
                         line: 1,
-                        fragment: "fn invalid_argument(123, b) { let c = 123; }",
+                        fragment: "|a = 123,b| { return a - b; }",
                         extra: (),
                     },
                     Context(
-                        "Function declaration",
+                        "Closure arguments",
+                    ),
+                ),
+                (
+                    LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "|a = 123,b| { return a - b; }",
+                        extra: (),
+                    },
+                    Context(
+                        "Closure",
                     ),
                 ),
             ],
