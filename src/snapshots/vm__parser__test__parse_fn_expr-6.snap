@@ -21,9 +21,9 @@ Err(
             contexts: [
                 (
                     LocatedSpan {
-                        offset: 24,
+                        offset: 26,
                         line: 1,
-                        fragment: "  123; }",
+                        fragment: "123; }",
                         extra: (),
                     },
                     Context(

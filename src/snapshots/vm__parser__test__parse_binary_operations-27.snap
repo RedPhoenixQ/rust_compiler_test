@@ -207,9 +207,9 @@ Err(
             contexts: [
                 (
                     LocatedSpan {
-                        offset: 1,
+                        offset: 2,
                         line: 1,
-                        fragment: " = b",
+                        fragment: "= b",
                         extra: (),
                     },
                     Context(

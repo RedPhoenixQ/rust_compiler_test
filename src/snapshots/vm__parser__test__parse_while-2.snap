@@ -933,9 +933,9 @@ Err(
                 ),
                 (
                     LocatedSpan {
-                        offset: 14,
+                        offset: 15,
                         line: 1,
-                        fragment: " {}",
+                        fragment: "{}",
                         extra: (),
                     },
                     Context(
