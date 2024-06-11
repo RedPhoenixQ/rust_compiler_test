@@ -73,8 +73,9 @@ impl Compiler {
                     let is_final_predicate = i == branches.len() - 1;
 
                     self.compile_node(&predicate.node)?;
-                    let start_of_body_index = self.code.len();
+                    let predicate_jump_index = self.code.len();
                     self.code.push(Op::JumpIfFalse(0));
+                    let start_of_body_index = self.code.len();
 
                     for ast in body {
                         self.compile_node(&ast.node)?;
@@ -88,11 +89,11 @@ impl Compiler {
                     let end_of_body_index = self.code.len();
 
                     let Some(Op::JumpIfFalse(ref mut jump)) =
-                        self.code.get_mut(start_of_body_index)
+                        self.code.get_mut(predicate_jump_index)
                     else {
                         bail!("Jump operation was not at the expected index")
                     };
-                    *jump = end_of_body_index as isize - start_of_body_index as isize;
+                    *jump = end_of_body_index - start_of_body_index;
 
                     if is_final_predicate {
                         if let Some(else_block) = else_block {
@@ -107,7 +108,7 @@ impl Compiler {
                             else {
                                 bail!("Jump operation was not at the expected index")
                             };
-                            *jump = end_of_else_block as isize - start_of_else_index as isize;
+                            *jump = end_of_else_block - start_of_else_index;
                         }
                     }
                 }
@@ -132,7 +133,7 @@ impl Compiler {
                     self.compile_node(&ast.node)?;
                 }
                 let end_jump_index = self.code.len();
-                self.code.push(Op::Jump(0));
+                self.code.push(Op::JumpBack(0));
                 let end_of_loop_index = self.code.len();
 
                 self.code.push(Op::PopBlock);
@@ -141,12 +142,12 @@ impl Compiler {
                 else {
                     bail!("Jump operation was not at the expected index")
                 };
-                *jump = end_of_loop_index as isize - predicate_jump_index as isize;
+                *jump = end_of_loop_index - predicate_jump_index;
 
-                let Some(Op::Jump(ref mut jump)) = self.code.get_mut(end_jump_index) else {
+                let Some(Op::JumpBack(ref mut jump)) = self.code.get_mut(end_jump_index) else {
                     bail!("Jump operation was not at the expected index")
                 };
-                *jump = start_of_loop_index as isize - end_jump_index as isize;
+                *jump = end_of_loop_index - start_of_loop_index;
 
                 let Some(Op::PushBlock(ref mut block)) = self.code.get_mut(block_push_index) else {
                     bail!("Block push was not at the expected index")

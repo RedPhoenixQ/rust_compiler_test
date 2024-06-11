@@ -76,6 +76,7 @@ impl VM {
             if self.debug {
                 println!("Running {}:{pc}: {op:?}", self.call_stack.len());
             }
+            pc += 1;
             match op {
                 Op::LoadFast(key) => {
                     let value = self
@@ -142,35 +143,24 @@ impl VM {
                 }
                 Op::Jump(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
-                    if jump.is_positive() {
-                        pc += *jump as usize
-                    } else {
-                        pc -= jump.abs() as usize
-                    }
-                    continue;
+                    pc += *jump;
+                }
+                Op::JumpBack(jump) => {
+                    assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
+                    pc -= jump;
                 }
                 Op::JumpIfTrue(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
                     let value = self.pop_eval_stack()?;
                     if value.is_truthy() {
-                        if jump.is_positive() {
-                            pc += *jump as usize
-                        } else {
-                            pc -= jump.abs() as usize
-                        }
-                        continue;
+                        pc += *jump;
                     }
                 }
                 Op::JumpIfFalse(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
                     let value = self.pop_eval_stack()?;
                     if !value.is_truthy() {
-                        if jump.is_positive() {
-                            pc += *jump as usize
-                        } else {
-                            pc -= jump.abs() as usize
-                        }
-                        continue;
+                        pc += *jump
                     }
                 }
                 Op::BinaryOp(op) => {
@@ -321,8 +311,6 @@ impl VM {
                     pc = start_index;
                 }
             }
-
-            pc += 1;
         }
 
         Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
