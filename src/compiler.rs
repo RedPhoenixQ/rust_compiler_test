@@ -1,5 +1,3 @@
-use std::default;
-
 use anyhow::{bail, Result};
 use ustr::UstrSet;
 

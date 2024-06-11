@@ -1,12 +1,6 @@
 use nom::{
-    branch::*,
-    bytes::complete::*,
-    character::complete::*,
-    combinator::*,
-    error::{context, ParseError},
-    multi::*,
-    sequence::*,
-    IResult, Parser,
+    branch::*, bytes::complete::*, character::complete::*, combinator::*, error::ParseError,
+    multi::*, sequence::*, IResult, Parser,
 };
 use nom_locate::LocatedSpan;
 use nom_supreme::{error::ErrorTree, final_parser::final_parser, tag::complete::tag, ParserExt};
