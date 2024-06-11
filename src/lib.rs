@@ -72,15 +72,23 @@ impl VM {
 
                     let mut string = String::new();
                     string.push('"');
+                    let mut last_line_len = 0;
                     for _ in 0..(span.location_line() - line_skip) {
                         if let Some(line) = lines.next() {
                             string.push('\n');
                             string.push_str(line);
+                            last_line_len = line.len();
                         }
                     }
 
+                    let error_is_at_eof = span.location_offset() == input.len();
+
                     string.push('\n');
-                    string.extend([' '].iter().cycle().take(span.get_utf8_column() - 1));
+                    string.extend([' '].iter().cycle().take(if error_is_at_eof {
+                        last_line_len
+                    } else {
+                        span.get_utf8_column() - 1
+                    }));
                     string.push('^');
 
                     for line in lines.take(2) {
