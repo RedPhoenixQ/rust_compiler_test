@@ -4,19 +4,19 @@ expression: "ident_expr(\"12haha\".into())"
 ---
 Err(
     Error(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 0,
-                        line: 1,
-                        fragment: "12haha",
-                        extra: (),
-                    },
-                    Nom(
-                        Alpha,
-                    ),
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 0,
+                    line: 1,
+                    fragment: "12haha",
+                    extra: (),
+                },
+                kind: Expected(
+                    Alpha,
                 ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 0,

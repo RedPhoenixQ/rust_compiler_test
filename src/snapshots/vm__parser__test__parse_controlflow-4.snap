@@ -4,30 +4,36 @@ expression: "controlflow_statement(\"break 123;\".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 6,
-                        line: 1,
-                        fragment: "123;",
-                        extra: (),
+        Stack {
+            base: Alt(
+                [
+                    Base {
+                        location: LocatedSpan {
+                            offset: 6,
+                            line: 1,
+                            fragment: "123;",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Tag(
+                                ";",
+                            ),
+                        ),
                     },
-                    Nom(
-                        Fail,
-                    ),
-                ),
-                (
-                    LocatedSpan {
-                        offset: 6,
-                        line: 1,
-                        fragment: "123;",
-                        extra: (),
+                    Base {
+                        location: LocatedSpan {
+                            offset: 6,
+                            line: 1,
+                            fragment: "123;",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Eof,
+                        ),
                     },
-                    Nom(
-                        Alt,
-                    ),
-                ),
+                ],
+            ),
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 6,

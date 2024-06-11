@@ -4,30 +4,911 @@ expression: "while_statement(\"while (a < 10) {}\".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 16,
-                        line: 1,
-                        fragment: "}",
-                        extra: (),
+        Stack {
+            base: Alt(
+                [
+                    Stack {
+                        base: Base {
+                            location: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "}",
+                                extra: (),
+                            },
+                            kind: Expected(
+                                Tag(
+                                    "let",
+                                ),
+                            ),
+                        },
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Variable declaration",
+                                ),
+                            ),
+                        ],
                     },
-                    Nom(
-                        Fail,
-                    ),
-                ),
-                (
-                    LocatedSpan {
-                        offset: 16,
-                        line: 1,
-                        fragment: "}",
-                        extra: (),
+                    Stack {
+                        base: Base {
+                            location: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "}",
+                                extra: (),
+                            },
+                            kind: Expected(
+                                Tag(
+                                    "if",
+                                ),
+                            ),
+                        },
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Keyword",
+                                ),
+                            ),
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "If statement",
+                                ),
+                            ),
+                        ],
                     },
-                    Nom(
-                        Alt,
-                    ),
-                ),
+                    Stack {
+                        base: Base {
+                            location: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "}",
+                                extra: (),
+                            },
+                            kind: Expected(
+                                Tag(
+                                    "while",
+                                ),
+                            ),
+                        },
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Keyword",
+                                ),
+                            ),
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "While loop",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Base {
+                            location: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "}",
+                                extra: (),
+                            },
+                            kind: Expected(
+                                Tag(
+                                    "fn",
+                                ),
+                            ),
+                        },
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Keyword",
+                                ),
+                            ),
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Function declaration",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Base {
+                            location: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "}",
+                                extra: (),
+                            },
+                            kind: Expected(
+                                Alpha,
+                            ),
+                        },
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Identifier",
+                                ),
+                            ),
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Variable assignment",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Base {
+                            location: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "}",
+                                extra: (),
+                            },
+                            kind: Expected(
+                                Tag(
+                                    "return",
+                                ),
+                            ),
+                        },
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Keyword",
+                                ),
+                            ),
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Return statement",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Alt(
+                            [
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Tag(
+                                                "continue",
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Keyword",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Tag(
+                                                "break",
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Keyword",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ],
+                        ),
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Controlflow statement",
+                                ),
+                            ),
+                        ],
+                    },
+                    Base {
+                        location: LocatedSpan {
+                            offset: 16,
+                            line: 1,
+                            fragment: "}",
+                            extra: (),
+                        },
+                        kind: Expected(
+                            Char(
+                                '(',
+                            ),
+                        ),
+                    },
+                    Stack {
+                        base: Alt(
+                            [
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Char(
+                                                '"',
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "String literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Alt(
+                                        [
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                        ],
+                                    ),
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Number literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Alt(
+                                        [
+                                            Stack {
+                                                base: Base {
+                                                    location: LocatedSpan {
+                                                        offset: 16,
+                                                        line: 1,
+                                                        fragment: "}",
+                                                        extra: (),
+                                                    },
+                                                    kind: Expected(
+                                                        Tag(
+                                                            "true",
+                                                        ),
+                                                    ),
+                                                },
+                                                contexts: [
+                                                    (
+                                                        LocatedSpan {
+                                                            offset: 16,
+                                                            line: 1,
+                                                            fragment: "}",
+                                                            extra: (),
+                                                        },
+                                                        Context(
+                                                            "Keyword",
+                                                        ),
+                                                    ),
+                                                ],
+                                            },
+                                            Stack {
+                                                base: Base {
+                                                    location: LocatedSpan {
+                                                        offset: 16,
+                                                        line: 1,
+                                                        fragment: "}",
+                                                        extra: (),
+                                                    },
+                                                    kind: Expected(
+                                                        Tag(
+                                                            "false",
+                                                        ),
+                                                    ),
+                                                },
+                                                contexts: [
+                                                    (
+                                                        LocatedSpan {
+                                                            offset: 16,
+                                                            line: 1,
+                                                            fragment: "}",
+                                                            extra: (),
+                                                        },
+                                                        Context(
+                                                            "Keyword",
+                                                        ),
+                                                    ),
+                                                ],
+                                            },
+                                        ],
+                                    ),
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Boolean literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Alpha,
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Identifier",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ],
+                        ),
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Value",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Alt(
+                            [
+                                Base {
+                                    location: LocatedSpan {
+                                        offset: 16,
+                                        line: 1,
+                                        fragment: "}",
+                                        extra: (),
+                                    },
+                                    kind: Expected(
+                                        Char(
+                                            '!',
+                                        ),
+                                    ),
+                                },
+                                Base {
+                                    location: LocatedSpan {
+                                        offset: 16,
+                                        line: 1,
+                                        fragment: "}",
+                                        extra: (),
+                                    },
+                                    kind: Expected(
+                                        Char(
+                                            '~',
+                                        ),
+                                    ),
+                                },
+                                Base {
+                                    location: LocatedSpan {
+                                        offset: 16,
+                                        line: 1,
+                                        fragment: "}",
+                                        extra: (),
+                                    },
+                                    kind: Expected(
+                                        Char(
+                                            '-',
+                                        ),
+                                    ),
+                                },
+                                Base {
+                                    location: LocatedSpan {
+                                        offset: 16,
+                                        line: 1,
+                                        fragment: "}",
+                                        extra: (),
+                                    },
+                                    kind: Expected(
+                                        Char(
+                                            '+',
+                                        ),
+                                    ),
+                                },
+                            ],
+                        ),
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Unary operation",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Alt(
+                            [
+                                Base {
+                                    location: LocatedSpan {
+                                        offset: 16,
+                                        line: 1,
+                                        fragment: "}",
+                                        extra: (),
+                                    },
+                                    kind: Expected(
+                                        Char(
+                                            '(',
+                                        ),
+                                    ),
+                                },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Alpha,
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Identifier",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ],
+                        ),
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Function call",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Alt(
+                            [
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Char(
+                                                '"',
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "String literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Alt(
+                                        [
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                            Base {
+                                                location: LocatedSpan {
+                                                    offset: 16,
+                                                    line: 1,
+                                                    fragment: "}",
+                                                    extra: (),
+                                                },
+                                                kind: Kind(
+                                                    Float,
+                                                ),
+                                            },
+                                        ],
+                                    ),
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Number literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Alt(
+                                        [
+                                            Stack {
+                                                base: Base {
+                                                    location: LocatedSpan {
+                                                        offset: 16,
+                                                        line: 1,
+                                                        fragment: "}",
+                                                        extra: (),
+                                                    },
+                                                    kind: Expected(
+                                                        Tag(
+                                                            "true",
+                                                        ),
+                                                    ),
+                                                },
+                                                contexts: [
+                                                    (
+                                                        LocatedSpan {
+                                                            offset: 16,
+                                                            line: 1,
+                                                            fragment: "}",
+                                                            extra: (),
+                                                        },
+                                                        Context(
+                                                            "Keyword",
+                                                        ),
+                                                    ),
+                                                ],
+                                            },
+                                            Stack {
+                                                base: Base {
+                                                    location: LocatedSpan {
+                                                        offset: 16,
+                                                        line: 1,
+                                                        fragment: "}",
+                                                        extra: (),
+                                                    },
+                                                    kind: Expected(
+                                                        Tag(
+                                                            "false",
+                                                        ),
+                                                    ),
+                                                },
+                                                contexts: [
+                                                    (
+                                                        LocatedSpan {
+                                                            offset: 16,
+                                                            line: 1,
+                                                            fragment: "}",
+                                                            extra: (),
+                                                        },
+                                                        Context(
+                                                            "Keyword",
+                                                        ),
+                                                    ),
+                                                ],
+                                            },
+                                        ],
+                                    ),
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Boolean literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Alpha,
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Identifier",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ],
+                        ),
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Value",
+                                ),
+                            ),
+                        ],
+                    },
+                    Stack {
+                        base: Base {
+                            location: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "}",
+                                extra: (),
+                            },
+                            kind: Expected(
+                                Char(
+                                    '|',
+                                ),
+                            ),
+                        },
+                        contexts: [
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Closure arguments",
+                                ),
+                            ),
+                            (
+                                LocatedSpan {
+                                    offset: 16,
+                                    line: 1,
+                                    fragment: "}",
+                                    extra: (),
+                                },
+                                Context(
+                                    "Closure",
+                                ),
+                            ),
+                        ],
+                    },
+                ],
+            ),
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 16,
@@ -46,7 +927,7 @@ Err(
                         fragment: "}",
                         extra: (),
                     },
-                    Nom(
+                    Kind(
                         Many1,
                     ),
                 ),

@@ -4,19 +4,21 @@ expression: "assignment_statement(\"yeet + 123;\".into())"
 ---
 Err(
     Error(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 6,
-                        line: 1,
-                        fragment: " 123;",
-                        extra: (),
-                    },
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 6,
+                    line: 1,
+                    fragment: " 123;",
+                    extra: (),
+                },
+                kind: Expected(
                     Char(
                         '=',
                     ),
                 ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 0,

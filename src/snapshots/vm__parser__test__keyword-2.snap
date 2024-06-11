@@ -4,30 +4,19 @@ expression: "keyword(\"let\").parse(\"leting test\".into())"
 ---
 Err(
     Error(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 3,
-                        line: 1,
-                        fragment: "ing test",
-                        extra: (),
-                    },
-                    Nom(
-                        Not,
-                    ),
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 3,
+                    line: 1,
+                    fragment: "ing test",
+                    extra: (),
+                },
+                kind: Kind(
+                    Not,
                 ),
-                (
-                    LocatedSpan {
-                        offset: 3,
-                        line: 1,
-                        fragment: "ing test",
-                        extra: (),
-                    },
-                    Context(
-                        "Is part of another word",
-                    ),
-                ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 0,

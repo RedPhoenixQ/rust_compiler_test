@@ -4,30 +4,19 @@ expression: "keyword(\"true\").parse(\"true_\".into())"
 ---
 Err(
     Error(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 4,
-                        line: 1,
-                        fragment: "_",
-                        extra: (),
-                    },
-                    Nom(
-                        Not,
-                    ),
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 4,
+                    line: 1,
+                    fragment: "_",
+                    extra: (),
+                },
+                kind: Kind(
+                    Not,
                 ),
-                (
-                    LocatedSpan {
-                        offset: 4,
-                        line: 1,
-                        fragment: "_",
-                        extra: (),
-                    },
-                    Context(
-                        "Is part of another word",
-                    ),
-                ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 0,

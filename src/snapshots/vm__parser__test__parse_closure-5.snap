@@ -4,19 +4,21 @@ expression: "closure_expr(\"|a = 123,b| { return a - b; }\".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 10,
-                        line: 1,
-                        fragment: "| { return a - b; }",
-                        extra: (),
-                    },
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 10,
+                    line: 1,
+                    fragment: "| { return a - b; }",
+                    extra: (),
+                },
+                kind: Expected(
                     Char(
                         '=',
                     ),
                 ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 1,

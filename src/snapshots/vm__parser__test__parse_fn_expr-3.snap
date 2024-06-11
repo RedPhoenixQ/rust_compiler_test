@@ -4,19 +4,21 @@ expression: "fn_statement(\"fn invalid_argument(123, b) { let c = 123; }\".into(
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 20,
-                        line: 1,
-                        fragment: "123, b) { let c = 123; }",
-                        extra: (),
-                    },
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 20,
+                    line: 1,
+                    fragment: "123, b) { let c = 123; }",
+                    extra: (),
+                },
+                kind: Expected(
                     Char(
                         ')',
                     ),
                 ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 19,

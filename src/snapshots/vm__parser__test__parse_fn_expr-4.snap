@@ -4,19 +4,21 @@ expression: "fn_statement(\"fn incomplete_args(a { 123; }\".into())"
 ---
 Err(
     Failure(
-        VerboseError {
-            errors: [
-                (
-                    LocatedSpan {
-                        offset: 21,
-                        line: 1,
-                        fragment: "{ 123; }",
-                        extra: (),
-                    },
+        Stack {
+            base: Base {
+                location: LocatedSpan {
+                    offset: 21,
+                    line: 1,
+                    fragment: "{ 123; }",
+                    extra: (),
+                },
+                kind: Expected(
                     Char(
                         ')',
                     ),
                 ),
+            },
+            contexts: [
                 (
                     LocatedSpan {
                         offset: 18,
