@@ -1,5 +1,3 @@
-use std::default;
-
 use anyhow::{bail, Result};
 use ustr::UstrSet;
 
@@ -7,7 +5,6 @@ use crate::{
     bytecode::{BlockType, Op},
     parser::{Ast, Node},
     value::{Function, Value},
-    Scope,
 };
 
 #[derive(Debug)]
