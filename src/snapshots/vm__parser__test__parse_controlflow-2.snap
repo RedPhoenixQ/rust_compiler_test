@@ -3,7 +3,7 @@ source: src/parser.rs
 expression: "controlflow_statement(\"continue 123;\".into())"
 ---
 Err(
-    Error(
+    Failure(
         VerboseError {
             errors: [
                 (
@@ -14,7 +14,7 @@ Err(
                         extra: (),
                     },
                     Nom(
-                        Eof,
+                        Fail,
                     ),
                 ),
                 (

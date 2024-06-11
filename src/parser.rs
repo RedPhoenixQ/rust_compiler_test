@@ -158,12 +158,12 @@ fn let_statement(input: Span) -> SResult<Ast> {
         terminated(
             consumed(preceded(
                 tag("let"),
-                pair(
+                cut(pair(
                     ws(ident),
                     opt(preceded(ws(tag("=")), ws(expr)).map(Box::new)),
-                ),
+                )),
             )),
-            ws(terminator),
+            cut(ws(terminator)),
         ),
     )
     .map(|(span, (ident, value))| Ast {
@@ -179,21 +179,36 @@ fn if_statement(input: Span) -> SResult<Ast> {
         consumed(tuple((
             preceded(
                 keyword("if"),
-                pair(
-                    delimited(ws(char('(')), expr, ws(char(')'))),
-                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
-                ),
+                cut(pair(
+                    context(
+                        "If predicate",
+                        delimited(ws(char('(')), expr, ws(char(')'))),
+                    ),
+                    context(
+                        "If body",
+                        delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                    ),
+                )),
             ),
             many0(preceded(
                 pair(ws(keyword("else")), ws(keyword("if"))),
-                pair(
-                    delimited(ws(char('(')), expr, ws(char(')'))),
-                    delimited(ws(char('{')), many1(statement), ws(char('}'))),
-                ),
+                cut(pair(
+                    context(
+                        "Else if predicate",
+                        delimited(ws(char('(')), expr, ws(char(')'))),
+                    ),
+                    context(
+                        "Else if body",
+                        delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                    ),
+                )),
             )),
             opt(preceded(
                 ws(keyword("else")),
-                delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                context(
+                    "Else block",
+                    cut(delimited(ws(char('{')), many1(statement), ws(char('}')))),
+                ),
             )),
         ))),
     )
@@ -218,11 +233,11 @@ fn while_statement(input: Span) -> SResult<Ast> {
             terminated(opt(terminated(ident, char(':'))), ws(keyword("while"))),
             context(
                 "While predicate",
-                delimited(ws(char('(')), expr, ws(char(')'))),
+                cut(delimited(ws(char('(')), expr, ws(char(')')))),
             ),
             context(
                 "While body",
-                delimited(ws(char('{')), many1(statement), ws(char('}'))),
+                cut(delimited(ws(char('{')), many1(statement), ws(char('}')))),
             ),
         ))),
     )
@@ -243,19 +258,18 @@ fn fn_statement(input: Span) -> SResult<Ast> {
         consumed(preceded(
             keyword("fn"),
             tuple((
-                ws(ident),
+                cut(ws(ident)),
                 context(
                     "Function arguments",
-                    ws(delimited(
-                        char('('),
+                    cut(delimited(
+                        ws(char('(')),
                         separated_list0(ws(char(',')), ws(ident)),
-                        char(')'),
+                        ws(char(')')),
                     )),
                 ),
-                delimited(
-                    ws(context("Start of function block", char('{'))),
-                    context("Function body", many1(statement)),
-                    ws(context("End of function block", char('}'))),
+                context(
+                    "Function body",
+                    cut(delimited(ws(char('{')), many1(statement), ws(char('}')))),
                 ),
             )),
         )),
@@ -289,9 +303,9 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
                     ))),
                     char('='),
                 )),
-                expr,
+                cut(expr),
             ))),
-            ws(terminator),
+            cut(ws(terminator)),
         ),
     )
     .map(|(span, ((ident_span, ident), operation, value))| Ast {
@@ -325,7 +339,7 @@ fn return_statement(input: Span) -> SResult<Ast> {
         "Return statement",
         terminated(
             consumed(preceded(keyword("return"), ws(opt(expr)))),
-            ws(terminator),
+            cut(ws(terminator)),
         ),
     )
     .map(|(span, value)| Ast {
@@ -357,7 +371,7 @@ fn controlflow_statement(input: Span) -> SResult<Ast> {
                     span,
                 }),
             )),
-            ws(terminator),
+            cut(ws(terminator)),
         ),
     )
     .parse(input)
@@ -374,7 +388,7 @@ fn unary_operation_expr(input: Span) -> SResult<Ast> {
                 value(UnaryOp::Positive, char('+')),
                 fail,
             )),
-            ws(alt((delimited(char('('), expr, char(')')), value_expr))),
+            cut(ws(alt((delimited(char('('), expr, char(')')), value_expr)))),
         )),
     )
     .map(|(span, (operation, value))| Ast {
@@ -412,10 +426,10 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
                     fail,
                 )),
             )),
-            ws(alt((
+            cut(ws(alt((
                 delimited(char('('), expr, char(')')).map(|e| (true, e)),
                 expr.map(|e| (false, e)),
-            ))),
+            )))),
         )))
         .parse(input)?;
 
@@ -454,7 +468,7 @@ fn function_call_expr(input: Span) -> SResult<Ast> {
             consumed(delimited(
                 ws(char('(')),
                 separated_list0(char(','), ws(expr)),
-                ws(char(')')),
+                cut(ws(char(')'))),
             )),
         ),
     )
@@ -472,12 +486,18 @@ fn closure_expr(input: Span) -> SResult<Ast> {
     context(
         "Closure",
         consumed(pair(
-            delimited(
-                ws(char('|')),
-                separated_list0(ws(char(',')), ws(ident)),
-                ws(char('|')),
+            context(
+                "Closure arguments",
+                delimited(
+                    ws(char('|')),
+                    separated_list0(ws(char(',')), ws(ident)),
+                    cut(ws(char('|'))),
+                ),
             ),
-            delimited(ws(char('{')), many1(statement), ws(char('}'))),
+            context(
+                "Closure body",
+                cut(delimited(ws(char('{')), many1(statement), ws(char('}')))),
+            ),
         )),
     )
     .map(|(span, (arguments, body))| Ast {
@@ -560,7 +580,7 @@ fn boolean(input: Span) -> SResult<Value> {
 }
 
 fn terminator(input: Span) -> SResult<Span> {
-    context("Terminator", alt((tag(";"), eof))).parse(input)
+    context("Terminator", alt((tag(";"), eof, fail))).parse(input)
 }
 
 fn keyword<'a>(word: &'static str) -> impl FnMut(Span<'a>) -> SResult<Span> {

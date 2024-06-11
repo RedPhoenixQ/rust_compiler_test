@@ -3,7 +3,7 @@ source: src/parser.rs
 expression: "fn_statement(\"fn invalid_argument(123, b) { let c = 123; }\".into())"
 ---
 Err(
-    Error(
+    Failure(
         VerboseError {
             errors: [
                 (

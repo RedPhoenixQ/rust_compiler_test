@@ -3,7 +3,7 @@ source: src/parser.rs
 expression: "fn_statement(\"fn only_ident\".into())"
 ---
 Err(
-    Error(
+    Failure(
         VerboseError {
             errors: [
                 (
