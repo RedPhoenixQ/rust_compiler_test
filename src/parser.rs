@@ -46,6 +46,10 @@ pub enum Node<'a> {
         arguments: Vec<(Ustr, Option<Value>)>,
         body: Vec<Ast<'a>>,
     },
+    AccessMember {
+        source: Box<Ast<'a>>,
+        member: Ustr,
+    },
     FunctionCall {
         calling: Box<Ast<'a>>,
         arguments: Vec<Ast<'a>>,
@@ -132,17 +136,61 @@ fn expr(input: Span) -> SResult<Ast> {
     alt((
         unary_operation_expr,
         binary_operation_expr,
-        function_call_expr,
         value_expr,
         closure_expr,
     ))
     .parse(input)
 }
 
+#[derive(Debug)]
+enum PostOperation<'a> {
+    Member(Ustr),
+    Call(Vec<Ast<'a>>),
+}
+
+fn post_operation(input: Span) -> SResult<PostOperation> {
+    alt((
+        preceded(ws(char('.')), ident)
+            .context("Member")
+            .map(|ident| PostOperation::Member(ident)),
+        delimited(
+            ws(char('(')),
+            separated_list0(ws(char(',')), ws(expr)),
+            char(')').cut(),
+        )
+        .context("Call")
+        .map(|arguments| PostOperation::Call(arguments)),
+    ))
+    .context("Post operator")
+    .parse(input)
+}
+
 fn value_expr(input: Span) -> SResult<Ast> {
-    alt((literal_expr, ident_expr))
-        .context("Value")
-        .parse(input)
+    pair(
+        alt((literal_expr, ident_expr)).context("Value"),
+        many0(ws(consumed(post_operation))),
+    )
+    .map(|(value, operators)| {
+        operators
+            .into_iter()
+            .fold(value, |lhs, (span, operation)| match operation {
+                PostOperation::Call(arguments) => Ast {
+                    node: Node::FunctionCall {
+                        calling: lhs.into(),
+                        arguments,
+                    },
+                    span,
+                },
+                PostOperation::Member(member) => Ast {
+                    node: Node::AccessMember {
+                        source: lhs.into(),
+                        member,
+                    },
+                    span,
+                },
+            })
+    })
+    .parse(input)
 }
 
 fn let_statement(input: Span) -> SResult<Ast> {
@@ -403,29 +451,6 @@ fn binary_operation_expr(input: Span) -> SResult<Ast> {
     };
 
     Ok((input, Ast { node, span }))
-}
-
-fn function_call_expr(input: Span) -> SResult<Ast> {
-    pair(
-        alt((
-            delimited(ws(char('(')), ws(expr), ws(char(')'))),
-            ws(ident_expr),
-        )),
-        consumed(delimited(
-            ws(char('(')),
-            separated_list0(ws(char(',')), ws(expr)),
-            char(')').cut(),
-        )),
-    )
-    .context("Function call")
-    .map(|(calling, (span, arguments))| Ast {
-        node: Node::FunctionCall {
-            calling: calling.into(),
-            arguments: arguments.into(),
-        },
-        span,
-    })
-    .parse(input)
 }
 
 fn closure_expr(input: Span) -> SResult<Ast> {
@@ -744,19 +769,23 @@ mod test {
     }
 
     #[test]
-    fn parse_function_call() {
-        assert_debug_snapshot!(function_call_expr("a()".into()));
-        assert_debug_snapshot!(function_call_expr("a(123, b, c == 3)".into()));
-        assert_debug_snapshot!(function_call_expr("(123)(123, b, c == 3)".into()));
-    }
-
-    #[test]
     fn parse_closure() {
         assert_debug_snapshot!(closure_expr("|| {return 123;}".into()));
         assert_debug_snapshot!(closure_expr("|a| { a += 1; }".into()));
         assert_debug_snapshot!(closure_expr("|a,b,c| { return a - b - c; }".into()));
         assert_debug_snapshot!(closure_expr("|a,b = 123| { return a - b; }".into()));
         assert_debug_snapshot!(closure_expr("|a = 123,b| { return a - b; }".into()));
+    }
+
+    #[test]
+    fn parse_post_operators() {
+        assert_debug_snapshot!(expr("a()".into()));
+        assert_debug_snapshot!(expr("a.b".into()));
+        assert_debug_snapshot!(expr("a.b()".into()));
+        assert_debug_snapshot!(expr(r#""test".haha"#.into()));
+        assert_debug_snapshot!(expr("a(123)".into()));
+        assert_debug_snapshot!(expr("a(123, b, c == 1)".into()));
+        assert_debug_snapshot!(expr("a(123).b.c()".into()));
     }
 
     #[test]

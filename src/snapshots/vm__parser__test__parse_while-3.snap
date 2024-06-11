@@ -305,64 +305,6 @@ Err(
                     Stack {
                         base: Alt(
                             [
-                                Base {
-                                    location: LocatedSpan {
-                                        offset: 7,
-                                        line: 1,
-                                        fragment: ") { 123; }",
-                                        extra: (),
-                                    },
-                                    kind: Expected(
-                                        Char(
-                                            '(',
-                                        ),
-                                    ),
-                                },
-                                Stack {
-                                    base: Base {
-                                        location: LocatedSpan {
-                                            offset: 7,
-                                            line: 1,
-                                            fragment: ") { 123; }",
-                                            extra: (),
-                                        },
-                                        kind: Expected(
-                                            Alpha,
-                                        ),
-                                    },
-                                    contexts: [
-                                        (
-                                            LocatedSpan {
-                                                offset: 7,
-                                                line: 1,
-                                                fragment: ") { 123; }",
-                                                extra: (),
-                                            },
-                                            Context(
-                                                "Identifier",
-                                            ),
-                                        ),
-                                    ],
-                                },
-                            ],
-                        ),
-                        contexts: [
-                            (
-                                LocatedSpan {
-                                    offset: 7,
-                                    line: 1,
-                                    fragment: ") { 123; }",
-                                    extra: (),
-                                },
-                                Context(
-                                    "Function call",
-                                ),
-                            ),
-                        ],
-                    },
-                    Stack {
-                        base: Alt(
-                            [
                                 Stack {
                                     base: Base {
                                         location: LocatedSpan {

@@ -1,11 +1,11 @@
 ---
 source: src/parser.rs
-expression: "function_call_expr(\"a()\".into())"
+expression: "expr(\"a(123)\".into())"
 ---
 Ok(
     (
         LocatedSpan {
-            offset: 3,
+            offset: 6,
             line: 1,
             fragment: "",
             extra: (),
@@ -23,12 +23,26 @@ Ok(
                         extra: (),
                     },
                 },
-                arguments: [],
+                arguments: [
+                    Ast {
+                        node: Literal(
+                            Int(
+                                123,
+                            ),
+                        ),
+                        span: LocatedSpan {
+                            offset: 2,
+                            line: 1,
+                            fragment: "123",
+                            extra: (),
+                        },
+                    },
+                ],
             },
             span: LocatedSpan {
                 offset: 1,
                 line: 1,
-                fragment: "()",
+                fragment: "(123)",
                 extra: (),
             },
         },

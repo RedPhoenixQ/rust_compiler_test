@@ -1,0 +1,38 @@
+---
+source: src/parser.rs
+expression: "expr(r#\"\"test\".haha\"#.into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 11,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: AccessMember {
+                source: Ast {
+                    node: Literal(
+                        String(
+                            u!("test"),
+                        ),
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "\"test\"",
+                        extra: (),
+                    },
+                },
+                member: u!("haha"),
+            },
+            span: LocatedSpan {
+                offset: 6,
+                line: 1,
+                fragment: ".haha",
+                extra: (),
+            },
+        },
+    ),
+)

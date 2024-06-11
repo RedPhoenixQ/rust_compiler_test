@@ -1,0 +1,83 @@
+---
+source: src/parser.rs
+expression: "expr(\"a(123).b.c()\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 12,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: FunctionCall {
+                calling: Ast {
+                    node: AccessMember {
+                        source: Ast {
+                            node: AccessMember {
+                                source: Ast {
+                                    node: FunctionCall {
+                                        calling: Ast {
+                                            node: Ident(
+                                                u!("a"),
+                                            ),
+                                            span: LocatedSpan {
+                                                offset: 0,
+                                                line: 1,
+                                                fragment: "a",
+                                                extra: (),
+                                            },
+                                        },
+                                        arguments: [
+                                            Ast {
+                                                node: Literal(
+                                                    Int(
+                                                        123,
+                                                    ),
+                                                ),
+                                                span: LocatedSpan {
+                                                    offset: 2,
+                                                    line: 1,
+                                                    fragment: "123",
+                                                    extra: (),
+                                                },
+                                            },
+                                        ],
+                                    },
+                                    span: LocatedSpan {
+                                        offset: 1,
+                                        line: 1,
+                                        fragment: "(123)",
+                                        extra: (),
+                                    },
+                                },
+                                member: u!("b"),
+                            },
+                            span: LocatedSpan {
+                                offset: 6,
+                                line: 1,
+                                fragment: ".b",
+                                extra: (),
+                            },
+                        },
+                        member: u!("c"),
+                    },
+                    span: LocatedSpan {
+                        offset: 8,
+                        line: 1,
+                        fragment: ".c",
+                        extra: (),
+                    },
+                },
+                arguments: [],
+            },
+            span: LocatedSpan {
+                offset: 10,
+                line: 1,
+                fragment: "()",
+                extra: (),
+            },
+        },
+    ),
+)
