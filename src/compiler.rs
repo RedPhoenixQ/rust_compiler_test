@@ -65,6 +65,9 @@ impl Compiler {
                 self.code.push(Op::Load(*ident));
             }
             Node::Literal(value) => self.code.push(Op::LoadConst(value.clone())),
+            Node::ArrayLiteral(array) => {
+                todo!()
+            }
             Node::If {
                 branches,
                 else_block,

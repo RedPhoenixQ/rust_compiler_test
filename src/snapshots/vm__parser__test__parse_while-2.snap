@@ -511,6 +511,34 @@ Err(
                                         ),
                                     ],
                                 },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Char(
+                                                '[',
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Array",
+                                            ),
+                                        ),
+                                    ],
+                                },
                             ],
                         ),
                         contexts: [
@@ -789,6 +817,34 @@ Err(
                                             },
                                             Context(
                                                 "Identifier",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 16,
+                                            line: 1,
+                                            fragment: "}",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Char(
+                                                '[',
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 16,
+                                                line: 1,
+                                                fragment: "}",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Array",
                                             ),
                                         ),
                                     ],

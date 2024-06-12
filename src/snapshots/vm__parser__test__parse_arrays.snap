@@ -1,0 +1,25 @@
+---
+source: src/parser.rs
+expression: "array_expr(r#\"[]\"#.into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 2,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: ArrayLiteral(
+                [],
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "[]",
+                extra: (),
+            },
+        },
+    ),
+)

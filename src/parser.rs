@@ -71,6 +71,7 @@ pub enum Node<'a> {
     },
     UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
+    ArrayLiteral(Vec<Ast<'a>>),
 }
 
 #[derive(Debug)]
@@ -175,7 +176,7 @@ fn post_operation(input: Span) -> SResult<PostOperation> {
 
 fn value_expr(input: Span) -> SResult<Ast> {
     pair(
-        alt((literal_expr, ident_expr)).context("Value"),
+        alt((literal_expr, ident_expr, array_expr)).context("Value"),
         many0(ws(consumed(post_operation))),
     )
     .map(|(value, operators)| {
@@ -486,6 +487,20 @@ fn closure_expr(input: Span) -> SResult<Ast> {
     .parse(input)
 }
 
+fn array_expr(input: Span) -> SResult<Ast> {
+    consumed(delimited(
+        ws(char('[')),
+        separated_list0(ws(char(',')), ws(expr)).terminated(ws(char(',')).opt()),
+        char(']').cut(),
+    ))
+    .context("Array")
+    .map(|(span, array)| Ast {
+        node: Node::ArrayLiteral(array),
+        span,
+    })
+    .parse(input)
+}
+
 fn ident_expr(input: Span) -> SResult<Ast> {
     consumed(ident)
         .map(|(span, ident)| Ast {
@@ -790,6 +805,15 @@ mod test {
         assert_debug_snapshot!(closure_expr("|a,b,c| { return a - b - c; }".into()));
         assert_debug_snapshot!(closure_expr("|a,b = 123| { return a - b; }".into()));
         assert_debug_snapshot!(closure_expr("|a = 123,b| { return a - b; }".into()));
+    }
+
+    #[test]
+    fn parse_arrays() {
+        assert_debug_snapshot!(array_expr(r#"[]"#.into()));
+        assert_debug_snapshot!(array_expr(r#"[1]"#.into()));
+        assert_debug_snapshot!(array_expr(r#"[1,]"#.into()));
+        assert_debug_snapshot!(array_expr(r#"[1, 2]"#.into()));
+        assert_debug_snapshot!(array_expr(r#"[  1  ,  2 , ]"#.into()));
     }
 
     #[test]
