@@ -1,0 +1,71 @@
+use std::rc::Rc;
+
+use anyhow::{bail, Result};
+use ustr::UstrMap;
+
+use super::Value;
+
+#[derive(Debug, Default)]
+pub struct Object(pub UstrMap<Value>);
+
+#[derive(Debug, Clone, Copy)]
+pub enum ObjectMethod {
+    Entries,
+    Values,
+    Keys,
+}
+
+impl TryFrom<&str> for ObjectMethod {
+    type Error = ();
+    fn try_from(value: &str) -> Result<Self, ()> {
+        Ok(match value {
+            "entrie" => Self::Entries,
+            "values" => Self::Values,
+            "keys" => Self::Keys,
+            _ => return Err(()),
+        })
+    }
+}
+
+impl Object {
+    pub fn call(&mut self, method: ObjectMethod, arguments: Vec<Value>) -> Result<Value> {
+        Ok(match method {
+            ObjectMethod::Entries => {
+                if !arguments.is_empty() {
+                    bail!("{method:?} does not take any arguments");
+                }
+                Value::Array(Rc::new(
+                    super::array::Array(
+                        self.0
+                            .iter()
+                            .map(|(key, value)| {
+                                Value::Array(Rc::new(
+                                    super::array::Array(vec![Value::String(*key), value.clone()])
+                                        .into(),
+                                ))
+                            })
+                            .collect(),
+                    )
+                    .into(),
+                ))
+            }
+            ObjectMethod::Values => {
+                if !arguments.is_empty() {
+                    bail!("{method:?} does not take any arguments");
+                }
+                Value::Array(Rc::new(
+                    super::array::Array(self.0.values().cloned().collect()).into(),
+                ))
+            }
+            ObjectMethod::Keys => {
+                if !arguments.is_empty() {
+                    bail!("{method:?} does not take any arguments");
+                }
+                Value::Array(Rc::new(
+                    super::array::Array(self.0.keys().map(|key| Value::String(*key)).collect())
+                        .into(),
+                ))
+            }
+        })
+    }
+}

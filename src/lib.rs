@@ -264,6 +264,18 @@ impl VM {
                     }
                     self.push_eval_stack(Value::Array(Rc::new(value::array::Array(vec).into())));
                 }
+                Op::BuildObject(number_of_elements) => {
+                    let mut map = UstrMap::default();
+                    for _ in 0..*number_of_elements {
+                        let key = match self.pop_eval_stack()? {
+                            Value::String(key) => key,
+                            value => bail!("The key was not a string, recived {value:?}"),
+                        };
+                        let value = self.pop_eval_stack()?;
+                        map.insert(key, value);
+                    }
+                    self.push_eval_stack(Value::Object(Rc::new(value::object::Object(map).into())));
+                }
                 Op::MakeClosure(function) => {
                     let function = function.clone();
                     if !function.foreign_idents.is_empty() {
@@ -290,6 +302,7 @@ impl VM {
                     enum Call {
                         Builtin(Builtin),
                         ArrayMethod(value::array::ArrayMethod),
+                        ObjectMethod(value::object::ObjectMethod),
                         Function {
                             function: Rc<Function>,
                             locals: Scope,
@@ -298,6 +311,7 @@ impl VM {
                     match match self.pop_eval_stack()? {
                         Value::BuiltInFunction(builtin) => Call::Builtin(builtin),
                         Value::ArrayMethod(method) => Call::ArrayMethod(method),
+                        Value::ObjectMethod(method) => Call::ObjectMethod(method),
                         Value::Closure(closure) => Call::Function {
                             function: closure.function.clone(),
                             locals: closure.scope.clone(),
@@ -328,6 +342,21 @@ impl VM {
                                 arguments.push(self.pop_eval_stack()?);
                             }
                             let return_value = array.borrow_mut().call(method, arguments)?;
+                            self.push_eval_stack(return_value);
+                        }
+                        Call::ObjectMethod(method) => {
+                            if !matches!(op, Op::CallMethod(_)) {
+                                bail!("{method:?} not called as a method")
+                            }
+                            let object = match self.pop_eval_stack()? {
+                                Value::Object(object) => object,
+                                value => bail!("{method:?} called on {value:?}"),
+                            };
+                            let mut arguments = Vec::with_capacity(*number_of_arguments);
+                            for _ in 0..*number_of_arguments {
+                                arguments.push(self.pop_eval_stack()?);
+                            }
+                            let return_value = object.borrow_mut().call(method, arguments)?;
                             self.push_eval_stack(return_value);
                         }
                         Call::Function {

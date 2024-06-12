@@ -72,7 +72,11 @@ impl Compiler {
                 self.code.push(Op::BuildArray(array.len()));
             }
             Node::ObjectLiteral(entries) => {
-                todo!("Object {entries:?}")
+                for (key, value) in entries {
+                    self.compile_node(&value.node)?;
+                    self.code.push(Op::LoadConst(Value::String(*key)));
+                }
+                self.code.push(Op::BuildObject(entries.len()));
             }
             Node::If {
                 branches,

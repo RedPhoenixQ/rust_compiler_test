@@ -4,6 +4,7 @@ use anyhow::{bail, Result};
 use ustr::{Ustr, UstrSet};
 
 pub mod array;
+pub mod object;
 
 use crate::{
     builtins::Builtin,
@@ -35,9 +36,11 @@ pub enum Value {
     String(Ustr),
     Boolean(bool),
     Array(Variable<array::Array>),
+    Object(Variable<object::Object>),
     Function(Rc<Function>),
     Closure(Rc<Closure>),
     ArrayMethod(array::ArrayMethod),
+    ObjectMethod(object::ObjectMethod),
     BuiltInFunction(Builtin),
     #[default]
     Undefined,
@@ -98,10 +101,12 @@ impl Value {
             Value::Float(value) => value.is_normal(),
             Value::Boolean(value) => *value,
             Value::Array(array) => !array.borrow().0.is_empty(),
+            Value::Object(_) => true,
             Value::Function(_) => true,
             Value::Closure(_) => true,
             Value::BuiltInFunction(_) => true,
             Value::ArrayMethod(_) => true,
+            Value::ObjectMethod(_) => true,
             Value::Undefined => false,
         }
     }
@@ -121,10 +126,12 @@ impl Value {
             Value::Float(value) => format!("{value}"),
             Value::Boolean(value) => format!("{value}"),
             Value::Array(_) => "array".to_string(),
-            Value::Function(_) => "function".to_string(),
-            Value::Closure(_) => "function".to_string(),
-            Value::BuiltInFunction(_) => "function".to_string(),
-            Value::ArrayMethod(_) => "function".to_string(),
+            Value::Object(_) => "object".to_string(),
+            Value::Function(_)
+            | Value::Closure(_)
+            | Value::BuiltInFunction(_)
+            | Value::ArrayMethod(_)
+            | Value::ObjectMethod(_) => "function".to_string(),
             Value::Undefined => "undefined".to_string(),
         }
     }
@@ -138,10 +145,12 @@ impl Value {
             Self::Boolean(true) => 1.into(),
             Self::Boolean(false) => 0.into(),
             Self::Array(_) => bail!("TypeError: Array can not be used as a number"),
-            Self::Function(_) => bail!("TypeError: Function can not be used as a number"),
-            Self::Closure(_) => bail!("TypeError: Function can not be used as a number"),
-            Self::BuiltInFunction(_) => bail!("TypeError: Function can not be used as a number"),
-            Self::ArrayMethod(_) => bail!("TypeError: Function can not be used as a number"),
+            Self::Object(_) => bail!("TypeError: Object can not be used as a number"),
+            Self::Function(_)
+            | Self::Closure(_)
+            | Self::BuiltInFunction(_)
+            | Self::ArrayMethod(_)
+            | Self::ObjectMethod(_) => bail!("TypeError: Function can not be used as a number"),
             Self::Undefined => bail!("TypeError: Undefined can not be used as a number"),
         })
     }
@@ -164,6 +173,13 @@ impl Value {
         })
     }
 
+    fn object_key(key: Value) -> Result<Ustr> {
+        Ok(match key.as_string() {
+            Value::String(s) => s,
+            _ => unreachable!("as_string() should always return a string"),
+        })
+    }
+
     pub fn get(&self, key: Value) -> Result<Value> {
         match self {
             Self::Array(array) => {
@@ -177,6 +193,14 @@ impl Value {
                     index,
                     vec.len()
                 ))
+            }
+            Self::Object(object) => {
+                let map = &object.borrow().0;
+                let key = Self::object_key(key)?;
+                if let Ok(method) = key.as_str().try_into() {
+                    return Ok(Value::ObjectMethod(method));
+                }
+                Ok(map.get(&key).cloned().unwrap_or_default())
             }
             _ => bail!("TypeError: Cannot access key {:?}, on {:?}", key, self),
         }
@@ -196,6 +220,11 @@ impl Value {
                     ))?;
                     *current = value;
                 }
+            }
+            Self::Object(object) => {
+                let map = &mut object.borrow_mut().0;
+                let key = Self::object_key(key)?;
+                map.insert(key, value);
             }
             _ => bail!("TypeError: Cannot set key {:?}, on {:?}", key, self),
         }

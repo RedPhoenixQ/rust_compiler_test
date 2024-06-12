@@ -63,6 +63,9 @@ pub enum Op {
 
     /// Pops the number of values from the stack and creates an array of those items
     BuildArray(usize),
+    /// Pops the number*2 of values from the stack and creates an object of those key-value pairs.
+    /// The key should be above the value
+    BuildObject(usize),
 
     /// This will grab a reference to all the foreign_idents within the function and push the close to the stack.
     ///
