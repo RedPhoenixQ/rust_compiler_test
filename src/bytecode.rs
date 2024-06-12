@@ -61,6 +61,9 @@ pub enum Op {
     PushBlock(BlockType),
     PopBlock,
 
+    /// Pops the number of values from the stack and creates an array of those items
+    BuildArray(usize),
+
     /// This will grab a reference to all the foreign_idents within the function and push the close to the stack.
     ///
     /// If the function does not reference any foreign_ident, a normal function will be pushed

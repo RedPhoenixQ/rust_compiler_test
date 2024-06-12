@@ -257,6 +257,13 @@ impl VM {
                     };
                     block_stack.pop();
                 }
+                Op::BuildArray(number_of_elements) => {
+                    let mut vec = Vec::with_capacity(*number_of_elements);
+                    for _ in 0..*number_of_elements {
+                        vec.push(self.pop_eval_stack()?);
+                    }
+                    self.push_eval_stack(Value::Array(Rc::new(value::array::Array(vec).into())));
+                }
                 Op::MakeClosure(function) => {
                     let function = function.clone();
                     if function.foreign_idents.len() > 0 {

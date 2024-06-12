@@ -66,7 +66,10 @@ impl Compiler {
             }
             Node::Literal(value) => self.code.push(Op::LoadConst(value.clone())),
             Node::ArrayLiteral(array) => {
-                todo!()
+                for ast in array {
+                    self.compile_node(&ast.node)?;
+                }
+                self.code.push(Op::BuildArray(array.len()));
             }
             Node::If {
                 branches,
