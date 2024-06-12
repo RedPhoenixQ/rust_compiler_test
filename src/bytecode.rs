@@ -17,8 +17,6 @@ pub enum BlockType {
 
 #[derive(Debug)]
 pub enum Op {
-    /// Load local variable from current call stack
-    LoadFast(Ustr),
     /// Load local variable from outside scope
     Load(Ustr),
     /// Load the value from the storage at the top of the stack
@@ -33,8 +31,6 @@ pub enum Op {
     /// Declare a variable to the local scope and store the topmost value on the stack
     DeclareVar(Ustr),
 
-    /// Store local variable in the current call stack
-    StoreFast(Ustr),
     /// Store variable to first scope that contains the name
     Store(Ustr),
     /// Store a value (stack[-1]) into the attribute on the storage (stack[-2])

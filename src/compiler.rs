@@ -65,11 +65,6 @@ impl Compiler {
             }
             Node::Ident(ident) => {
                 self.reference_ident(*ident);
-                // if self.declared_idents.contains(ident) {
-                //     self.code.push(Op::LoadFast(*ident));
-                // } else {
-                //     self.code.push(Op::Load(*ident));
-                // }
                 self.code.push(Op::Load(*ident));
             }
             Node::Literal(value) => self.code.push(Op::LoadConst(value.clone())),

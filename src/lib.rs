@@ -120,18 +120,6 @@ impl VM {
             }
             pc += 1;
             match op {
-                Op::LoadFast(key) => {
-                    let value = self
-                        .call_stack
-                        .last_mut()
-                        .ok_or(anyhow::anyhow!("Expected atleast one callstack to exist"))?
-                        .locals
-                        .get(key)
-                        .ok_or(anyhow::anyhow!("Expected {key} to exist in local scope"))?
-                        .borrow()
-                        .clone();
-                    self.push_eval_stack(value);
-                }
                 Op::Load(ident) => {
                     let value = self.get_ident_value(ident)?;
                     self.push_eval_stack(value);
@@ -160,20 +148,6 @@ impl VM {
                     } else {
                         scope.insert(*ident, value.into());
                     }
-                }
-                Op::StoreFast(ident) => {
-                    let value = self.pop_eval_stack()?;
-                    let scope = if let Some(frame) = self.call_stack.last_mut() {
-                        &mut frame.locals
-                    } else {
-                        &mut self.global_scope
-                    };
-                    let Some(var) = scope.get_mut(ident) else {
-                        bail!(
-                            "Cannot assign to an undeclared variable, tried to assign to {ident}",
-                        );
-                    };
-                    var.replace(value);
                 }
                 Op::Store(ident) => {
                     let value = self.pop_eval_stack()?;
