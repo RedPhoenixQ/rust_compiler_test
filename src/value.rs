@@ -1,31 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
 use anyhow::{bail, Result};
-use ustr::{Ustr, UstrSet};
+use ustr::Ustr;
 
 pub mod array;
+pub mod function;
 pub mod object;
 
 use crate::{
     builtins::Builtin,
-    bytecode::Op,
     parser::{BinaryOp, UnaryOp},
-    Scope,
 };
-
-#[derive(Debug)]
-pub struct Function {
-    pub arguments: Vec<(Ustr, Value)>,
-    pub constants: Vec<Value>,
-    pub code: Vec<Op>,
-    pub foreign_idents: UstrSet,
-}
-
-#[derive(Debug)]
-pub struct Closure {
-    pub function: Rc<Function>,
-    pub scope: Scope,
-}
 
 pub type Variable<T = Value> = Rc<RefCell<T>>;
 
@@ -37,13 +22,19 @@ pub enum Value {
     Boolean(bool),
     Array(Variable<array::Array>),
     Object(Variable<object::Object>),
-    Function(Rc<Function>),
-    Closure(Rc<Closure>),
+    Function(Rc<function::Function>),
+    Closure(Rc<function::Closure>),
     ArrayMethod(array::ArrayMethod),
     ObjectMethod(object::ObjectMethod),
     BuiltInFunction(Builtin),
     #[default]
     Undefined,
+}
+
+impl From<Value> for Variable<Value> {
+    fn from(value: Value) -> Self {
+        Rc::new(RefCell::new(value))
+    }
 }
 
 impl PartialEq for Value {

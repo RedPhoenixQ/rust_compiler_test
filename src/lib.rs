@@ -12,7 +12,10 @@ use builtins::Builtin;
 use bytecode::Op;
 use compiler::Bundle;
 use ustr::{Ustr, UstrMap};
-use value::{Closure, Function, Value, Variable};
+use value::{
+    function::{Closure, Function},
+    Value, Variable,
+};
 
 type Scope = UstrMap<Variable>;
 
@@ -153,7 +156,7 @@ impl VM {
                     if let Some(var) = scope.get_mut(ident) {
                         var.replace(value);
                     } else {
-                        scope.insert(*ident, Rc::new(value.into()));
+                        scope.insert(*ident, value.into());
                     }
                 }
                 Op::StoreFast(ident) => {
@@ -262,7 +265,7 @@ impl VM {
                     for _ in 0..*number_of_elements {
                         vec.push(self.pop_eval_stack()?);
                     }
-                    self.push_eval_stack(Value::Array(Rc::new(value::array::Array(vec).into())));
+                    self.push_eval_stack(value::array::Array(vec).into());
                 }
                 Op::BuildObject(number_of_elements) => {
                     let mut map = UstrMap::default();
@@ -274,7 +277,7 @@ impl VM {
                         let value = self.pop_eval_stack()?;
                         map.insert(key, value);
                     }
-                    self.push_eval_stack(Value::Object(Rc::new(value::object::Object(map).into())));
+                    self.push_eval_stack(value::object::Object(map).into());
                 }
                 Op::MakeClosure(function) => {
                     let function = function.clone();
@@ -293,9 +296,9 @@ impl VM {
                                 scope.insert(*ident, var);
                             };
                         }
-                        self.push_eval_stack(Value::Closure(Closure { function, scope }.into()));
+                        self.push_eval_stack(Closure { function, scope }.into());
                     } else {
-                        self.push_eval_stack(Value::Function(function));
+                        self.push_eval_stack(function.into());
                     }
                 }
                 op @ Op::Call(number_of_arguments) | op @ Op::CallMethod(number_of_arguments) => {
@@ -308,20 +311,30 @@ impl VM {
                             locals: Scope,
                         },
                     }
-                    match match self.pop_eval_stack()? {
-                        Value::BuiltInFunction(builtin) => Call::Builtin(builtin),
-                        Value::ArrayMethod(method) => Call::ArrayMethod(method),
-                        Value::ObjectMethod(method) => Call::ObjectMethod(method),
-                        Value::Closure(closure) => Call::Function {
-                            function: closure.function.clone(),
-                            locals: closure.scope.clone(),
-                        },
-                        Value::Function(function) => Call::Function {
-                            function,
-                            locals: Scope::default(),
-                        },
-                        calling => bail!("Attempting to call a non function, called {:?}", calling),
-                    } {
+
+                    impl TryFrom<Value> for Call {
+                        type Error = anyhow::Error;
+                        fn try_from(value: Value) -> std::result::Result<Self, Self::Error> {
+                            Ok(match value {
+                                Value::BuiltInFunction(builtin) => Call::Builtin(builtin),
+                                Value::ArrayMethod(method) => Call::ArrayMethod(method),
+                                Value::ObjectMethod(method) => Call::ObjectMethod(method),
+                                Value::Closure(closure) => Call::Function {
+                                    function: closure.function.clone(),
+                                    locals: closure.scope.clone(),
+                                },
+                                Value::Function(function) => Call::Function {
+                                    function,
+                                    locals: Scope::default(),
+                                },
+                                calling => {
+                                    bail!("Attempting to call a non function, called {:?}", calling)
+                                }
+                            })
+                        }
+                    }
+
+                    match self.pop_eval_stack()?.try_into()? {
                         Call::Builtin(builtin) => {
                             if matches!(op, Op::CallMethod(_)) {
                                 let _ignored_self_value = self.pop_eval_stack()?;
@@ -366,8 +379,7 @@ impl VM {
                             locals.reserve(function.arguments.len());
 
                             if matches!(op, Op::CallMethod(_)) {
-                                locals
-                                    .insert("self".into(), Rc::new(self.pop_eval_stack()?.into()));
+                                locals.insert("self".into(), self.pop_eval_stack()?.into());
                             }
 
                             for i in 0..function.arguments.len() {
@@ -381,7 +393,7 @@ impl VM {
                                 } else {
                                     default.clone()
                                 };
-                                locals.insert(*name, Rc::new(argument.into()));
+                                locals.insert(*name, argument.into());
                             }
 
                             self.call_stack.push(CallFrame {

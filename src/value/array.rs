@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use anyhow::{bail, Result};
 
 use super::Value;
@@ -21,6 +23,12 @@ impl TryFrom<&str> for ArrayMethod {
             "push" => Self::Push,
             _ => return Err(()),
         })
+    }
+}
+
+impl From<Array> for Value {
+    fn from(value: Array) -> Self {
+        Value::Array(Rc::new(value.into()))
     }
 }
 

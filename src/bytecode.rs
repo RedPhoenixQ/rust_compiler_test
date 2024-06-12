@@ -4,7 +4,7 @@ use ustr::Ustr;
 
 use crate::{
     parser::{BinaryOp, UnaryOp},
-    value::{Function, Value},
+    value::{function::Function, Value},
 };
 
 #[derive(Debug)]

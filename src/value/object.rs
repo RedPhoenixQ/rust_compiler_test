@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::{bail, Result};
 use ustr::UstrMap;
 
-use super::Value;
+use super::{array::Array, Value};
 
 #[derive(Debug, Default)]
 pub struct Object(pub UstrMap<Value>);
@@ -27,6 +27,12 @@ impl TryFrom<&str> for ObjectMethod {
     }
 }
 
+impl From<Object> for Value {
+    fn from(value: Object) -> Self {
+        Value::Object(Rc::new(value.into()))
+    }
+}
+
 impl Object {
     pub fn call(&mut self, method: ObjectMethod, arguments: Vec<Value>) -> Result<Value> {
         Ok(match method {
@@ -34,37 +40,25 @@ impl Object {
                 if !arguments.is_empty() {
                     bail!("{method:?} does not take any arguments");
                 }
-                Value::Array(Rc::new(
-                    super::array::Array(
-                        self.0
-                            .iter()
-                            .map(|(key, value)| {
-                                Value::Array(Rc::new(
-                                    super::array::Array(vec![Value::String(*key), value.clone()])
-                                        .into(),
-                                ))
-                            })
-                            .collect(),
-                    )
-                    .into(),
-                ))
+                Array(
+                    self.0
+                        .iter()
+                        .map(|(key, value)| Array(vec![Value::String(*key), value.clone()]).into())
+                        .collect(),
+                )
+                .into()
             }
             ObjectMethod::Values => {
                 if !arguments.is_empty() {
                     bail!("{method:?} does not take any arguments");
                 }
-                Value::Array(Rc::new(
-                    super::array::Array(self.0.values().cloned().collect()).into(),
-                ))
+                Array(self.0.values().cloned().collect()).into()
             }
             ObjectMethod::Keys => {
                 if !arguments.is_empty() {
                     bail!("{method:?} does not take any arguments");
                 }
-                Value::Array(Rc::new(
-                    super::array::Array(self.0.keys().map(|key| Value::String(*key)).collect())
-                        .into(),
-                ))
+                Array(self.0.keys().map(|key| Value::String(*key)).collect()).into()
             }
         })
     }

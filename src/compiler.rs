@@ -4,7 +4,7 @@ use ustr::UstrSet;
 use crate::{
     bytecode::{BlockType, Op},
     parser::{Ast, Node},
-    value::{Function, Value},
+    value::{function::Function, Value},
 };
 
 #[derive(Debug)]
@@ -181,7 +181,7 @@ impl Compiler {
                     .declared_idents
                     .extend(arguments.iter().map(|(arg, _)| arg));
                 let function_bundle = compiler.compile(body)?;
-                self.code.push(Op::LoadConst(Value::Function(
+                self.code.push(Op::LoadConst(
                     Function {
                         arguments: arguments
                             .iter()
@@ -194,7 +194,7 @@ impl Compiler {
                         foreign_idents: function_bundle.foreign_idents,
                     }
                     .into(),
-                )));
+                ));
 
                 self.declared_idents.insert(*ident);
                 self.code.push(Op::DeclareVar(*ident))
