@@ -205,6 +205,15 @@ impl VM {
                         .clone();
                     self.push_eval_stack(value);
                 }
+                Op::PushDown(down) => {
+                    let value = self.pop_eval_stack()?;
+                    let stack = if let Some(frame) = self.call_stack.last_mut() {
+                        &mut frame.eval_stack
+                    } else {
+                        &mut self.global_eval
+                    };
+                    stack.insert(stack.len() - down, value);
+                }
                 Op::Jump(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
                     pc += *jump;

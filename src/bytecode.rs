@@ -43,6 +43,9 @@ pub enum Op {
     /// Duplicates the topmost item on the stack
     Duplicate,
 
+    /// Push stack[-1] down in the stack to position stack[-i]
+    PushDown(usize),
+
     /// Move the program counter relative to the current intruction
     Jump(usize),
     /// Move the program counter backwards relative to the current intruction
