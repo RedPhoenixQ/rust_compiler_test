@@ -1,0 +1,25 @@
+---
+source: src/parser.rs
+expression: "object_expr(r#\"{}\"#.into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 2,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: ObjectLiteral(
+                [],
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "{}",
+                extra: (),
+            },
+        },
+    ),
+)

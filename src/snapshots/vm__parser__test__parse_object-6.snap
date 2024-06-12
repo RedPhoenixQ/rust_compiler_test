@@ -1,0 +1,56 @@
+---
+source: src/parser.rs
+expression: "object_expr(r#\"{ a  ,  \"b\"  :  2 , }\"#.into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 21,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: ObjectLiteral(
+                [
+                    (
+                        u!("a"),
+                        Ast {
+                            node: Ident(
+                                u!("a"),
+                            ),
+                            span: LocatedSpan {
+                                offset: 2,
+                                line: 1,
+                                fragment: "a",
+                                extra: (),
+                            },
+                        },
+                    ),
+                    (
+                        u!("b"),
+                        Ast {
+                            node: Literal(
+                                Int(
+                                    2,
+                                ),
+                            ),
+                            span: LocatedSpan {
+                                offset: 16,
+                                line: 1,
+                                fragment: "2",
+                                extra: (),
+                            },
+                        },
+                    ),
+                ],
+            ),
+            span: LocatedSpan {
+                offset: 0,
+                line: 1,
+                fragment: "{ a  ,  \"b\"  :  2 , }",
+                extra: (),
+            },
+        },
+    ),
+)

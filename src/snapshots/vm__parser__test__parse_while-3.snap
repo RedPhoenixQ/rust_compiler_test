@@ -225,6 +225,34 @@ Err(
                                         },
                                         kind: Expected(
                                             Char(
+                                                '{',
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 7,
+                                                line: 1,
+                                                fragment: ") { 123; }",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Object literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 7,
+                                            line: 1,
+                                            fragment: ") { 123; }",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Char(
                                                 '[',
                                             ),
                                         ),
@@ -238,7 +266,7 @@ Err(
                                                 extra: (),
                                             },
                                             Context(
-                                                "Array",
+                                                "Array literal",
                                             ),
                                         ),
                                     ],
@@ -535,6 +563,34 @@ Err(
                                         },
                                         kind: Expected(
                                             Char(
+                                                '{',
+                                            ),
+                                        ),
+                                    },
+                                    contexts: [
+                                        (
+                                            LocatedSpan {
+                                                offset: 7,
+                                                line: 1,
+                                                fragment: ") { 123; }",
+                                                extra: (),
+                                            },
+                                            Context(
+                                                "Object literal",
+                                            ),
+                                        ),
+                                    ],
+                                },
+                                Stack {
+                                    base: Base {
+                                        location: LocatedSpan {
+                                            offset: 7,
+                                            line: 1,
+                                            fragment: ") { 123; }",
+                                            extra: (),
+                                        },
+                                        kind: Expected(
+                                            Char(
                                                 '[',
                                             ),
                                         ),
@@ -548,7 +604,7 @@ Err(
                                                 extra: (),
                                             },
                                             Context(
-                                                "Array",
+                                                "Array literal",
                                             ),
                                         ),
                                     ],

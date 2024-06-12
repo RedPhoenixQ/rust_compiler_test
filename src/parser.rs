@@ -72,6 +72,7 @@ pub enum Node<'a> {
     UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
     ArrayLiteral(Vec<Ast<'a>>),
+    ObjectLiteral(Vec<(Ustr, Ast<'a>)>),
 }
 
 #[derive(Debug)]
@@ -176,7 +177,7 @@ fn post_operation(input: Span) -> SResult<PostOperation> {
 
 fn value_expr(input: Span) -> SResult<Ast> {
     pair(
-        alt((literal_expr, ident_expr, array_expr)).context("Value"),
+        alt((literal_expr, ident_expr, object_expr, array_expr)).context("Value"),
         many0(ws(consumed(post_operation))),
     )
     .map(|(value, operators)| {
@@ -483,13 +484,50 @@ fn closure_expr(input: Span) -> SResult<Ast> {
     .parse(input)
 }
 
+fn object_expr(input: Span) -> SResult<Ast> {
+    consumed(delimited(
+        ws(char('{')),
+        separated_list0(
+            ws(char(',')),
+            alt((
+                separated_pair(
+                    ws(alt((
+                        ident,
+                        string.map(|s| match s {
+                            Value::String(s) => s,
+                            _ => unreachable!("string parser always returns Value::String"),
+                        }),
+                    ))),
+                    ws(char(':')),
+                    ws(expr),
+                ),
+                ws(ident_expr).map(|ident| match ident {
+                    Ast {
+                        node: Node::Ident(s),
+                        ..
+                    } => (s, ident),
+                    _ => unreachable!("ident_expr parser always returns Node::Ident"),
+                }),
+            )),
+        )
+        .terminated(ws(char(',')).opt()),
+        char('}').cut(),
+    ))
+    .context("Object literal")
+    .map(|(span, entries)| Ast {
+        node: Node::ObjectLiteral(entries),
+        span,
+    })
+    .parse(input)
+}
+
 fn array_expr(input: Span) -> SResult<Ast> {
     consumed(delimited(
         ws(char('[')),
         separated_list0(ws(char(',')), ws(expr)).terminated(ws(char(',')).opt()),
         char(']').cut(),
     ))
-    .context("Array")
+    .context("Array literal")
     .map(|(span, array)| Ast {
         node: Node::ArrayLiteral(array),
         span,
@@ -810,6 +848,16 @@ mod test {
         assert_debug_snapshot!(array_expr(r#"[1,]"#.into()));
         assert_debug_snapshot!(array_expr(r#"[1, 2]"#.into()));
         assert_debug_snapshot!(array_expr(r#"[  1  ,  2 , ]"#.into()));
+    }
+
+    #[test]
+    fn parse_object() {
+        assert_debug_snapshot!(object_expr(r#"{}"#.into()));
+        assert_debug_snapshot!(object_expr(r#"{a}"#.into()));
+        assert_debug_snapshot!(object_expr(r#"{a,}"#.into()));
+        assert_debug_snapshot!(object_expr(r#"{a: 1}"#.into()));
+        assert_debug_snapshot!(object_expr(r#"{a: 1, "b": 2}"#.into()));
+        assert_debug_snapshot!(object_expr(r#"{ a  ,  "b"  :  2 , }"#.into()));
     }
 
     #[test]

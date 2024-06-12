@@ -71,6 +71,9 @@ impl Compiler {
                 }
                 self.code.push(Op::BuildArray(array.len()));
             }
+            Node::ObjectLiteral(entries) => {
+                todo!("Object {entries:?}")
+            }
             Node::If {
                 branches,
                 else_block,
