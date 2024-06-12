@@ -8,7 +8,7 @@ use super::{array::Array, Value};
 #[derive(Debug, Default)]
 pub struct Object(pub UstrMap<Value>);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ObjectMethod {
     Entries,
     Values,

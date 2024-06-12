@@ -44,7 +44,13 @@ impl PartialEq for Value {
             (Value::Float(lhs), Value::Float(rhs)) => lhs == rhs,
             (Value::String(lhs), Value::String(rhs)) => lhs == rhs,
             (Value::Boolean(lhs), Value::Boolean(rhs)) => lhs == rhs,
+            (Value::Array(lhs), Value::Array(rhs)) => Rc::ptr_eq(lhs, rhs),
+            (Value::Object(lhs), Value::Object(rhs)) => Rc::ptr_eq(lhs, rhs),
             (Value::Function(lhs), Value::Function(rhs)) => Rc::ptr_eq(lhs, rhs),
+            (Value::Closure(lhs), Value::Closure(rhs)) => Rc::ptr_eq(lhs, rhs),
+            (Value::ArrayMethod(lhs), Value::ArrayMethod(rhs)) => lhs == rhs,
+            (Value::ObjectMethod(lhs), Value::ObjectMethod(rhs)) => lhs == rhs,
+            (Value::BuiltInFunction(lhs), Value::BuiltInFunction(rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -344,7 +350,10 @@ impl Value {
             (lhs @ Value::String(_), rhs) => lhs.eval_binary_op(&rhs.as_string(), op)?,
             (lhs, rhs @ Value::String(_)) => lhs.as_string().eval_binary_op(rhs, op)?,
 
-            (_lhs, _rhs) => bail!("TypeError: '{op:?}' cannot be used on {self:?} and {other:?}"),
+            (lhs, rhs) => match op {
+                BinaryOp::Eq => Value::Boolean(lhs == rhs),
+                _ => bail!("TypeError: '{op:?}' cannot be used on {self:?} and {other:?}"),
+            },
         })
     }
 }

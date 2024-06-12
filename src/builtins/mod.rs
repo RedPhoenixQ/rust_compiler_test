@@ -2,7 +2,7 @@ use anyhow::{bail, Result};
 
 use crate::{value::Value, VM};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Builtin {
     Print,
     Dump,

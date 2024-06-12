@@ -7,7 +7,7 @@ use super::Value;
 #[derive(Debug, Default)]
 pub struct Array(pub Vec<Value>);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ArrayMethod {
     Length,
     Pop,
