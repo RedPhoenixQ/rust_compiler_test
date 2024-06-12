@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use anyhow::{bail, Result};
 
-use super::Value;
+use super::{Value, Variable};
 
 #[derive(Debug, Default)]
 pub struct Array(pub Vec<Value>);
@@ -26,9 +26,15 @@ impl TryFrom<&str> for ArrayMethod {
     }
 }
 
+impl From<Array> for Variable<Array> {
+    fn from(value: Array) -> Self {
+        Rc::new(value.into())
+    }
+}
+
 impl From<Array> for Value {
     fn from(value: Array) -> Self {
-        Value::Array(Rc::new(value.into()))
+        Value::Array(value.into())
     }
 }
 

@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::{bail, Result};
 use ustr::UstrMap;
 
-use super::{array::Array, Value};
+use super::{array::Array, Value, Variable};
 
 #[derive(Debug, Default)]
 pub struct Object(pub UstrMap<Value>);
@@ -27,9 +27,15 @@ impl TryFrom<&str> for ObjectMethod {
     }
 }
 
+impl From<Object> for Variable<Object> {
+    fn from(value: Object) -> Self {
+        Rc::new(value.into())
+    }
+}
+
 impl From<Object> for Value {
     fn from(value: Object) -> Self {
-        Value::Object(Rc::new(value.into()))
+        Value::Object(value.into())
     }
 }
 

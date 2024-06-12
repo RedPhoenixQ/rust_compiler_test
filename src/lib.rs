@@ -9,11 +9,13 @@ mod parser;
 mod value;
 
 use builtins::Builtin;
-use bytecode::Op;
+use bytecode::{BlockType, Op};
 use compiler::Bundle;
 use ustr::{Ustr, UstrMap};
 use value::{
+    array::{Array, ArrayMethod},
     function::{Closure, Function},
+    object::{Object, ObjectMethod},
     Value, Variable,
 };
 
@@ -259,7 +261,7 @@ impl VM {
                     };
 
                     let block = match block {
-                        bytecode::BlockType::Loop { label, loop_length } => Block::Loop {
+                        BlockType::Loop { label, loop_length } => Block::Loop {
                             label: *label,
                             start_index: pc,
                             end_index: pc + loop_length,
@@ -279,7 +281,7 @@ impl VM {
                     for _ in 0..*number_of_elements {
                         vec.push(self.pop_eval_stack()?);
                     }
-                    self.push_eval_stack(value::array::Array(vec).into());
+                    self.push_eval_stack(Array(vec).into());
                 }
                 Op::BuildObject(number_of_elements) => {
                     let mut map = UstrMap::default();
@@ -291,7 +293,7 @@ impl VM {
                         let value = self.pop_eval_stack()?;
                         map.insert(key, value);
                     }
-                    self.push_eval_stack(value::object::Object(map).into());
+                    self.push_eval_stack(Object(map).into());
                 }
                 Op::MakeClosure(function) => {
                     let function = function.clone();
@@ -322,8 +324,8 @@ impl VM {
                 op @ Op::Call(number_of_arguments) | op @ Op::CallMethod(number_of_arguments) => {
                     enum Call {
                         Builtin(Builtin),
-                        ArrayMethod(value::array::ArrayMethod),
-                        ObjectMethod(value::object::ObjectMethod),
+                        ArrayMethod(ArrayMethod),
+                        ObjectMethod(ObjectMethod),
                         Function {
                             function: Rc<Function>,
                             locals: Scope,
