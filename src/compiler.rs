@@ -31,6 +31,16 @@ pub struct Compiler {
 }
 
 impl Compiler {
+    pub fn new() -> Self {
+        Self {
+            context: Default::default(),
+            consts: Default::default(),
+            code: Default::default(),
+            declared_idents: UstrSet::from_iter([Ustr::from("self")].into_iter()),
+            foreign_idents: Default::default(),
+        }
+    }
+
     pub fn compile(mut self, asts: &[Ast]) -> Result<Bundle> {
         for ast in asts {
             self.compile_node(&ast.node)?;
@@ -175,7 +185,7 @@ impl Compiler {
                 arguments,
                 body,
             } => {
-                let mut compiler = Self::default();
+                let mut compiler = Self::new();
                 compiler.context = CompileContext::Function;
                 compiler
                     .declared_idents
@@ -200,7 +210,7 @@ impl Compiler {
                 self.code.push(Op::DeclareVar(*ident))
             }
             Node::ClosureDeclaration { arguments, body } => {
-                let mut compiler = Self::default();
+                let mut compiler = Self::new();
                 compiler.context = CompileContext::Function;
                 compiler
                     .declared_idents

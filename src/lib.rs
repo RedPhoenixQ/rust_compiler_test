@@ -108,7 +108,7 @@ impl VM {
             )
         })?;
 
-        compiler::Compiler::default().compile(&ast)
+        compiler::Compiler::new().compile(&ast)
     }
 
     pub fn eval(&mut self, ops: &[Op]) -> Result<Value> {
