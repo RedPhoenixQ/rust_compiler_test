@@ -63,7 +63,7 @@ pub enum Op {
 
     /// Calls the function at the top of the stack with the specified number of arguments
     ///
-    /// The first argument should be at the bottom of the stack (stack[-number_of_arguments])
+    /// The leftmost argument should be at the top of the stack
     Call(usize),
     /// Pop the first item from the stack and return it
     Return,
