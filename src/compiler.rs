@@ -214,13 +214,37 @@ impl Compiler {
                 for ast in arguments.iter().rev() {
                     self.compile_node(&ast.node)?;
                 }
-                self.compile_node(&calling.node)?;
-                self.code.push(Op::Call(arguments.len()));
+
+                match &calling.node {
+                    Node::AccessKey { source, key } => {
+                        // Reimplements Node::AccessKey but also duplicates the object for reuse as the self object
+                        self.compile_node(&source.node)?;
+                        self.code.push(Op::Duplicate);
+                        self.compile_node(&key.node)?;
+                        self.code.push(Op::LoadKey);
+                        self.code.push(Op::CallMethod(arguments.len()));
+                    }
+                    Node::AccessAttribute { source, attribute } => {
+                        // Reimplements Node::AccessAttribute but also duplicates the object for reuse as the self object
+                        self.compile_node(&source.node)?;
+                        self.code.push(Op::Duplicate);
+                        self.code.push(Op::LoadAttribute(*attribute));
+                        self.code.push(Op::CallMethod(arguments.len()));
+                    }
+                    node => {
+                        self.compile_node(node)?;
+                        self.code.push(Op::Call(arguments.len()));
+                    }
+                }
             }
             Node::AccessKey { source, key } => {
                 self.compile_node(&source.node)?;
                 self.compile_node(&key.node)?;
                 self.code.push(Op::LoadKey);
+            }
+            Node::AccessAttribute { source, attribute } => {
+                self.compile_node(&source.node)?;
+                self.code.push(Op::LoadAttribute(*attribute));
             }
             Node::Assignment { ident, value } => {
                 self.compile_node(&value.node)?;

@@ -46,6 +46,10 @@ pub enum Node<'a> {
         arguments: Vec<(Ustr, Option<Value>)>,
         body: Vec<Ast<'a>>,
     },
+    AccessAttribute {
+        source: Box<Ast<'a>>,
+        attribute: Ustr,
+    },
     AccessKey {
         source: Box<Ast<'a>>,
         key: Box<Ast<'a>>,
@@ -71,6 +75,7 @@ pub enum Node<'a> {
 
 #[derive(Debug)]
 enum PostOperation<'a> {
+    Attribute(Ustr),
     Key(Ast<'a>),
     Call(Vec<Ast<'a>>),
 }
@@ -150,9 +155,9 @@ fn expr(input: Span) -> SResult<Ast> {
 
 fn post_operation(input: Span) -> SResult<PostOperation> {
     alt((
-        preceded(ws(char('.')), ident_expr.cut())
+        preceded(ws(char('.')), ident.cut())
             .context("Member")
-            .map(|ident| PostOperation::Key(ident)),
+            .map(|ident| PostOperation::Attribute(ident)),
         delimited(
             ws(char('(')),
             separated_list0(ws(char(',')), ws(expr)),
@@ -181,6 +186,13 @@ fn value_expr(input: Span) -> SResult<Ast> {
                     node: Node::FunctionCall {
                         calling: lhs.into(),
                         arguments,
+                    },
+                    span,
+                },
+                PostOperation::Attribute(attribute) => Ast {
+                    node: Node::AccessAttribute {
+                        source: lhs.into(),
+                        attribute,
                     },
                     span,
                 },

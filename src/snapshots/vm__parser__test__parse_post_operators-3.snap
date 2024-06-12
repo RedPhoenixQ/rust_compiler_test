@@ -13,7 +13,7 @@ Ok(
         Ast {
             node: FunctionCall {
                 calling: Ast {
-                    node: AccessMember {
+                    node: AccessAttribute {
                         source: Ast {
                             node: Ident(
                                 u!("a"),
@@ -25,7 +25,7 @@ Ok(
                                 extra: (),
                             },
                         },
-                        member: u!("b"),
+                        attribute: u!("b"),
                     },
                     span: LocatedSpan {
                         offset: 1,

@@ -11,11 +11,11 @@ Ok(
             extra: (),
         },
         Ast {
-            node: AccessMember {
+            node: AccessAttribute {
                 source: Ast {
                     node: AccessKey {
                         source: Ast {
-                            node: AccessMember {
+                            node: AccessAttribute {
                                 source: Ast {
                                     node: Ident(
                                         u!("a"),
@@ -27,7 +27,7 @@ Ok(
                                         extra: (),
                                     },
                                 },
-                                member: u!("b"),
+                                attribute: u!("b"),
                             },
                             span: LocatedSpan {
                                 offset: 1,
@@ -57,7 +57,7 @@ Ok(
                         extra: (),
                     },
                 },
-                member: u!("c"),
+                attribute: u!("c"),
             },
             span: LocatedSpan {
                 offset: 6,

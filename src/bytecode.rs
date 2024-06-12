@@ -21,6 +21,8 @@ pub enum Op {
     LoadFast(Ustr),
     /// Load local variable from outside scope
     Load(Ustr),
+    /// Load the value from the storage at the top of the stack
+    LoadAttribute(Ustr),
     /// Load the value from the key (stack[-1]) from the value at stack[-2]
     LoadKey,
 
@@ -63,6 +65,13 @@ pub enum Op {
     ///
     /// If the function does not reference any foreign_ident, a normal function will be pushed
     MakeClosure(Rc<Function>),
+
+    /// Calls the function at the top of the stack with the specified number of arguments
+    ///
+    /// The self value should be below the function being called (stack[-2])
+    ///
+    /// The leftmost argument should be at the top of the stack
+    CallMethod(usize),
 
     /// Calls the function at the top of the stack with the specified number of arguments
     ///

@@ -131,6 +131,10 @@ impl VM {
                     let value = self.get_ident_value(ident)?;
                     self.push_eval_stack(value);
                 }
+                Op::LoadAttribute(ident) => {
+                    let store = self.pop_eval_stack()?;
+                    self.push_eval_stack(store.get(Value::String(*ident))?);
+                }
                 Op::LoadKey => {
                     let key = self.pop_eval_stack()?;
                     let store = self.pop_eval_stack()?;
@@ -329,6 +333,7 @@ impl VM {
                         }
                     };
                 }
+                Op::CallMethod { .. } => todo!(),
                 Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
                 Op::Break(break_label) => {
                     let block_stack = if let Some(frame) = self.call_stack.last_mut() {
