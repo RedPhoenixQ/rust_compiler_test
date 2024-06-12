@@ -259,10 +259,64 @@ impl Compiler {
                 self.compile_node(&source.node)?;
                 self.code.push(Op::LoadAttribute(*attribute));
             }
-            Node::Assignment { ident, value } => {
-                self.compile_node(&value.node)?;
-                self.code.push(Op::Store(*ident))
-            }
+            Node::Assignment {
+                to,
+                value,
+                operation,
+            } => match &to.node {
+                Node::Ident(ident) => {
+                    if !self.declared_idents.contains(ident) {
+                        self.foreign_idents.insert(*ident);
+                    }
+                    match operation {
+                        Some(op) => {
+                            self.code.push(Op::Load(*ident));
+                            self.compile_node(&value.node)?;
+                            self.code.push(Op::BinaryOp(*op));
+                        }
+                        None => self.compile_node(&value.node)?,
+                    }
+                    self.code.push(Op::Store(*ident))
+                }
+                Node::AccessAttribute { source, attribute } => {
+                    self.compile_node(&source.node)?;
+                    match operation {
+                        Some(op) => {
+                            // Duplicate the source for the load operation
+                            self.code.push(Op::Duplicate);
+                            self.code.push(Op::LoadAttribute(*attribute));
+                            self.compile_node(&value.node)?;
+                            self.code.push(Op::BinaryOp(*op));
+                        }
+                        None => self.compile_node(&value.node)?,
+                    }
+                    self.code.push(Op::StoreAttribute(*attribute))
+                }
+                Node::AccessKey { source, key } => {
+                    match operation {
+                        Some(op) => {
+                            self.compile_node(&source.node)?;
+                            // Duplicate the source for the load operation
+                            self.code.push(Op::Duplicate);
+                            self.compile_node(&key.node)?;
+                            // Duplicate the key for the load operation
+                            self.code.push(Op::Duplicate);
+                            // Move the duplicated source down to make the stack [key, source, key, source]
+                            self.code.push(Op::PushDown(2));
+                            self.code.push(Op::LoadKey);
+                            self.compile_node(&value.node)?;
+                            self.code.push(Op::BinaryOp(*op));
+                        }
+                        None => {
+                            self.compile_node(&source.node)?;
+                            self.compile_node(&key.node)?;
+                            self.compile_node(&value.node)?;
+                        }
+                    }
+                    self.code.push(Op::StoreKey);
+                }
+                ast => bail!("Invalid left hand side of an assignment, recived {ast:?}"),
+            },
             Node::Return(return_value) => {
                 if let Some(value) = return_value {
                     self.compile_node(&value.node)?;

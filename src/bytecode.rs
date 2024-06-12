@@ -37,7 +37,9 @@ pub enum Op {
     StoreFast(Ustr),
     /// Store variable to first scope that contains the name
     Store(Ustr),
-    /// Store a value into a key on the storage. The stack should contain key, value then storage
+    /// Store a value (stack[-1]) into the attribute on the storage (stack[-2])
+    StoreAttribute(Ustr),
+    /// Store a value (stack[-1]) into a key (stack[-2]) on the storage (stack[-3])
     StoreKey,
 
     /// Duplicates the topmost item on the stack

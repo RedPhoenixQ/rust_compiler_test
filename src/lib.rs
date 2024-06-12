@@ -134,9 +134,9 @@ impl VM {
                     let value = self.get_ident_value(ident)?;
                     self.push_eval_stack(value);
                 }
-                Op::LoadAttribute(ident) => {
+                Op::LoadAttribute(attribute) => {
                     let store = self.pop_eval_stack()?;
-                    self.push_eval_stack(store.get(Value::String(*ident))?);
+                    self.push_eval_stack(store.get(Value::String(*attribute))?);
                 }
                 Op::LoadKey => {
                     let key = self.pop_eval_stack()?;
@@ -190,9 +190,14 @@ impl VM {
                     };
                     var.replace(value);
                 }
-                Op::StoreKey => {
-                    let key = self.pop_eval_stack()?;
+                Op::StoreAttribute(attribute) => {
                     let value = self.pop_eval_stack()?;
+                    let mut store = self.pop_eval_stack()?;
+                    store.set(Value::String(*attribute), value)?;
+                }
+                Op::StoreKey => {
+                    let value = self.pop_eval_stack()?;
+                    let key = self.pop_eval_stack()?;
                     let mut store = self.pop_eval_stack()?;
                     store.set(key, value)?;
                 }

@@ -59,8 +59,9 @@ pub enum Node<'a> {
         arguments: Vec<Ast<'a>>,
     },
     Assignment {
-        ident: Ustr,
+        to: Box<Ast<'a>>,
         value: Box<Ast<'a>>,
+        operation: Option<BinaryOp>,
     },
     Return(Option<Box<Ast<'a>>>),
     Break {
@@ -175,38 +176,41 @@ fn post_operation(input: Span) -> SResult<PostOperation> {
     .parse(input)
 }
 
+fn fold_post_operations<'a>(
+    lhs: Ast<'a>,
+    (span, operation): (Span<'a>, PostOperation<'a>),
+) -> Ast<'a> {
+    match operation {
+        PostOperation::Call(arguments) => Ast {
+            node: Node::FunctionCall {
+                calling: lhs.into(),
+                arguments,
+            },
+            span,
+        },
+        PostOperation::Attribute(attribute) => Ast {
+            node: Node::AccessAttribute {
+                source: lhs.into(),
+                attribute,
+            },
+            span,
+        },
+        PostOperation::Key(key) => Ast {
+            node: Node::AccessKey {
+                source: lhs.into(),
+                key: key.into(),
+            },
+            span,
+        },
+    }
+}
+
 fn value_expr(input: Span) -> SResult<Ast> {
     pair(
         alt((literal_expr, ident_expr, object_expr, array_expr)).context("Value"),
         many0(ws(consumed(post_operation))),
     )
-    .map(|(value, operators)| {
-        operators
-            .into_iter()
-            .fold(value, |lhs, (span, operation)| match operation {
-                PostOperation::Call(arguments) => Ast {
-                    node: Node::FunctionCall {
-                        calling: lhs.into(),
-                        arguments,
-                    },
-                    span,
-                },
-                PostOperation::Attribute(attribute) => Ast {
-                    node: Node::AccessAttribute {
-                        source: lhs.into(),
-                        attribute,
-                    },
-                    span,
-                },
-                PostOperation::Key(key) => Ast {
-                    node: Node::AccessKey {
-                        source: lhs.into(),
-                        key: key.into(),
-                    },
-                    span,
-                },
-            })
-    })
+    .map(|(value, operators)| operators.into_iter().fold(value, fold_post_operations))
     .parse(input)
 }
 
@@ -314,7 +318,7 @@ fn fn_statement(input: Span) -> SResult<Ast> {
 
 fn assignment_statement(input: Span) -> SResult<Ast> {
     ws(consumed(tuple((
-        ws(consumed(ident)),
+        ws(value_expr).verify(|ast| !matches!(ast.node, Node::FunctionCall { .. })),
         ws(alt((
             value(BinaryOp::Add, char('+')),
             value(BinaryOp::Sub, char('-')),
@@ -331,25 +335,11 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
     ))))
     .terminated(terminator.cut())
     .context("Variable assignment")
-    .map(|(span, ((ident_span, ident), operation, value))| Ast {
+    .map(|(span, (to, operation, value))| Ast {
         node: Node::Assignment {
-            ident,
-            value: match operation {
-                Some(operation) => Ast {
-                    node: Node::BinaryOp(
-                        operation,
-                        Ast {
-                            node: Node::Ident(ident),
-                            span: ident_span,
-                        }
-                        .into(),
-                        value.into(),
-                    ),
-                    span,
-                },
-                None => value,
-            }
-            .into(),
+            to: to.into(),
+            value: value.into(),
+            operation,
         },
         span,
     })
