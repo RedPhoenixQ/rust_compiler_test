@@ -325,7 +325,8 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
             value(BinaryOp::BitwiseOr, char('|')),
         ))
         .opt()
-        .terminated(char('='))),
+        .terminated(char('=')))
+        .terminated(char('=').not().peek()),
         expr.cut(),
     ))))
     .terminated(terminator.cut())
