@@ -38,6 +38,9 @@ pub enum Op {
     /// Store a value into a key on the storage. The stack should contain key, value then storage
     StoreKey,
 
+    /// Duplicates the topmost item on the stack
+    Duplicate,
+
     /// Move the program counter relative to the current intruction
     Jump(usize),
     /// Move the program counter backwards relative to the current intruction

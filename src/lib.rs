@@ -189,6 +189,15 @@ impl VM {
                     let mut store = self.pop_eval_stack()?;
                     store.set(key, value)?;
                 }
+                Op::Duplicate => {
+                    let value = self
+                        .peek_eval_stack()
+                        .ok_or(anyhow::anyhow!(
+                            "Stack should contain atleast one item to duplicate"
+                        ))?
+                        .clone();
+                    self.push_eval_stack(value);
+                }
                 Op::Jump(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
                     pc += *jump;
@@ -369,7 +378,6 @@ impl VM {
         Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
     }
 
-    #[allow(unused)]
     fn peek_eval_stack(&mut self) -> Option<&Value> {
         let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
             &mut frame.eval_stack
