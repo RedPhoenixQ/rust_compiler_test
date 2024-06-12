@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use ustr::UstrSet;
+use ustr::{Ustr, UstrSet};
 
 use crate::{
     bytecode::{BlockType, Op},
@@ -21,7 +21,7 @@ enum CompileContext {
     Function,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Compiler {
     context: CompileContext,
     consts: Vec<Value>,
@@ -60,13 +60,11 @@ impl Compiler {
                 } else {
                     self.code.push(Op::LoadConst(Value::Undefined))
                 }
-                self.declared_idents.insert(*ident);
+                self.declare_ident(*ident);
                 self.code.push(Op::DeclareVar(*ident))
             }
             Node::Ident(ident) => {
-                if !self.declared_idents.contains(ident) {
-                    self.foreign_idents.insert(*ident);
-                }
+                self.reference_ident(*ident);
                 // if self.declared_idents.contains(ident) {
                 //     self.code.push(Op::LoadFast(*ident));
                 // } else {
@@ -185,6 +183,8 @@ impl Compiler {
                 arguments,
                 body,
             } => {
+                self.declare_ident(*ident);
+
                 let mut compiler = Self::new();
                 compiler.context = CompileContext::Function;
                 compiler
@@ -206,7 +206,6 @@ impl Compiler {
                     .into(),
                 ));
 
-                self.declared_idents.insert(*ident);
                 self.code.push(Op::DeclareVar(*ident))
             }
             Node::ClosureDeclaration { arguments, body } => {
@@ -275,9 +274,7 @@ impl Compiler {
                 operation,
             } => match &to.node {
                 Node::Ident(ident) => {
-                    if !self.declared_idents.contains(ident) {
-                        self.foreign_idents.insert(*ident);
-                    }
+                    self.reference_ident(*ident);
                     match operation {
                         Some(op) => {
                             self.code.push(Op::Load(*ident));
@@ -353,5 +350,12 @@ impl Compiler {
         }
 
         Ok(())
+    }
+
+    fn declare_ident(&mut self, ident: Ustr) {
+        self.declared_idents.insert(ident);
+    }
+    fn reference_ident(&mut self, ident: Ustr) -> bool {
+        self.foreign_idents.insert(ident)
     }
 }
