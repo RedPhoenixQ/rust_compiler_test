@@ -266,7 +266,7 @@ impl VM {
                 }
                 Op::MakeClosure(function) => {
                     let function = function.clone();
-                    if function.foreign_idents.len() > 0 {
+                    if !function.foreign_idents.is_empty() {
                         let mut scope = Scope::default();
                         for ident in function.foreign_idents.iter() {
                             if let Some(var) = match self

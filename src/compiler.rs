@@ -173,7 +173,7 @@ impl Compiler {
                 compiler
                     .declared_idents
                     .extend(arguments.iter().map(|(arg, _)| arg));
-                let function_bundle = compiler.compile(&body)?;
+                let function_bundle = compiler.compile(body)?;
                 self.code.push(Op::LoadConst(Value::Function(
                     Function {
                         arguments: arguments
@@ -198,7 +198,7 @@ impl Compiler {
                 compiler
                     .declared_idents
                     .extend(arguments.iter().map(|(arg, _)| arg));
-                let function_bundle = compiler.compile(&body)?;
+                let function_bundle = compiler.compile(body)?;
 
                 self.code.push(Op::MakeClosure(
                     Function {

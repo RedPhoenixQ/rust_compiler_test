@@ -39,7 +39,7 @@ impl Builtin {
                     };
                     print!("{}", string);
                 }
-                println!("");
+                println!();
                 Ok(Value::Undefined)
             }
             Builtin::Dump => {

@@ -158,17 +158,17 @@ fn post_operation(input: Span) -> SResult<PostOperation> {
     alt((
         preceded(ws(char('.')), ident.cut())
             .context("Member")
-            .map(|ident| PostOperation::Attribute(ident)),
+            .map(PostOperation::Attribute),
         delimited(
             ws(char('(')),
             separated_list0(ws(char(',')), ws(expr)),
             char(')').cut(),
         )
         .context("Call")
-        .map(|arguments| PostOperation::Call(arguments)),
+        .map(PostOperation::Call),
         delimited(ws(char('[')), ws(expr).cut(), char(']').cut())
             .context("Key access")
-            .map(|key| PostOperation::Key(key)),
+            .map(PostOperation::Key),
     ))
     .context("Post operator")
     .parse(input)
@@ -348,8 +348,7 @@ fn assignment_statement(input: Span) -> SResult<Ast> {
                 None => value,
             }
             .into(),
-        }
-        .into(),
+        },
         span,
     })
     .parse(input)
@@ -478,10 +477,7 @@ fn closure_expr(input: Span) -> SResult<Ast> {
     ))
     .context("Closure")
     .map(|(span, (arguments, body))| Ast {
-        node: Node::ClosureDeclaration {
-            arguments: arguments.into(),
-            body: body.into(),
-        },
+        node: Node::ClosureDeclaration { arguments, body },
         span,
     })
     .parse(input)
@@ -553,7 +549,7 @@ fn arguments(input: Span) -> SResult<Vec<(Ustr, Option<Value>)>> {
         arguments.extend(args);
     }
 
-    return Ok((input, arguments));
+    Ok((input, arguments))
 }
 
 fn ident(input: Span) -> SResult<Ustr> {

@@ -154,11 +154,11 @@ impl Value {
                 }
                 float as i64
             }
-            Value::Int(int) => int as i64,
+            Value::Int(int) => int,
             _ => unreachable!("as_number() should always return a number"),
         };
         Ok(if index.is_negative() {
-            array_len.wrapping_sub(index.abs() as usize) % array_len
+            array_len.wrapping_sub(index.unsigned_abs() as usize) % array_len
         } else {
             index as usize
         })
@@ -191,7 +191,7 @@ impl Value {
                     // Allow pushing to array by setting the index after the last item
                     vec.push(value);
                 } else {
-                    let current = vec.get_mut(index as usize).ok_or(anyhow::anyhow!(
+                    let current = vec.get_mut(index).ok_or(anyhow::anyhow!(
                         "Index out of bounds: Index {index}, length {length}",
                     ))?;
                     *current = value;
@@ -266,7 +266,7 @@ impl Value {
             (Value::String(lhs), Value::String(rhs)) => match op {
                 BinaryOp::Add => {
                     let mut string = lhs.to_string();
-                    string.push_str(&rhs);
+                    string.push_str(rhs);
                     Value::String(string.into())
                 }
                 BinaryOp::Eq => Value::Boolean(lhs == rhs),
@@ -296,8 +296,8 @@ impl Value {
                 match op {
                     BinaryOp::Eq => Value::Boolean(lhs == rhs),
                     BinaryOp::Neq => Value::Boolean(lhs != rhs),
-                    BinaryOp::Lt => Value::Boolean(lhs < rhs),
-                    BinaryOp::Gt => Value::Boolean(lhs > rhs),
+                    BinaryOp::Lt => Value::Boolean(!lhs & rhs),
+                    BinaryOp::Gt => Value::Boolean(lhs & !rhs),
                     BinaryOp::LtEq => Value::Boolean(lhs <= rhs),
                     BinaryOp::GtEq => Value::Boolean(lhs >= rhs),
                     BinaryOp::LogicalAnd => Value::Boolean(lhs && rhs),
