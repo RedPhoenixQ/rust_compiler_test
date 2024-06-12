@@ -298,6 +298,10 @@ impl VM {
                     if !function.foreign_idents.is_empty() {
                         let mut scope = Scope::default();
                         for ident in function.foreign_idents.iter() {
+                            if ident.as_str() == "self" {
+                                // Skip ident lookup for 'self' which is used to reference the object of a closure
+                                continue;
+                            }
                             if let Some(var) = match self
                                 .call_stack
                                 .iter()
