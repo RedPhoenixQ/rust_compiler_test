@@ -1,0 +1,17 @@
+fn counter() {
+  return {
+    num: 0,
+    get: || { return self.num; },
+    increment: |delta = 1| {
+      self.num += delta;
+    }
+  };
+}
+
+let a = counter();
+let b = counter();
+
+a.increment();
+a.increment();
+print("a: " + a.get());
+print("b: " + b.get());
