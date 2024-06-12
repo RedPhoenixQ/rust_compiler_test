@@ -46,9 +46,9 @@ pub enum Node<'a> {
         arguments: Vec<(Ustr, Option<Value>)>,
         body: Vec<Ast<'a>>,
     },
-    AccessMember {
+    AccessKey {
         source: Box<Ast<'a>>,
-        member: Ustr,
+        key: Box<Ast<'a>>,
     },
     FunctionCall {
         calling: Box<Ast<'a>>,
@@ -67,6 +67,12 @@ pub enum Node<'a> {
     },
     UnaryOp(UnaryOp, Box<Ast<'a>>),
     BinaryOp(BinaryOp, Box<Ast<'a>>, Box<Ast<'a>>),
+}
+
+#[derive(Debug)]
+enum PostOperation<'a> {
+    Key(Ast<'a>),
+    Call(Vec<Ast<'a>>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -142,17 +148,11 @@ fn expr(input: Span) -> SResult<Ast> {
     .parse(input)
 }
 
-#[derive(Debug)]
-enum PostOperation<'a> {
-    Member(Ustr),
-    Call(Vec<Ast<'a>>),
-}
-
 fn post_operation(input: Span) -> SResult<PostOperation> {
     alt((
-        preceded(ws(char('.')), ident)
+        preceded(ws(char('.')), ident_expr.cut())
             .context("Member")
-            .map(|ident| PostOperation::Member(ident)),
+            .map(|ident| PostOperation::Key(ident)),
         delimited(
             ws(char('(')),
             separated_list0(ws(char(',')), ws(expr)),
@@ -160,6 +160,9 @@ fn post_operation(input: Span) -> SResult<PostOperation> {
         )
         .context("Call")
         .map(|arguments| PostOperation::Call(arguments)),
+        delimited(ws(char('[')), ws(expr).cut(), char(']').cut())
+            .context("Key access")
+            .map(|key| PostOperation::Key(key)),
     ))
     .context("Post operator")
     .parse(input)
@@ -181,10 +184,10 @@ fn value_expr(input: Span) -> SResult<Ast> {
                     },
                     span,
                 },
-                PostOperation::Member(member) => Ast {
-                    node: Node::AccessMember {
+                PostOperation::Key(key) => Ast {
+                    node: Node::AccessKey {
                         source: lhs.into(),
-                        member,
+                        key: key.into(),
                     },
                     span,
                 },
@@ -786,6 +789,9 @@ mod test {
         assert_debug_snapshot!(expr("a(123)".into()));
         assert_debug_snapshot!(expr("a(123, b, c == 1)".into()));
         assert_debug_snapshot!(expr("a(123).b.c()".into()));
+        assert_debug_snapshot!(expr("a[0]".into()));
+        assert_debug_snapshot!(expr("a[b()]".into()));
+        assert_debug_snapshot!(expr("a.b[0].c".into()));
     }
 
     #[test]

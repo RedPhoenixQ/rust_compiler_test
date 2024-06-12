@@ -216,7 +216,7 @@ impl Compiler {
                 self.compile_node(&calling.node)?;
                 self.code.push(Op::Call(arguments.len()));
             }
-            Node::AccessMember { source, member } => todo!("Member {member}, {source:?}"),
+            Node::AccessKey { source, key } => todo!("Key access {key:?}, {source:?}"),
             Node::Assignment { ident, value } => {
                 self.compile_node(&value.node)?;
                 self.code.push(Op::Store(*ident))

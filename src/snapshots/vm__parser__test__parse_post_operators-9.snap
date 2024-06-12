@@ -1,0 +1,57 @@
+---
+source: src/parser.rs
+expression: "expr(\"a[b()]\".into())"
+---
+Ok(
+    (
+        LocatedSpan {
+            offset: 6,
+            line: 1,
+            fragment: "",
+            extra: (),
+        },
+        Ast {
+            node: AccessKey {
+                source: Ast {
+                    node: Ident(
+                        u!("a"),
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "a",
+                        extra: (),
+                    },
+                },
+                key: Ast {
+                    node: FunctionCall {
+                        calling: Ast {
+                            node: Ident(
+                                u!("b"),
+                            ),
+                            span: LocatedSpan {
+                                offset: 2,
+                                line: 1,
+                                fragment: "b",
+                                extra: (),
+                            },
+                        },
+                        arguments: [],
+                    },
+                    span: LocatedSpan {
+                        offset: 3,
+                        line: 1,
+                        fragment: "()",
+                        extra: (),
+                    },
+                },
+            },
+            span: LocatedSpan {
+                offset: 1,
+                line: 1,
+                fragment: "[b()]",
+                extra: (),
+            },
+        },
+    ),
+)
