@@ -3,6 +3,8 @@ use std::{cell::RefCell, rc::Rc};
 use anyhow::{bail, Result};
 use ustr::{Ustr, UstrSet};
 
+pub mod array;
+
 use crate::{
     builtins::Builtin,
     bytecode::Op,
@@ -32,9 +34,10 @@ pub enum Value {
     Float(f64),
     String(Ustr),
     Boolean(bool),
-    Array(Variable<Vec<Value>>),
+    Array(Variable<array::Array>),
     Function(Rc<Function>),
     Closure(Rc<Closure>),
+    ArrayMethod(array::ArrayMethod),
     BuiltInFunction(Builtin),
     #[default]
     Undefined,
@@ -94,10 +97,11 @@ impl Value {
             Value::Int(value) => *value != 0,
             Value::Float(value) => value.is_normal(),
             Value::Boolean(value) => *value,
-            Value::Array(vec) => !vec.borrow().is_empty(),
+            Value::Array(array) => !array.borrow().0.is_empty(),
             Value::Function(_) => true,
             Value::Closure(_) => true,
             Value::BuiltInFunction(_) => true,
+            Value::ArrayMethod(_) => true,
             Value::Undefined => false,
         }
     }
@@ -107,17 +111,22 @@ impl Value {
     }
 
     pub fn as_string(&self) -> Self {
-        Value::String(match self {
-            Value::String(value) => *value,
-            Value::Int(value) => format!("{value}").into(),
-            Value::Float(value) => format!("{value}").into(),
-            Value::Boolean(value) => format!("{value}").into(),
-            Value::Array(_) => "array".into(),
-            Value::Function(_) => "function".into(),
-            Value::Closure(_) => "function".into(),
-            Value::BuiltInFunction(_) => "function".into(),
-            Value::Undefined => "undefined".into(),
-        })
+        Value::String(self.as_str().into())
+    }
+
+    pub fn as_str(&self) -> String {
+        match self {
+            Value::String(value) => value.to_string(),
+            Value::Int(value) => format!("{value}"),
+            Value::Float(value) => format!("{value}"),
+            Value::Boolean(value) => format!("{value}"),
+            Value::Array(_) => "array".to_string(),
+            Value::Function(_) => "function".to_string(),
+            Value::Closure(_) => "function".to_string(),
+            Value::BuiltInFunction(_) => "function".to_string(),
+            Value::ArrayMethod(_) => "function".to_string(),
+            Value::Undefined => "undefined".to_string(),
+        }
     }
 
     // Number may be NaN
@@ -132,6 +141,7 @@ impl Value {
             Self::Function(_) => bail!("TypeError: Function can not be used as a number"),
             Self::Closure(_) => bail!("TypeError: Function can not be used as a number"),
             Self::BuiltInFunction(_) => bail!("TypeError: Function can not be used as a number"),
+            Self::ArrayMethod(_) => bail!("TypeError: Function can not be used as a number"),
             Self::Undefined => bail!("TypeError: Undefined can not be used as a number"),
         })
     }
@@ -156,8 +166,11 @@ impl Value {
 
     pub fn get(&self, key: Value) -> Result<Value> {
         match self {
-            Self::Array(vec) => {
-                let vec = vec.borrow();
+            Self::Array(array) => {
+                let vec = &array.borrow().0;
+                if let Ok(method) = key.as_str().as_str().try_into() {
+                    return Ok(Value::ArrayMethod(method));
+                }
                 let index = Self::array_index(key, vec.len())?;
                 vec.get(index).cloned().ok_or(anyhow::anyhow!(
                     "Index out of bounds: Index {}, length {}",
@@ -170,8 +183,8 @@ impl Value {
     }
     pub fn set(&mut self, key: Value, value: Value) -> Result<()> {
         match self {
-            Self::Array(vec) => {
-                let mut vec = vec.borrow_mut();
+            Self::Array(array) => {
+                let vec = &mut array.borrow_mut().0;
                 let length = vec.len();
                 let index = Self::array_index(key, length)?;
                 if length == index {

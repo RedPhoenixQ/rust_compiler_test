@@ -279,9 +279,10 @@ impl VM {
                         self.push_eval_stack(Value::Function(function));
                     }
                 }
-                Op::Call(number_of_arguments) => {
+                op @ Op::Call(number_of_arguments) | op @ Op::CallMethod(number_of_arguments) => {
                     enum Call {
                         Builtin(Builtin),
+                        ArrayMethod(value::array::ArrayMethod),
                         Function {
                             function: Rc<Function>,
                             locals: Scope,
@@ -289,6 +290,7 @@ impl VM {
                     }
                     match match self.pop_eval_stack()? {
                         Value::BuiltInFunction(builtin) => Call::Builtin(builtin),
+                        Value::ArrayMethod(method) => Call::ArrayMethod(method),
                         Value::Closure(closure) => Call::Function {
                             function: closure.function.clone(),
                             locals: closure.scope.clone(),
@@ -300,7 +302,25 @@ impl VM {
                         calling => bail!("Attempting to call a non function, called {:?}", calling),
                     } {
                         Call::Builtin(builtin) => {
+                            if matches!(op, Op::CallMethod(_)) {
+                                let _ignored_self_value = self.pop_eval_stack()?;
+                            }
                             let return_value = builtin.call(self, *number_of_arguments)?;
+                            self.push_eval_stack(return_value);
+                        }
+                        Call::ArrayMethod(method) => {
+                            if !matches!(op, Op::CallMethod(_)) {
+                                bail!("{method:?} not called as a method")
+                            }
+                            let array = match self.pop_eval_stack()? {
+                                Value::Array(array) => array,
+                                value => bail!("{method:?} called on {value:?}"),
+                            };
+                            let mut arguments = Vec::with_capacity(*number_of_arguments);
+                            for _ in 0..*number_of_arguments {
+                                arguments.push(self.pop_eval_stack()?);
+                            }
+                            let return_value = array.borrow_mut().call(method, arguments)?;
                             self.push_eval_stack(return_value);
                         }
                         Call::Function {
@@ -308,6 +328,11 @@ impl VM {
                             mut locals,
                         } => {
                             locals.reserve(function.arguments.len());
+
+                            if matches!(op, Op::CallMethod(_)) {
+                                locals
+                                    .insert("self".into(), Rc::new(self.pop_eval_stack()?.into()));
+                            }
 
                             for i in 0..function.arguments.len() {
                                 let (name, default) = function
@@ -333,7 +358,6 @@ impl VM {
                         }
                     };
                 }
-                Op::CallMethod { .. } => todo!(),
                 Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
                 Op::Break(break_label) => {
                     let block_stack = if let Some(frame) = self.call_stack.last_mut() {
