@@ -47,7 +47,7 @@ impl VM {
             call_stack: Vec::new(),
             global_eval: Vec::new(),
             global_block_stack: Vec::new(),
-            global_scope: builtins::get_builtins(),
+            global_scope: Scope::default(),
             debug,
         }
     }
@@ -312,7 +312,7 @@ impl VM {
                             if matches!(op, Op::CallMethod(_)) {
                                 let _ignored_self_value = self.pop_eval_stack()?;
                             }
-                            let return_value = builtin.call(self, *number_of_arguments)?;
+                            let return_value = self.call_builtin(builtin, *number_of_arguments)?;
                             self.push_eval_stack(return_value);
                         }
                         Call::ArrayMethod(method) => {
@@ -442,20 +442,22 @@ impl VM {
     }
 
     fn get_ident_value(&self, ident: &ustr::Ustr) -> Result<Value> {
-        Ok(if let Some(var) = self
-            .call_stack
-            .iter()
-            .rev()
-            .find_map(|frame| frame.locals.get(ident))
-        {
-            Ok(var)
-        } else {
-            self.global_scope
-                .get(ident)
-                .ok_or(anyhow::anyhow!("{ident} is not defined in any scope"))
-        }?
-        .borrow()
-        .clone())
+        Ok(
+            if let Some(var) = self
+                .call_stack
+                .iter()
+                .rev()
+                .find_map(|frame| frame.locals.get(ident))
+            {
+                var.borrow().clone()
+            } else if let Some(var) = self.global_scope.get(ident) {
+                var.borrow().clone()
+            } else if let Ok(builtin) = ident.as_str().try_into() {
+                Value::BuiltInFunction(builtin)
+            } else {
+                bail!("{ident} could not be found in any scope")
+            },
+        )
     }
 }
 
@@ -662,5 +664,18 @@ mod test {
             value,
             "while continue outer at inner index 2"
         );
+    }
+
+    #[test]
+    fn builtin_functions() {
+        let mut vm = VM::new(true);
+
+        let bundle = VM::compile_str(r#"print"#).unwrap();
+        assert!(matches!(
+            vm.eval(&bundle.code),
+            Ok(Value::BuiltInFunction(Builtin::Print))
+        ));
+        let bundle = VM::compile_str(r#"let print = 0; print"#).unwrap();
+        assert!(matches!(vm.eval(&bundle.code), Ok(Value::Int(0))));
     }
 }

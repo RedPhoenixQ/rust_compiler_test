@@ -1,9 +1,6 @@
-use std::rc::Rc;
-
 use anyhow::{bail, Result};
-use ustr::Ustr;
 
-use crate::{value::Value, Scope, VM};
+use crate::{value::Value, VM};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Builtin {
@@ -11,20 +8,20 @@ pub enum Builtin {
     Dump,
 }
 
-impl From<Builtin> for Ustr {
-    fn from(value: Builtin) -> Self {
-        Ustr::from(match value {
-            Builtin::Print => "print",
-            Builtin::Dump => "dump",
+impl TryFrom<&str> for Builtin {
+    type Error = ();
+    fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
+        Ok(match value {
+            "print" => Self::Print,
+            "dump" => Self::Dump,
+            _ => return Err(()),
         })
     }
 }
 
-impl Builtin {
-    const VALUES: &'static [Self] = &[Self::Print, Self::Dump];
-
-    pub fn call(&self, vm: &mut VM, number_of_arguments: usize) -> Result<Value> {
-        match self {
+impl VM {
+    pub fn call_builtin(&mut self, builtin: Builtin, number_of_arguments: usize) -> Result<Value> {
+        match builtin {
             Builtin::Print => {
                 if number_of_arguments < 1 {
                     bail!("Print takes atleast one argument");
@@ -33,7 +30,7 @@ impl Builtin {
                     if i > 0 {
                         print!(", ")
                     }
-                    let value = vm.pop_eval_stack()?;
+                    let value = self.pop_eval_stack()?;
                     let Value::String(string) = value.as_string() else {
                         unreachable!("Value::as_string() should always return Value::String")
                     };
@@ -46,18 +43,9 @@ impl Builtin {
                 if number_of_arguments > 0 {
                     bail!("Dump does not take any arguments");
                 }
-                dbg!(vm);
+                dbg!(self);
                 Ok(Value::Undefined)
             }
         }
     }
-}
-
-pub fn get_builtins() -> Scope {
-    Scope::from_iter(Builtin::VALUES.iter().map(|&builtin| {
-        (
-            builtin.into(),
-            Rc::new(Value::BuiltInFunction(builtin).into()),
-        )
-    }))
 }
