@@ -24,7 +24,7 @@ pub struct Closure {
     pub scope: Scope,
 }
 
-pub type Variable = Rc<RefCell<Value>>;
+pub type Variable<T = Value> = Rc<RefCell<T>>;
 
 #[derive(Debug, Default, Clone)]
 pub enum Value {
@@ -32,6 +32,7 @@ pub enum Value {
     Float(f64),
     String(Ustr),
     Boolean(bool),
+    Array(Variable<Vec<Value>>),
     Function(Rc<Function>),
     Closure(Rc<Closure>),
     BuiltInFunction(Builtin),
@@ -93,6 +94,7 @@ impl Value {
             Value::Int(value) => *value != 0,
             Value::Float(value) => value.is_normal(),
             Value::Boolean(value) => *value,
+            Value::Array(vec) => !vec.borrow().is_empty(),
             Value::Function(_) => true,
             Value::Closure(_) => true,
             Value::BuiltInFunction(_) => true,
@@ -110,6 +112,7 @@ impl Value {
             Value::Int(value) => format!("{value}").into(),
             Value::Float(value) => format!("{value}").into(),
             Value::Boolean(value) => format!("{value}").into(),
+            Value::Array(_) => "array".into(),
             Value::Function(_) => "function".into(),
             Value::Closure(_) => "function".into(),
             Value::BuiltInFunction(_) => "function".into(),
@@ -125,11 +128,65 @@ impl Value {
             Self::Float(value) => (*value).into(),
             Self::Boolean(true) => 1.into(),
             Self::Boolean(false) => 0.into(),
+            Self::Array(_) => bail!("TypeError: Array can not be used as a number"),
             Self::Function(_) => bail!("TypeError: Function can not be used as a number"),
             Self::Closure(_) => bail!("TypeError: Function can not be used as a number"),
             Self::BuiltInFunction(_) => bail!("TypeError: Function can not be used as a number"),
-            Self::Undefined => 0.into(),
+            Self::Undefined => bail!("TypeError: Undefined can not be used as a number"),
         })
+    }
+
+    fn array_index(key: Value, array_len: usize) -> Result<usize> {
+        let index = match key.as_number()? {
+            Value::Float(float) => {
+                if float.is_nan() {
+                    bail!("NaN cannot be used to index an array")
+                }
+                float as i64
+            }
+            Value::Int(int) => int as i64,
+            _ => unreachable!("as_number() should always return a number"),
+        };
+        Ok(if index.is_negative() {
+            array_len.wrapping_sub(index.abs() as usize) % array_len
+        } else {
+            index as usize
+        })
+    }
+
+    pub fn get(&self, key: Value) -> Result<Value> {
+        match self {
+            Self::Array(vec) => {
+                let vec = vec.borrow();
+                let index = Self::array_index(key, vec.len())?;
+                vec.get(index).cloned().ok_or(anyhow::anyhow!(
+                    "Index out of bounds: Index {}, length {}",
+                    index,
+                    vec.len()
+                ))
+            }
+            _ => bail!("TypeError: Cannot access key {:?}, on {:?}", key, self),
+        }
+    }
+    pub fn set(&mut self, key: Value, value: Value) -> Result<()> {
+        match self {
+            Self::Array(vec) => {
+                let mut vec = vec.borrow_mut();
+                let length = vec.len();
+                let index = Self::array_index(key, length)?;
+                if length == index {
+                    // Allow pushing to array by setting the index after the last item
+                    vec.push(value);
+                } else {
+                    let current = vec.get_mut(index as usize).ok_or(anyhow::anyhow!(
+                        "Index out of bounds: Index {index}, length {length}",
+                    ))?;
+                    *current = value;
+                }
+            }
+            _ => bail!("TypeError: Cannot set key {:?}, on {:?}", key, self),
+        }
+        Ok(())
     }
 
     pub fn eval_unary_op(&self, operation: &UnaryOp) -> Result<Self> {

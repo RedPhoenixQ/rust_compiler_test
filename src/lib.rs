@@ -131,6 +131,11 @@ impl VM {
                     let value = self.get_ident_value(ident)?;
                     self.push_eval_stack(value);
                 }
+                Op::LoadKey => {
+                    let key = self.pop_eval_stack()?;
+                    let store = self.pop_eval_stack()?;
+                    self.push_eval_stack(store.get(key)?);
+                }
                 Op::LoadConst(value) => {
                     self.push_eval_stack(value.clone());
                 }
@@ -177,6 +182,12 @@ impl VM {
                         );
                     };
                     var.replace(value);
+                }
+                Op::StoreKey => {
+                    let key = self.pop_eval_stack()?;
+                    let value = self.pop_eval_stack()?;
+                    let mut store = self.pop_eval_stack()?;
+                    store.set(key, value)?;
                 }
                 Op::Jump(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");

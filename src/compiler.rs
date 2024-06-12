@@ -210,13 +210,18 @@ impl Compiler {
                 ));
             }
             Node::FunctionCall { calling, arguments } => {
-                for ast in arguments {
+                // Reverse the arguments in the call to make the topmost stack item the first argument
+                for ast in arguments.iter().rev() {
                     self.compile_node(&ast.node)?;
                 }
                 self.compile_node(&calling.node)?;
                 self.code.push(Op::Call(arguments.len()));
             }
-            Node::AccessKey { source, key } => todo!("Key access {key:?}, {source:?}"),
+            Node::AccessKey { source, key } => {
+                self.compile_node(&source.node)?;
+                self.compile_node(&key.node)?;
+                self.code.push(Op::LoadKey);
+            }
             Node::Assignment { ident, value } => {
                 self.compile_node(&value.node)?;
                 self.code.push(Op::Store(*ident))

@@ -21,6 +21,8 @@ pub enum Op {
     LoadFast(Ustr),
     /// Load local variable from outside scope
     Load(Ustr),
+    /// Load the value from the key (stack[-1]) from the value at stack[-2]
+    LoadKey,
 
     /// Load a constant from the current const array in the callstack onto the stack
     // TODO: Crate a const array for each scope to make each Op smaller
@@ -33,6 +35,8 @@ pub enum Op {
     StoreFast(Ustr),
     /// Store variable to first scope that contains the name
     Store(Ustr),
+    /// Store a value into a key on the storage. The stack should contain key, value then storage
+    StoreKey,
 
     /// Move the program counter relative to the current intruction
     Jump(usize),
