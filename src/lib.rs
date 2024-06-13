@@ -39,20 +39,15 @@ struct CallFrame {
 
 #[derive(Debug)]
 pub struct VM {
+    /// Should always contain atleast one frame, the global frame
     call_stack: Vec<CallFrame>,
-    global_scope: Scope,
-    global_eval: Vec<Value>,
-    global_block_stack: Vec<Block>,
     pub debug: bool,
 }
 
 impl VM {
     pub fn new(debug: bool) -> Self {
         VM {
-            call_stack: Vec::new(),
-            global_eval: Vec::new(),
-            global_block_stack: Vec::new(),
-            global_scope: Scope::default(),
+            call_stack: Vec::from([CallFrame::default()]),
             debug,
         }
     }
@@ -62,7 +57,7 @@ impl VM {
 
         self.eval(&bundle.code)?;
 
-        self.global_eval.pop().ok_or(anyhow::anyhow!(
+        self.current_frame().eval_stack.pop().ok_or(anyhow::anyhow!(
             "Expected atleast one value in the eval stack"
         ))
     }
@@ -138,28 +133,21 @@ impl VM {
                 }
                 Op::DeclareVar(ident) => {
                     let value = self.pop_eval_stack()?;
-                    let scope = if let Some(frame) = self.call_stack.last_mut() {
-                        &mut frame.locals
-                    } else {
-                        &mut self.global_scope
-                    };
-                    if let Some(var) = scope.get_mut(ident) {
+                    let frame = self.current_frame();
+                    if let Some(var) = frame.locals.get_mut(ident) {
                         var.replace(value);
                     } else {
-                        scope.insert(*ident, value.into());
+                        frame.locals.insert(*ident, value.into());
                     }
                 }
                 Op::Store(ident) => {
                     let value = self.pop_eval_stack()?;
-                    let Some(var) = (match self
+                    let Some(var) = self
                         .call_stack
                         .iter_mut()
                         .rev()
                         .find_map(|frame| frame.locals.get(ident))
-                    {
-                        Some(var) => Some(var),
-                        None => self.global_scope.get(ident),
-                    }) else {
+                    else {
                         bail!(
                             "Cannot assign to an undeclared variable, tried to assign to {ident}",
                         );
@@ -188,12 +176,10 @@ impl VM {
                 }
                 Op::PushDown(down) => {
                     let value = self.pop_eval_stack()?;
-                    let stack = if let Some(frame) = self.call_stack.last_mut() {
-                        &mut frame.eval_stack
-                    } else {
-                        &mut self.global_eval
-                    };
-                    stack.insert(stack.len() - down, value);
+                    let frame = self.current_frame();
+                    frame
+                        .eval_stack
+                        .insert(frame.eval_stack.len() - down, value);
                 }
                 Op::Jump(jump) => {
                     assert_ne!(*jump, 0, "An invalid jump to 0 was present in the code");
@@ -229,11 +215,7 @@ impl VM {
                     self.push_eval_stack(value);
                 }
                 Op::PushBlock(block) => {
-                    let block_stack = match self.call_stack.last_mut() {
-                        Some(frame) => &mut frame.block_stack,
-                        None => &mut self.global_block_stack,
-                    };
-
+                    let frame = self.current_frame();
                     let block = match block {
                         BlockType::Loop { label, loop_length } => Block::Loop {
                             label: *label,
@@ -241,14 +223,11 @@ impl VM {
                             end_index: pc + loop_length,
                         },
                     };
-                    block_stack.push(block);
+                    frame.block_stack.push(block);
                 }
                 Op::PopBlock => {
-                    let block_stack = match self.call_stack.last_mut() {
-                        Some(frame) => &mut frame.block_stack,
-                        None => &mut self.global_block_stack,
-                    };
-                    block_stack.pop();
+                    let frame = self.current_frame();
+                    frame.block_stack.pop();
                 }
                 Op::BuildArray(number_of_elements) => {
                     let mut vec = Vec::with_capacity(*number_of_elements);
@@ -278,15 +257,12 @@ impl VM {
                                 // Skip ident lookup for 'self' which is used to reference the object of a closure
                                 continue;
                             }
-                            if let Some(var) = match self
+                            if let Some(var) = self
                                 .call_stack
                                 .iter()
                                 .rev()
                                 .find_map(|frame| frame.locals.get(ident).cloned())
                             {
-                                Some(var) => Some(var),
-                                None => self.global_scope.get(ident).cloned(),
-                            } {
                                 scope.insert(*ident, var);
                             };
                         }
@@ -402,33 +378,28 @@ impl VM {
                 }
                 Op::Return => return Ok(self.pop_eval_stack().unwrap_or(Value::Undefined)),
                 Op::Break(break_label) => {
-                    let block_stack = if let Some(frame) = self.call_stack.last_mut() {
-                        &mut frame.block_stack
-                    } else {
-                        &mut self.global_block_stack
-                    };
-                    let Some(end_index) = block_stack.iter().rev().find_map(|block| match block {
-                        Block::Loop {
-                            label, end_index, ..
-                        } if break_label.is_none()
-                            || matches!(label, Some(label) if label == &break_label.unwrap()) =>
-                        {
-                            Some(*end_index)
+                    let frame = self.current_frame();
+
+                    let Some(end_index) = frame.block_stack.iter().rev().find_map(|block| {
+                        match block {
+                            Block::Loop {
+                                label, end_index, ..
+                            } if break_label.is_none()
+                                || matches!(label, Some(label) if label == &break_label.unwrap()) =>
+                            {
+                                Some(*end_index)
+                            }
+                            _ => None,
                         }
-                        _ => None,
                     }) else {
                         bail!("Cannot break outside a loop")
                     };
                     pc = end_index;
                 }
                 Op::Continue(continue_label) => {
-                    let block_stack = if let Some(frame) = self.call_stack.last_mut() {
-                        &mut frame.block_stack
-                    } else {
-                        &mut self.global_block_stack
-                    };
+                    let frame = self.current_frame();
                     let Some(start_index) =
-                        block_stack.iter().rev().find_map(|block| match block {
+                        frame.block_stack.iter().rev().find_map(|block| match block {
                             Block::Loop {
                                 label, start_index, ..
                             } if continue_label.is_none()
@@ -449,31 +420,26 @@ impl VM {
         Ok(self.pop_eval_stack().unwrap_or(Value::Undefined))
     }
 
+    fn current_frame(&mut self) -> &mut CallFrame {
+        self.call_stack
+            .last_mut()
+            .expect("Atleast one CallFrame to exist on the call_stack")
+    }
+
     fn peek_eval_stack(&mut self) -> Option<&Value> {
-        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
-            &mut frame.eval_stack
-        } else {
-            &mut self.global_eval
-        };
-        eval_stack.last()
+        let frame = self.current_frame();
+        frame.eval_stack.last()
     }
     fn pop_eval_stack(&mut self) -> Result<Value> {
-        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
-            &mut frame.eval_stack
-        } else {
-            &mut self.global_eval
-        };
-        eval_stack
+        let frame = self.current_frame();
+        frame
+            .eval_stack
             .pop()
             .ok_or(anyhow::anyhow!("Eval stack to not be empty"))
     }
     fn push_eval_stack(&mut self, value: Value) {
-        let eval_stack = if let Some(frame) = self.call_stack.last_mut() {
-            &mut frame.eval_stack
-        } else {
-            &mut self.global_eval
-        };
-        eval_stack.push(value);
+        let frame = self.current_frame();
+        frame.eval_stack.push(value);
     }
 
     fn get_ident_value(&self, ident: &ustr::Ustr) -> Result<Value> {
@@ -484,8 +450,6 @@ impl VM {
                 .rev()
                 .find_map(|frame| frame.locals.get(ident))
             {
-                var.borrow().clone()
-            } else if let Some(var) = self.global_scope.get(ident) {
                 var.borrow().clone()
             } else if let Ok(builtin) = ident.as_str().try_into() {
                 Value::BuiltInFunction(builtin)
