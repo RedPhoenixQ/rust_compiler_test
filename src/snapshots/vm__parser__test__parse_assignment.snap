@@ -12,7 +12,17 @@ Ok(
         },
         Ast {
             node: Assignment {
-                ident: u!("yeet"),
+                to: Ast {
+                    node: Ident(
+                        u!("yeet"),
+                    ),
+                    span: LocatedSpan {
+                        offset: 0,
+                        line: 1,
+                        fragment: "yeet",
+                        extra: (),
+                    },
+                },
                 value: Ast {
                     node: Literal(
                         Int(
@@ -26,6 +36,7 @@ Ok(
                         extra: (),
                     },
                 },
+                operation: None,
             },
             span: LocatedSpan {
                 offset: 0,

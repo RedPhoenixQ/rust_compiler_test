@@ -12,42 +12,33 @@ Ok(
         },
         Ast {
             node: Assignment {
-                ident: u!("yeet"),
-                value: Ast {
-                    node: BinaryOp(
-                        Sub,
-                        Ast {
-                            node: Ident(
-                                u!("yeet"),
-                            ),
-                            span: LocatedSpan {
-                                offset: 0,
-                                line: 1,
-                                fragment: "yeet",
-                                extra: (),
-                            },
-                        },
-                        Ast {
-                            node: Literal(
-                                Int(
-                                    123,
-                                ),
-                            ),
-                            span: LocatedSpan {
-                                offset: 8,
-                                line: 1,
-                                fragment: "123",
-                                extra: (),
-                            },
-                        },
+                to: Ast {
+                    node: Ident(
+                        u!("yeet"),
                     ),
                     span: LocatedSpan {
                         offset: 0,
                         line: 1,
-                        fragment: "yeet -= 123",
+                        fragment: "yeet",
                         extra: (),
                     },
                 },
+                value: Ast {
+                    node: Literal(
+                        Int(
+                            123,
+                        ),
+                    ),
+                    span: LocatedSpan {
+                        offset: 8,
+                        line: 1,
+                        fragment: "123",
+                        extra: (),
+                    },
+                },
+                operation: Some(
+                    Sub,
+                ),
             },
             span: LocatedSpan {
                 offset: 0,

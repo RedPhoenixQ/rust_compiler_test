@@ -71,42 +71,33 @@ Ok(
                 body: [
                     Ast {
                         node: Assignment {
-                            ident: u!("a"),
-                            value: Ast {
-                                node: BinaryOp(
-                                    Add,
-                                    Ast {
-                                        node: Ident(
-                                            u!("a"),
-                                        ),
-                                        span: LocatedSpan {
-                                            offset: 69,
-                                            line: 4,
-                                            fragment: "a",
-                                            extra: (),
-                                        },
-                                    },
-                                    Ast {
-                                        node: Literal(
-                                            Int(
-                                                1,
-                                            ),
-                                        ),
-                                        span: LocatedSpan {
-                                            offset: 74,
-                                            line: 4,
-                                            fragment: "1",
-                                            extra: (),
-                                        },
-                                    },
+                            to: Ast {
+                                node: Ident(
+                                    u!("a"),
                                 ),
                                 span: LocatedSpan {
                                     offset: 69,
                                     line: 4,
-                                    fragment: "a += 1",
+                                    fragment: "a",
                                     extra: (),
                                 },
                             },
+                            value: Ast {
+                                node: Literal(
+                                    Int(
+                                        1,
+                                    ),
+                                ),
+                                span: LocatedSpan {
+                                    offset: 74,
+                                    line: 4,
+                                    fragment: "1",
+                                    extra: (),
+                                },
+                            },
+                            operation: Some(
+                                Add,
+                            ),
                         },
                         span: LocatedSpan {
                             offset: 69,
