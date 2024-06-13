@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 
 mod builtins;
 mod bytecode;
@@ -57,14 +57,15 @@ impl VM {
 
         self.eval(&bundle.code)?;
 
-        self.current_frame().eval_stack.pop().ok_or(anyhow::anyhow!(
-            "Expected atleast one value in the eval stack"
-        ))
+        self.current_frame()
+            .eval_stack
+            .pop()
+            .ok_or(anyhow!("Expected atleast one value in the eval stack"))
     }
 
     pub fn compile_str(input: &str) -> Result<Bundle> {
         let ast = parser::parse_code(input).map_err(|e| {
-            anyhow::anyhow!(
+            anyhow!(
                 "{}",
                 e.map_locations(|span| {
                     let line_skip = span.location_line().saturating_sub(3);
@@ -168,7 +169,7 @@ impl VM {
                 Op::Duplicate => {
                     let value = self
                         .peek_eval_stack()
-                        .ok_or(anyhow::anyhow!(
+                        .ok_or(anyhow!(
                             "Stack should contain atleast one item to duplicate"
                         ))?
                         .clone();
@@ -435,14 +436,14 @@ impl VM {
         frame
             .eval_stack
             .pop()
-            .ok_or(anyhow::anyhow!("Eval stack to not be empty"))
+            .ok_or(anyhow!("Eval stack to not be empty"))
     }
     fn push_eval_stack(&mut self, value: Value) {
         let frame = self.current_frame();
         frame.eval_stack.push(value);
     }
 
-    fn get_ident_value(&self, ident: &ustr::Ustr) -> Result<Value> {
+    fn get_ident_value(&self, ident: &Ustr) -> Result<Value> {
         Ok(
             if let Some(var) = self
                 .call_stack
