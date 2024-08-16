@@ -69,7 +69,7 @@ impl Compiler {
             }
             Node::Literal(value) => self.code.push(Op::LoadConst(value.clone())),
             Node::ArrayLiteral(array) => {
-                for ast in array {
+                for ast in array.into_iter().rev() {
                     self.compile_node(&ast.node)?;
                 }
                 self.code.push(Op::BuildArray(array.len()));
