@@ -1,0 +1,21 @@
+let fib_cache = [0,1];
+fn fib(n) {
+    if (n < 0) {
+        return 0;
+    }
+    let i = fib_cache.len();
+    while (i <= n) {
+        fib_cache[i] = fib_cache[i-1] + fib_cache[i-2];
+        i += 1;
+    }
+    return fib_cache[n];
+}
+
+fn fib_rec(n) {
+    if (n <= 0) {
+        return 0;
+    } else if (n == 1) {
+        return 1;
+    }
+    return fib_rec(n-1) + fib_rec(n-2);
+}
