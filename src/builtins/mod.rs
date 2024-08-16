@@ -6,6 +6,7 @@ use crate::{value::Value, VM};
 pub enum Builtin {
     Print,
     Dump,
+    Assert
 }
 
 impl TryFrom<&str> for Builtin {
@@ -14,6 +15,7 @@ impl TryFrom<&str> for Builtin {
         Ok(match value {
             "print" => Self::Print,
             "dump" => Self::Dump,
+            "assert" => Self::Assert,
             _ => return Err(()),
         })
     }
@@ -44,6 +46,23 @@ impl VM {
                     bail!("Dump does not take any arguments");
                 }
                 dbg!(self);
+                Ok(Value::Undefined)
+            }
+            Builtin::Assert => {
+                let (pred, msg) = match number_of_arguments {
+                    1 => (self.pop_eval_stack()?, None),
+                    2 => (self.pop_eval_stack()?, Some(self.pop_eval_stack()?.as_str())),
+                    0 => bail!("Assert takes atleast one predicate and optionally an error message"),
+                    _ => bail!("Assert takes no more than 2 arguments"),
+                };
+                if !pred.is_truthy() {
+                    if let Some(msg) = msg {
+                        eprintln!("Assertion failed: {}", msg);
+                    } else {
+                        eprintln!("Assertion failed")
+                    }
+                }
+
                 Ok(Value::Undefined)
             }
         }
