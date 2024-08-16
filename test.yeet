@@ -4,7 +4,8 @@ fn a(b, c) {
   return result;
 }
 let else;
-a(2, 3);
-a(1, 1);
+assert(a(2, 3) == 5, "2+3=5");
+assert(a(1, 1) == 2, "1+1=2");
+assert(a(10, 10) == 0, "This should fail");
 
 dump();

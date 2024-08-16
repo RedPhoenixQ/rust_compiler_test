@@ -19,3 +19,12 @@ fn fib_rec(n) {
     }
     return fib_rec(n-1) + fib_rec(n-2);
 }
+
+assert(fib(0) == 0);
+assert(fib(1) == 1);
+assert(fib(2) == 1);
+assert(fib(10) == 55);
+assert(fib_rec(0) == 0);
+assert(fib_rec(1) == 1);
+assert(fib_rec(2) == 1);
+assert(fib_rec(10) == 55);

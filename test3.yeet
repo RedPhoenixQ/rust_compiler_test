@@ -15,3 +15,5 @@ a.increment();
 a.increment();
 print("a: " + a.get());
 print("b: " + b.get());
+assert(a.get() == 2, "A was not incremented");
+assert(b.get() == 0, "B should not have been incremented");

@@ -18,3 +18,5 @@ a();
 a();
 print("a: " + a(true));
 print("b: " + b(true));
+assert(a(true) == 2, "A was not incremented");
+assert(b(true) == 0, "B should not have been incremented");
